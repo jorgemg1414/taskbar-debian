@@ -14,9 +14,10 @@ extensiones (ESM, GNOME 45+): `import ... from 'gi://…'`, clase que extiende
 
 ## Contenido
 
-| Carpeta | Extensión | Qué hace |
-|---|---|---|
-| [`vnc-menu@jorgemg1414/`](vnc-menu@jorgemg1414/) | **VNC Menu** | Menú en la barra superior con tus conexiones VNC guardadas, agrupadas y con indicador de disponibilidad |
+| Carpeta | Contenido |
+|---|---|
+| [`vnc-menu@jorgemg1414/`](vnc-menu@jorgemg1414/) | **VNC Menu** — menú en la barra superior con tus conexiones VNC guardadas, agrupadas y con indicador de disponibilidad |
+| [`herramientas/`](herramientas/) | Scripts para convertir archivos `.vnc` en perfiles de Remmina y guardar su contraseña en el llavero de GNOME |
 
 ---
 
@@ -60,6 +61,37 @@ son archivos de una carpeta y basta con editarlos. Está explicado paso a paso e
 
 Documentación completa (formatos, ajustes, depuración):
 **[vnc-menu@jorgemg1414/README.es.md](vnc-menu@jorgemg1414/README.es.md)**
+
+---
+
+## Herramientas
+
+Los archivos `.vnc` llevan la contraseña cifrada con la clave propia de RealVNC,
+que Remmina no puede aprovechar: por eso te la pide en cada conexión. Estos
+scripts lo resuelven de una vez:
+
+```bash
+cd herramientas && ./vnc-a-remmina.sh
+```
+
+Crea un perfil `.remmina` por cada `.vnc` (nombre, servidor, usuario y grupo) en
+`~/.config/remmina`. No copia ninguna contraseña.
+
+```bash
+./guardar-password.sh
+```
+
+Pide una contraseña una sola vez, sin mostrarla, y la guarda en el llavero de
+GNOME para todos los perfiles, con el mismo esquema `org.remmina.Password` que
+lee Remmina. Si le pasas rutas de perfiles, solo hace esos. La contraseña viaja
+por una tubería y nunca como argumento, así que no aparece en `ps` ni en el
+historial del intérprete.
+
+Después, apunta la extensión a los perfiles:
+
+```bash
+gsettings --schemadir ~/.local/share/gnome-shell/extensions/vnc-menu@jorgemg1414/schemas set org.gnome.shell.extensions.vnc-menu connections-dir '~/.config/remmina'
+```
 
 ---
 
@@ -128,6 +160,7 @@ Si dice «no existe» después de instalarla, es que falta reiniciar la sesión.
 
 ```
 taskbar-debian/
+├── herramientas/          Scripts auxiliares (ver arriba)
 └── vnc-menu@jorgemg1414/
     ├── extension.js       Indicador, menú, lanzamiento y limpieza en disable()
     ├── connections.js     Escaneo asíncrono de la carpeta y parser de conexiones

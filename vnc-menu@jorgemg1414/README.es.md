@@ -215,8 +215,12 @@ parámetros del archivo:
 
 Así la contraseña no sale nunca del archivo. **No pongas contraseñas en el
 comando**: quedarían visibles en `ps` para cualquier proceso de tu sesión y en
-claro dentro de `~/.config/dconf`. La otra opción limpia es un perfil
-`.remmina`, que guarda la credencial en el llavero de GNOME.
+claro dentro de `~/.config/dconf`.
+
+La otra opción limpia es usar perfiles `.remmina`, que guardan la credencial en
+el llavero de GNOME. En [`herramientas/`](../herramientas/) hay dos scripts que
+convierten tus `.vnc` en perfiles de Remmina y guardan la contraseña en el
+llavero preguntándola una sola vez.
 
 ---
 

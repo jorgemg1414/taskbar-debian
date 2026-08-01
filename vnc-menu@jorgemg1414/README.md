@@ -213,8 +213,12 @@ Connect Viewer, whose `-config` option loads every parameter from the file:
 
 That way the password never leaves the file. **Never put passwords in the
 command**: they would be visible in `ps` to any process in your session, and
-stored in cleartext under `~/.config/dconf`. The other clean option is a
-`.remmina` profile, which keeps the credential in the GNOME keyring.
+stored in cleartext under `~/.config/dconf`.
+
+The other clean option is `.remmina` profiles, which keep the credential in the
+GNOME keyring. [`herramientas/`](../herramientas/) holds two scripts that turn
+your `.vnc` files into Remmina profiles and store the password in the keyring,
+asking for it just once.
 
 ---
 

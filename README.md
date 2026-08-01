@@ -13,9 +13,10 @@ The code is written against the modern extension API (ESM, GNOME 45+):
 
 ## Contents
 
-| Folder | Extension | What it does |
-|---|---|---|
-| [`vnc-menu@jorgemg1414/`](vnc-menu@jorgemg1414/) | **VNC Menu** | Top bar menu listing your saved VNC connections, grouped, with a reachability indicator |
+| Folder | Contents |
+|---|---|
+| [`vnc-menu@jorgemg1414/`](vnc-menu@jorgemg1414/) | **VNC Menu** — top bar menu listing your saved VNC connections, grouped, with a reachability indicator |
+| [`herramientas/`](herramientas/) | Helper scripts: turn `.vnc` files into Remmina profiles and store their password in the GNOME keyring |
 
 ---
 
@@ -57,6 +58,37 @@ they are just files in a folder. Step by step in
 
 Full documentation (formats, settings, troubleshooting):
 **[vnc-menu@jorgemg1414/README.md](vnc-menu@jorgemg1414/README.md)**
+
+---
+
+## Helper scripts
+
+`.vnc` files carry their password encrypted with RealVNC's own key, which
+Remmina cannot use — so Remmina asks for it on every connection. These scripts
+fix that once and for all:
+
+```bash
+cd herramientas && ./vnc-a-remmina.sh
+```
+
+Creates one `.remmina` profile per `.vnc` file (name, server, username, group)
+in `~/.config/remmina`. No passwords are copied.
+
+```bash
+./guardar-password.sh
+```
+
+Asks for a password once, without echoing it, and stores it in the GNOME
+keyring for every profile — using the same `org.remmina.Password` schema Remmina
+reads from. Pass profile paths as arguments to do only some of them. The
+password is piped in, never passed as an argument, so it never shows up in `ps`
+or your shell history.
+
+Then point the extension at the profiles:
+
+```bash
+gsettings --schemadir ~/.local/share/gnome-shell/extensions/vnc-menu@jorgemg1414/schemas set org.gnome.shell.extensions.vnc-menu connections-dir '~/.config/remmina'
+```
 
 ---
 
@@ -125,6 +157,7 @@ If it says it doesn't exist after installing, the session still needs a restart.
 
 ```
 taskbar-debian/
+├── herramientas/          Helper scripts (see above)
 └── vnc-menu@jorgemg1414/
     ├── extension.js       Indicator, menu, client launching, teardown in disable()
     ├── connections.js     Async folder scanning and connection file parsing
