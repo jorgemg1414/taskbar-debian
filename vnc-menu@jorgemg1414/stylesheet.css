@@ -37,6 +37,17 @@
     margin-left: 14px;
 }
 
+/* Campo de búsqueda al principio del menú. */
+.vnc-buscador {
+    margin: 2px 0 6px 0;
+    min-width: 220px;
+}
+
+.vnc-buscador-icono {
+    icon-size: 16px;
+    margin-right: 6px;
+}
+
 /* Avisos: carpeta inexistente, sin conexiones, cargando… */
 .vnc-aviso {
     color: rgba(255, 255, 255, 0.7);

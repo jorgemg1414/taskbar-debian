@@ -45,6 +45,22 @@ export default class VncMenuPreferences extends ExtensionPreferences {
         settings.bind('panel-icon', filaIcono, 'text', Gio.SettingsBindFlags.DEFAULT);
         grupoCarpeta.add(filaIcono);
 
+        const filaBuscador = new Adw.SwitchRow({
+            title: _('Buscador en el menú'),
+            subtitle: _('Filtra las conexiones al escribir. Intro conecta con la primera.'),
+        });
+        settings.bind('enable-search', filaBuscador, 'active', Gio.SettingsBindFlags.DEFAULT);
+        grupoCarpeta.add(filaBuscador);
+
+        const filaUmbral = new Adw.SpinRow({
+            title: _('Mostrarlo a partir de'),
+            subtitle: _('Número de conexiones necesarias para que aparezca el buscador.'),
+            adjustment: new Gtk.Adjustment({lower: 0, upper: 500, step_increment: 1, page_increment: 10}),
+        });
+        settings.bind('search-threshold', filaUmbral, 'value', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('enable-search', filaUmbral, 'sensitive', Gio.SettingsBindFlags.GET);
+        grupoCarpeta.add(filaUmbral);
+
         /* -------------------------- Comandos -------------------------- */
         const grupoComandos = new Adw.PreferencesGroup({
             title: _('Comandos'),

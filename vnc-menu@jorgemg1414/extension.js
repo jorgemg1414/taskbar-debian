@@ -100,6 +100,59 @@ class ItemConexion extends PopupMenu.PopupBaseMenuItem {
 });
 
 /* -------------------------------------------------------------------------
+ * Campo de búsqueda para filtrar las conexiones escribiendo
+ * ------------------------------------------------------------------------- */
+const ItemBuscador = GObject.registerClass(
+class ItemBuscador extends PopupMenu.PopupBaseMenuItem {
+    /**
+     * @param {object} opciones opciones del buscador
+     * @param {string} opciones.texto texto inicial del filtro
+     * @param {Function} opciones.alEscribir callback con el texto escrito
+     * @param {Function} opciones.alAceptar callback al pulsar Intro
+     */
+    _init({texto = '', alEscribir, alAceptar}) {
+        // No es activable ni enfocable: el foco lo lleva el campo de texto.
+        super._init({reactive: false, activate: false, hover: false, can_focus: false});
+
+        this.entrada = new St.Entry({
+            style_class: 'vnc-buscador',
+            hint_text: _('Buscar conexión…'),
+            can_focus: true,
+            x_expand: true,
+        });
+        this.entrada.set_primary_icon(new St.Icon({
+            style_class: 'vnc-buscador-icono',
+            icon_name: 'edit-find-symbolic',
+        }));
+        this.entrada.set_text(texto);
+        this.add_child(this.entrada);
+
+        this.entrada.clutter_text.connect('text-changed',
+            () => alEscribir(this.entrada.get_text()));
+
+        // Intro conecta con la primera coincidencia visible.
+        this.entrada.clutter_text.connect('activate', () => alAceptar());
+
+        // Escape limpia el filtro; si ya está vacío, deja que el menú se cierre.
+        this.entrada.clutter_text.connect('key-press-event', (_actor, evento) => {
+            if (evento.get_key_symbol() === Clutter.KEY_Escape &&
+                this.entrada.get_text() !== '') {
+                this.entrada.set_text('');
+                return Clutter.EVENT_STOP;
+            }
+            return Clutter.EVENT_PROPAGATE;
+        });
+    }
+
+    /**
+     * Pone el foco del teclado en el campo de texto.
+     */
+    enfocar() {
+        this.entrada.grab_key_focus();
+    }
+});
+
+/* -------------------------------------------------------------------------
  * Elemento de acción que NO cierra el menú al pulsarlo
  * ------------------------------------------------------------------------- */
 const ItemAccionPersistente = GObject.registerClass(
@@ -147,9 +200,14 @@ class IndicadorVnc extends PanelMenu.Button {
         this._motivoVacio = null;       // 'inexistente' | 'vacia' | null
         this._monitores = [];           // {monitor, handlerId}
         this._idsSettings = [];
+        this._cabeceras = [];           // {cabecera, items} por grupo, para filtrar
+        this._buscador = null;          // ItemBuscador, si procede
+        this._itemSinCoincidencias = null;
+        this._textoFiltro = '';
         this._idRecarga = 0;            // timeout de rebote del FileMonitor
         this._idIntervaloMenu = 0;      // refresco mientras el menú está abierto
         this._idIntervaloFondo = 0;     // comprobación con el menú cerrado
+        this._idFoco = 0;               // idle para enfocar el buscador
         this._cancellable = new Gio.Cancellable();
         this._destruido = false;
 
@@ -199,6 +257,8 @@ class IndicadorVnc extends PanelMenu.Button {
 
         conectar('connections-dir', () => this.recargar());
         conectar('show-host', () => this._reconstruirMenu());
+        conectar('enable-search', () => this._reconstruirMenu());
+        conectar('search-threshold', () => this._reconstruirMenu());
         conectar('panel-icon', () =>
             (this._icono.icon_name = this._settings.get_string('panel-icon')));
         conectar('check-timeout', () =>
@@ -323,6 +383,17 @@ class IndicadorVnc extends PanelMenu.Button {
      * mientras siga abierto.
      */
     _alAbrirMenu() {
+        // El foco se pide en cuanto el menú termina de abrirse; hacerlo antes
+        // no funciona porque la animación todavía está reordenando el foco.
+        if (this._buscador && !this._idFoco) {
+            this._idFoco = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                this._idFoco = 0;
+                if (!this._destruido && this.menu.isOpen)
+                    this._buscador?.enfocar();
+                return GLib.SOURCE_REMOVE;
+            });
+        }
+
         if (!this._settings.get_boolean('enable-checks'))
             return;
 
@@ -337,6 +408,13 @@ class IndicadorVnc extends PanelMenu.Button {
     _alCerrarMenu() {
         this._pararIntervaloMenu();
         this._comprobador.cancelarPendientes();
+
+        // El filtro no sobrevive al cierre: al reabrir se ve la lista completa.
+        if (this._textoFiltro) {
+            this._textoFiltro = '';
+            this._buscador?.entrada.set_text('');
+            this._aplicarFiltro('');
+        }
     }
 
     /**
@@ -392,6 +470,11 @@ class IndicadorVnc extends PanelMenu.Button {
     _reconstruirMenu() {
         this.menu.removeAll();
         this._items.clear();
+        this._cabeceras = [];
+        this._buscador = null;
+        this._itemSinCoincidencias = null;
+
+        this._pintarBuscador();
 
         if (this._motivoVacio === 'inexistente') {
             this._itemInformativo(_('No se encontró la carpeta:'));
@@ -430,9 +513,12 @@ class IndicadorVnc extends PanelMenu.Button {
 
         let primero = true;
         for (const grupo of grupos) {
+            const itemsDelGrupo = [];
+
             // El separador con texto hace de cabecera del grupo.
+            let cabecera = null;
             if (hayVariosGrupos) {
-                const cabecera = new PopupMenu.PopupSeparatorMenuItem(grupo.nombre);
+                cabecera = new PopupMenu.PopupSeparatorMenuItem(grupo.nombre);
                 if (primero)
                     cabecera.add_style_class_name('vnc-primera-cabecera');
                 this.menu.addMenuItem(cabecera);
@@ -448,6 +534,89 @@ class IndicadorVnc extends PanelMenu.Button {
                 item.connect('activate', () => this._conectar(conexion));
                 this.menu.addMenuItem(item);
                 this._items.set(conexion.id, item);
+                itemsDelGrupo.push(item);
+            }
+
+            if (cabecera)
+                this._cabeceras.push({cabecera, items: itemsDelGrupo});
+        }
+
+        // Aviso que solo se ve cuando el filtro no encuentra nada.
+        this._itemSinCoincidencias = new PopupMenu.PopupMenuItem(
+            _('Ninguna conexión coincide'), {reactive: false, style_class: 'vnc-aviso'});
+        this._itemSinCoincidencias.visible = false;
+        this.menu.addMenuItem(this._itemSinCoincidencias);
+
+        // Si se venía filtrando (p. ej. tras recargar), se mantiene el filtro.
+        if (this._textoFiltro)
+            this._aplicarFiltro(this._textoFiltro);
+    }
+
+    /* --------------------------- Búsqueda ---------------------------- */
+
+    /**
+     * Añade el campo de búsqueda si hay suficientes conexiones.
+     */
+    _pintarBuscador() {
+        if (!this._settings.get_boolean('enable-search'))
+            return;
+        if (this._conexiones.length < this._settings.get_int('search-threshold'))
+            return;
+
+        this._buscador = new ItemBuscador({
+            texto: this._textoFiltro,
+            alEscribir: texto => this._aplicarFiltro(texto),
+            alAceptar: () => this._activarPrimeraVisible(),
+        });
+        this.menu.addMenuItem(this._buscador);
+    }
+
+    /**
+     * Quita acentos y mayúsculas para que la búsqueda sea tolerante.
+     *
+     * @param {string} texto texto a normalizar
+     * @returns {string} texto comparable
+     */
+    _normalizar(texto) {
+        return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    }
+
+    /**
+     * Oculta las conexiones que no coinciden, y con ellas las cabeceras de los
+     * grupos que quedan vacíos.
+     *
+     * @param {string} texto texto del filtro
+     */
+    _aplicarFiltro(texto) {
+        this._textoFiltro = texto;
+        const busqueda = this._normalizar(texto).trim();
+
+        let visibles = 0;
+        for (const item of this._items.values()) {
+            const {nombre, host, grupo} = item.conexion;
+            // Se busca por nombre, host y grupo: así vale tanto "mapelo" como "10.10".
+            const heno = this._normalizar(`${nombre} ${host} ${grupo}`);
+            const coincide = busqueda === '' || heno.includes(busqueda);
+            item.visible = coincide;
+            if (coincide)
+                visibles++;
+        }
+
+        for (const {cabecera, items} of this._cabeceras)
+            cabecera.visible = items.some(item => item.visible);
+
+        if (this._itemSinCoincidencias)
+            this._itemSinCoincidencias.visible = visibles === 0;
+    }
+
+    /**
+     * Lanza la primera conexión visible (Intro en el buscador).
+     */
+    _activarPrimeraVisible() {
+        for (const item of this._items.values()) {
+            if (item.visible) {
+                item.activate(Clutter.get_current_event());
+                return;
             }
         }
     }
@@ -581,6 +750,10 @@ class IndicadorVnc extends PanelMenu.Button {
             GLib.source_remove(this._idIntervaloFondo);
             this._idIntervaloFondo = 0;
         }
+        if (this._idFoco) {
+            GLib.source_remove(this._idFoco);
+            this._idFoco = 0;
+        }
 
         // Escaneos y comprobaciones de red pendientes.
         this._cancellable.cancel();
@@ -599,6 +772,9 @@ class IndicadorVnc extends PanelMenu.Button {
         }
 
         this._items.clear();
+        this._cabeceras = [];
+        this._buscador = null;
+        this._itemSinCoincidencias = null;
         this._conexiones = [];
         this._settings = null;
         this._extension = null;

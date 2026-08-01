@@ -74,6 +74,24 @@
       <description>Segundos que se espera a que el puerto responda antes de marcarlo como caído.</description>
     </key>
 
+    <key name="enable-search" type="b">
+      <default>true</default>
+      <summary>Buscador en el menú</summary>
+      <description>
+        Muestra un campo de búsqueda al principio del menú cuando hay muchas
+        conexiones, para filtrar escribiendo.
+      </description>
+    </key>
+
+    <key name="search-threshold" type="i">
+      <range min="0" max="500"/>
+      <default>8</default>
+      <summary>Conexiones a partir de las cuales aparece el buscador</summary>
+      <description>
+        Número mínimo de conexiones para que se muestre el campo de búsqueda.
+      </description>
+    </key>
+
     <key name="show-host" type="b">
       <default>true</default>
       <summary>Mostrar host:puerto</summary>
