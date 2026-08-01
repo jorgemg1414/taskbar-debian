@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.vnc-menu"
+          path="/org/gnome/shell/extensions/vnc-menu/">
+
+    <key name="connections-dir" type="s">
+      <default>'~/Documentos/VNC'</default>
+      <summary>Carpeta de conexiones</summary>
+      <description>
+        Carpeta donde se buscan los archivos de conexión (.vnc, .remmina).
+        Se admite ~ como atajo de la carpeta personal.
+      </description>
+    </key>
+
+    <key name="vnc-command" type="s">
+      <default>'remmina -c vnc://%h:%p'</default>
+      <summary>Comando para conexiones VNC</summary>
+      <description>
+        Plantilla del comando que se ejecuta para un archivo .vnc.
+        Sustituciones: %h = host, %p = puerto, %u = usuario, %n = nombre, %f = ruta del archivo.
+        Si el programa no está instalado se usan alternativas automáticas
+        (vncviewer, xtigervncviewer).
+      </description>
+    </key>
+
+    <key name="remmina-command" type="s">
+      <default>'remmina -c %f'</default>
+      <summary>Comando para archivos .remmina</summary>
+      <description>
+        Plantilla del comando que se ejecuta para un archivo .remmina.
+        Sustituciones: las mismas que en vnc-command.
+      </description>
+    </key>
+
+    <key name="file-manager-command" type="s">
+      <default>'nautilus %f'</default>
+      <summary>Comando para abrir la carpeta</summary>
+      <description>
+        Plantilla del comando de «Abrir carpeta». %f se sustituye por la ruta de la carpeta.
+      </description>
+    </key>
+
+    <key name="enable-checks" type="b">
+      <default>true</default>
+      <summary>Comprobar disponibilidad</summary>
+      <description>Muestra un punto verde/rojo según si el puerto responde.</description>
+    </key>
+
+    <key name="check-interval" type="i">
+      <range min="10" max="3600"/>
+      <default>60</default>
+      <summary>Intervalo de comprobación (segundos)</summary>
+      <description>Cada cuántos segundos se vuelve a comprobar el estado de los hosts.</description>
+    </key>
+
+    <key name="check-timeout" type="i">
+      <range min="1" max="30"/>
+      <default>2</default>
+      <summary>Tiempo de espera de la comprobación (segundos)</summary>
+      <description>Segundos que se espera a que el puerto responda antes de marcarlo como caído.</description>
+    </key>
+
+    <key name="show-host" type="b">
+      <default>true</default>
+      <summary>Mostrar host:puerto</summary>
+      <description>Muestra el host y el puerto a la derecha del nombre de cada conexión.</description>
+    </key>
+
+    <key name="panel-icon" type="s">
+      <default>'computer-symbolic'</default>
+      <summary>Icono del panel</summary>
+      <description>Nombre del icono simbólico que se muestra en la barra superior.</description>
+    </key>
+
+  </schema>
+</schemalist>

@@ -1,0 +1,49 @@
+/* stylesheet.css — estilos del menú de conexiones VNC */
+
+/* Punto de disponibilidad a la izquierda de cada conexión. */
+.vnc-punto {
+    width: 10px;
+    height: 10px;
+    border-radius: 5px;
+    margin-right: 10px;
+    border: 1px solid rgba(0, 0, 0, 0.35);
+}
+
+/* Puerto abierto: el equipo responde. */
+.vnc-punto-arriba {
+    background-color: #2ec27e;
+    box-shadow: 0 0 4px rgba(46, 194, 126, 0.8);
+}
+
+/* Puerto cerrado, host inalcanzable o tiempo de espera agotado. */
+.vnc-punto-abajo {
+    background-color: #e01b24;
+}
+
+/* Comprobación en curso. */
+.vnc-punto-comprobando {
+    background-color: #f5c211;
+}
+
+/* Todavía no se ha comprobado (o las comprobaciones están desactivadas). */
+.vnc-punto-desconocido {
+    background-color: rgba(255, 255, 255, 0.25);
+}
+
+/* "host:puerto" a la derecha del nombre, en tono apagado. */
+.vnc-host {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.85em;
+    margin-left: 14px;
+}
+
+/* Avisos: carpeta inexistente, sin conexiones, cargando… */
+.vnc-aviso {
+    color: rgba(255, 255, 255, 0.7);
+    font-style: italic;
+}
+
+/* La primera cabecera de grupo no necesita separación extra arriba. */
+.vnc-primera-cabecera {
+    margin-top: 0;
+}

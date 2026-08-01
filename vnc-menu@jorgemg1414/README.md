@@ -1,0 +1,203 @@
+# VNC Menu — extensión de GNOME Shell 48
+
+Indicador en la barra superior con tus conexiones VNC guardadas. Al pulsar una
+entrada se lanza el cliente VNC; junto a cada nombre un punto verde o rojo indica
+si el equipo responde.
+
+- **UUID:** `vnc-menu@jorgemg1414`
+- **Shell:** GNOME 48 (probado en GNOME Shell 48.7, Debian 13)
+- **Carpeta de conexiones por omisión:** `~/Documentos/VNC`
+
+---
+
+## Instalación
+
+```bash
+./install.sh --enable
+```
+
+Esto copia los archivos a `~/.local/share/gnome-shell/extensions/vnc-menu@jorgemg1414/`,
+compila el esquema de GSettings y activa la extensión.
+
+Después hay que recargar el shell:
+
+- **X11:** `Alt+F2` → escribe `r` → Enter.
+- **Wayland:** cerrar sesión y volver a entrar. Si solo has tocado el código de
+  la extensión, basta con desactivar y volver a activar:
+
+```bash
+gnome-extensions disable vnc-menu@jorgemg1414 && gnome-extensions enable vnc-menu@jorgemg1414
+```
+
+Desinstalar:
+
+```bash
+./install.sh --uninstall
+```
+
+---
+
+## Formato de conexiones que lee
+
+La carpeta se escanea de forma asíncrona (`Gio`) y se vigila con `Gio.FileMonitor`,
+así que al añadir, borrar o editar un archivo el menú se actualiza solo, **sin
+recargar el shell**.
+
+### RealVNC Viewer (`.vnc`) — el formato principal
+
+Texto plano `Clave=Valor`, sin secciones INI:
+
+```ini
+FriendlyName=OFICINA
+Host=servidor.ejemplo.net:5904
+UserName=
+Password=<cadena cifrada>
+Labels=OFICINAS/OFICINAS (NORTE)
+```
+
+- **Nombre visible:** el del archivo sin extensión (`OFICINA.vnc` → `OFICINA`).
+- **Host y puerto:** de `Host=`. Si no hay puerto se usa el 5900; un número menor
+  que 100 se interpreta como *display* VNC (`:4` → 5904).
+- **Grupo:** de `Labels=`. Cuando un archivo tiene varias etiquetas se elige la
+  que comparten **más** conexiones, y del nombre jerárquico se muestra el último
+  tramo tras `/` (`OFICINAS/OFICINAS (NORTE)` → *OFICINAS (NORTE)*).
+- **`Password`, `Identity` y `AuthCertificate` se ignoran por completo**: vienen
+  cifradas y la extensión ni las lee ni las pasa a ningún sitio.
+
+### Otros formatos soportados
+
+- **`.remmina`** (INI): `server=`, `group=`, `name=`. Se lanza con `remmina -c /ruta/al/archivo`.
+- **`.vnc` estilo TigerVNC/TightVNC**: `host=` y `port=` en claves separadas.
+
+### Subcarpetas
+
+Si creas subcarpetas dentro de la carpeta de conexiones, cada una se convierte en
+un grupo del menú (la subcarpeta manda sobre las etiquetas). Se recorren hasta 4
+niveles de profundidad.
+
+---
+
+## Uso
+
+| Elemento | Qué hace |
+|---|---|
+| Entrada de conexión | Lanza el cliente VNC con `Gio.Subprocess` (nunca bloquea el shell) |
+| Punto verde | El puerto acepta conexiones |
+| Punto rojo | Puerto cerrado, host inalcanzable o se agotó el tiempo de espera |
+| Punto amarillo | Comprobación en curso |
+| Punto gris | Sin comprobar todavía (o comprobaciones desactivadas) |
+| **Recargar conexiones** | Vuelve a escanear la carpeta |
+| **Abrir carpeta** | Abre `~/Documentos/VNC` en Nautilus |
+| **Preferencias** | Abre los ajustes de la extensión |
+
+La disponibilidad se comprueba **al abrir el menú** y **cada 60 s**, de forma
+asíncrona con `Gio.SocketClient` y 2 s de tiempo de espera. Todas las
+comprobaciones pendientes se cancelan en `disable()`.
+
+---
+
+## Configuración
+
+Desde el menú → **Preferencias**, o con `gnome-extensions prefs vnc-menu@jorgemg1414`.
+
+| Ajuste | Por omisión | Descripción |
+|---|---|---|
+| Carpeta | `~/Documentos/VNC` | Dónde buscar las conexiones |
+| Archivos `.vnc` | `remmina -c vnc://%h:%p` | Comando de conexión |
+| Archivos `.remmina` | `remmina -c %f` | Comando de conexión |
+| Abrir carpeta | `nautilus %f` | Gestor de archivos |
+| Icono del panel | `computer-symbolic` | Cualquier icono simbólico del tema |
+| Mostrar host y puerto | sí | `host:puerto` a la derecha del nombre |
+| Comprobar disponibilidad | sí | Punto verde/rojo |
+| Intervalo | 60 s | Entre comprobaciones automáticas |
+| Tiempo de espera | 2 s | Antes de dar un host por caído |
+
+**Marcadores de los comandos:** `%h` host · `%p` puerto · `%u` usuario ·
+`%n` nombre · `%f` ruta del archivo.
+
+La sustitución se hace **después** de trocear la orden, así que un host o una
+ruta con espacios no puede colarse como argumentos extra.
+
+**Alternativas automáticas:** si el programa del comando configurado no está
+instalado, se prueban en orden `remmina -c vnc://%h:%p`, `vncviewer %h:%p`,
+`xtigervncviewer %h:%p` y `gvncviewer %h:%p`. Si no hay ninguno, aparece una
+notificación de error.
+
+También puedes cambiar los ajustes desde la terminal:
+
+```bash
+gsettings --schemadir ~/.local/share/gnome-shell/extensions/vnc-menu@jorgemg1414/schemas set org.gnome.shell.extensions.vnc-menu vnc-command 'xtigervncviewer %h:%p'
+```
+
+---
+
+## Depuración
+
+Registro del shell en vivo (aquí salen los errores de JavaScript de la extensión,
+prefijados con `[vnc-menu]`):
+
+```bash
+journalctl -f -o cat /usr/bin/gnome-shell
+```
+
+Solo los mensajes de esta extensión:
+
+```bash
+journalctl -f -o cat /usr/bin/gnome-shell | grep -i vnc-menu
+```
+
+Errores desde el arranque de la sesión actual:
+
+```bash
+journalctl -b -o cat /usr/bin/gnome-shell | grep -iE "vnc-menu|error"
+```
+
+Estado de la extensión:
+
+```bash
+gnome-extensions info vnc-menu@jorgemg1414
+```
+
+Ventana de preferencias con salida en la terminal (útil para depurar `prefs.js`):
+
+```bash
+gnome-extensions prefs vnc-menu@jorgemg1414
+```
+
+Comprobar a mano si un host responde (lo mismo que hace la extensión):
+
+```bash
+timeout 2 bash -c 'cat < /dev/null > /dev/tcp/servidor.ejemplo.net/5904' && echo ABIERTO || echo CERRADO
+```
+
+### Problemas frecuentes
+
+- **El menú no aparece tras instalar:** falta recargar el shell (ver arriba) o
+  activarla con `gnome-extensions enable vnc-menu@jorgemg1414`.
+- **Las preferencias no abren / «Schema not found»:** no se compiló el esquema.
+  Ejecuta de nuevo `./install.sh`, que llama a `glib-compile-schemas`.
+- **Todos los puntos en rojo:** comprueba el firewall/VPN, o sube el tiempo de
+  espera en las preferencias si la red es lenta.
+- **No conecta al pulsar:** revisa `journalctl` y prueba el comando a mano, p. ej.
+  `remmina -c vnc://servidor.ejemplo.net:5904`.
+
+---
+
+## Estructura del código
+
+| Archivo | Contenido |
+|---|---|
+| `extension.js` | Indicador del panel, menú, lanzamiento del cliente y limpieza en `disable()` |
+| `connections.js` | Escaneo asíncrono de la carpeta y parseo de los archivos de conexión |
+| `checker.js` | Comprobación de puertos con `Gio.SocketClient` y cancelación |
+| `asyncgio.js` | Envoltorios de `Promise` sobre las llamadas asíncronas de Gio |
+| `prefs.js` | Ventana de preferencias (libadwaita) |
+| `schemas/` | Esquema de GSettings |
+| `stylesheet.css` | Estilos de los puntos de estado y avisos |
+
+### Limpieza en `disable()`
+
+Requisito de GNOME que esta extensión cumple: se destruye el indicador, se
+quitan los temporizadores con `GLib.source_remove()`, se cancelan los
+`Gio.Cancellable` (escaneo y comprobaciones de red), se desconectan y cancelan
+los `Gio.FileMonitor` y se desconectan todas las señales de `GSettings` y del menú.

@@ -1,0 +1,9 @@
+{
+  "uuid": "vnc-menu@jorgemg1414",
+  "name": "VNC Menu",
+  "description": "Indicador en la barra superior con tus conexiones VNC guardadas. Lee los archivos .vnc/.remmina de una carpeta, los agrupa y comprueba la disponibilidad de cada host.",
+  "shell-version": ["48"],
+  "settings-schema": "org.gnome.shell.extensions.vnc-menu",
+  "gettext-domain": "vnc-menu",
+  "version": 1
+}
