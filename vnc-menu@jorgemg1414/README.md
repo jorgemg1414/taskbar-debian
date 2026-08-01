@@ -90,8 +90,28 @@ niveles de profundidad.
 | **Abrir carpeta** | Abre `~/Documentos/VNC` en Nautilus |
 | **Preferencias** | Abre los ajustes de la extensión |
 
-La disponibilidad se comprueba **al abrir el menú** y **cada 60 s**, de forma
-asíncrona con `Gio.SocketClient` y 2 s de tiempo de espera. Todas las
+### Buscador
+
+Cuando hay 8 conexiones o más aparece un campo de búsqueda al principio del
+menú, ya enfocado: escribe y la lista se filtra por **nombre, host y grupo**,
+sin distinguir mayúsculas ni acentos. **Intro** conecta con la primera
+coincidencia y **Escape** limpia el filtro (o cierra el menú si ya está vacío).
+Se desactiva, o se cambia el número de conexiones a partir del cual aparece,
+en las preferencias.
+
+### Cuándo se consulta la red
+
+Solo **mientras el menú está abierto**: al abrirlo se comprueban todos los
+hosts y se refrescan cada 60 s mientras siga a la vista. Al cerrarlo se para el
+refresco y se cancelan las comprobaciones en vuelo, así que con el menú cerrado
+la extensión no abre ni una conexión.
+
+Si prefieres tener el estado siempre al día, en las preferencias hay
+**Comprobar en segundo plano**, desactivado por omisión. Piensa que activarlo
+son tantas conexiones TCP como entradas tengas, cada intervalo, también cuando
+estás fuera de la red donde viven esos equipos.
+
+Todo es asíncrono (`Gio.SocketClient`, 2 s de tiempo de espera) y las
 comprobaciones pendientes se cancelan en `disable()`.
 
 ---
@@ -184,11 +204,17 @@ del `.vnc`.
 
 Si prefieres que se abran tus archivos tal cual, con las credenciales que ya
 guardan, cambia el comando de los `.vnc` en las preferencias por el de tu
-cliente. Con RealVNC Connect Viewer:
+cliente. Con RealVNC Connect Viewer, cuya opción `-config` carga todos los
+parámetros del archivo:
 
 ```
-/usr/lib/rvncconnect/rvncconnect %f
+/usr/lib/rvncconnect/rvncconnect -config %f
 ```
+
+Así la contraseña no sale nunca del archivo. **No pongas contraseñas en el
+comando**: quedarían visibles en `ps` para cualquier proceso de tu sesión y en
+claro dentro de `~/.config/dconf`. La otra opción limpia es un perfil
+`.remmina`, que guarda la credencial en el llavero de GNOME.
 
 ---
 
@@ -204,8 +230,11 @@ Desde el menú → **Preferencias**, o con `gnome-extensions prefs vnc-menu@jorg
 | Abrir carpeta | `nautilus %f` | Gestor de archivos |
 | Icono del panel | `computer-symbolic` | Cualquier icono simbólico del tema |
 | Mostrar host y puerto | sí | `host:puerto` a la derecha del nombre |
+| Buscador en el menú | sí | Filtrar escribiendo |
+| Mostrarlo a partir de | 8 | Conexiones necesarias para que aparezca el buscador |
 | Comprobar disponibilidad | sí | Punto verde/rojo |
-| Intervalo | 60 s | Entre comprobaciones automáticas |
+| Refresco con el menú abierto | 60 s | Entre comprobaciones mientras miras el menú |
+| Comprobar en segundo plano | 0 (desactivado) | Segundos entre comprobaciones con el menú cerrado |
 | Tiempo de espera | 2 s | Antes de dar un host por caído |
 
 **Marcadores de los comandos:** `%h` host · `%p` puerto · `%u` usuario ·

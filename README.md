@@ -31,8 +31,12 @@ los presenta como menú. Al pulsar una entrada se abre el cliente VNC.
 - **Agrupación automática.** Por subcarpetas, o por las etiquetas del propio
   archivo (`Labels=` en RealVNC, `group=` en Remmina) cuando no hay subcarpetas.
 - **Estado de cada equipo.** Un punto verde o rojo indica si el puerto responde.
-  Se comprueba al abrir el menú y cada 60 s, de forma asíncrona con
-  `Gio.SocketClient` y 2 s de tiempo de espera.
+  Se comprueba de forma asíncrona con `Gio.SocketClient` y 2 s de espera, y solo
+  mientras el menú está abierto: con el menú cerrado no se toca la red, salvo que
+  actives las comprobaciones en segundo plano.
+- **Buscador.** Con muchas conexiones aparece un campo de filtro al principio del
+  menú: escribe parte del nombre o del host e Intro conecta con la primera
+  coincidencia.
 - **Se actualiza sola.** La carpeta se escanea con `Gio` y se vigila con
   `Gio.FileMonitor`: al añadir, borrar o editar una conexión el menú cambia al
   momento, sin recargar el shell.
