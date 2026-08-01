@@ -86,13 +86,109 @@ niveles de profundidad.
 | Punto rojo | Puerto cerrado, host inalcanzable o se agotó el tiempo de espera |
 | Punto amarillo | Comprobación en curso |
 | Punto gris | Sin comprobar todavía (o comprobaciones desactivadas) |
-| **Recargar conexiones** | Vuelve a escanear la carpeta |
+| **Recargar conexiones** | Vuelve a escanear la carpeta. No cierra el menú, así ves cómo se refrescan las entradas y su estado |
 | **Abrir carpeta** | Abre `~/Documentos/VNC` en Nautilus |
 | **Preferencias** | Abre los ajustes de la extensión |
 
 La disponibilidad se comprueba **al abrir el menú** y **cada 60 s**, de forma
 asíncrona con `Gio.SocketClient` y 2 s de tiempo de espera. Todas las
 comprobaciones pendientes se cancelan en `disable()`.
+
+---
+
+## Gestionar las conexiones
+
+La extensión no trae editor: **cada entrada del menú es un archivo** de la
+carpeta de conexiones. Se edita el archivo y el menú se actualiza solo, porque
+un `Gio.FileMonitor` vigila la carpeta. Si algo no se refresca, está
+**Recargar conexiones** en el menú.
+
+Para llegar rápido a la carpeta: menú → **Abrir carpeta**.
+
+### Editar con el programa que las creó
+
+Es lo más seguro, porque mantiene coherentes las claves cifradas. Si usas
+RealVNC Connect Viewer:
+
+```bash
+/usr/lib/rvncconnect/rvncconnect
+```
+
+### Editar a mano
+
+Son archivos de texto, así que vale cualquier editor:
+
+```bash
+gnome-text-editor ~/Documentos/VNC/OFICINA.vnc
+```
+
+Lo que la extensión lee de cada archivo:
+
+| Qué quieres cambiar | Dónde se cambia |
+|---|---|
+| Host o puerto | La línea `Host=servidor:puerto` (`server=` en `.remmina`) |
+| **Nombre en el menú** | **El nombre del archivo**, no `FriendlyName=` |
+| Grupo | La línea `Labels=`, o la subcarpeta donde esté el archivo |
+| Usuario | `UserName=` |
+
+El resto de claves (`Quality`, `Sequence`, `Uuid`, `ConnTime`…) se ignoran:
+déjalas como están para que el cliente VNC siga entendiendo el archivo.
+
+### Renombrar una entrada
+
+El texto del menú sale del nombre del archivo, así que basta con renombrarlo:
+
+```bash
+mv ~/Documentos/VNC/LAMANGA.vnc "~/Documentos/VNC/LA MANGA.vnc"
+```
+
+### Añadir una conexión nueva
+
+Con dos líneas es suficiente; el resto es opcional:
+
+```bash
+printf 'FriendlyName=NUEVA\nHost=servidor.ejemplo.net:5904\nLabels=OFICINAS\n' > ~/Documentos/VNC/NUEVA.vnc
+```
+
+### Reorganizar los grupos
+
+Las subcarpetas mandan sobre las etiquetas. Para dejar **todo bajo un solo
+grupo**, mueve los archivos a una subcarpeta con ese nombre:
+
+```bash
+mkdir -p ~/Documentos/VNC/OFICINAS && mv ~/Documentos/VNC/*.vnc ~/Documentos/VNC/OFICINAS/
+```
+
+Para dividir por zonas, una subcarpeta por grupo. El título del grupo es la ruta
+relativa (`ZONA/NORTE`) y se admiten hasta 4 niveles de anidamiento.
+
+Esto solo cambia dónde están los archivos, no su contenido: las contraseñas y las
+etiquetas del cliente VNC quedan intactas. Ten en cuenta que si luego exportas
+una conexión nueva desde el cliente, lo normal es que caiga en la raíz de la
+carpeta y aparezca en un grupo aparte hasta que la muevas.
+
+La alternativa —igualar la línea `Labels=` de todos los archivos— también
+funciona, pero esas etiquetas son las que organiza tu cliente VNC, así que le
+aplanarías el árbol de conexiones a él también. Haz copia antes:
+
+```bash
+cp -a ~/Documentos/VNC ~/Documentos/VNC.bak
+```
+
+### Sobre las contraseñas al conectar
+
+El comando por omisión, `remmina -c vnc://%h:%p`, **no abre tu archivo**: solo
+usa el host y el puerto. Por eso Remmina pedirá la contraseña la primera vez (y
+la guardará en su propio llavero si se lo indicas), sin usar la que hay dentro
+del `.vnc`.
+
+Si prefieres que se abran tus archivos tal cual, con las credenciales que ya
+guardan, cambia el comando de los `.vnc` en las preferencias por el de tu
+cliente. Con RealVNC Connect Viewer:
+
+```
+/usr/lib/rvncconnect/rvncconnect %f
+```
 
 ---
 

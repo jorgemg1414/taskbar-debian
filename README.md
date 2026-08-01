@@ -43,6 +43,10 @@ los presenta como menú. Al pulsar una entrada se abre el cliente VNC.
   `AuthCertificate` se descartan en el parser: ni se leen ni se pasan a ningún
   sitio.
 
+Para añadir, renombrar o reagrupar conexiones no hace falta tocar la extensión:
+son archivos de una carpeta y basta con editarlos. Está explicado paso a paso en
+**[Gestionar las conexiones](vnc-menu@jorgemg1414/README.md#gestionar-las-conexiones)**.
+
 > **Aviso sobre los archivos de conexión:** la contraseña que guarda RealVNC en
 > `Password=` no es un hash, es la contraseña cifrada con una clave fija y
 > pública, recuperable en texto claro con herramientas comunes. No subas tu

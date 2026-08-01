@@ -100,6 +100,34 @@ class ItemConexion extends PopupMenu.PopupBaseMenuItem {
 });
 
 /* -------------------------------------------------------------------------
+ * Elemento de acción que NO cierra el menú al pulsarlo
+ * ------------------------------------------------------------------------- */
+const ItemAccionPersistente = GObject.registerClass(
+class ItemAccionPersistente extends PopupMenu.PopupImageMenuItem {
+    /**
+     * @param {string} texto etiqueta del elemento
+     * @param {string} icono nombre del icono simbólico
+     * @param {Function} alPulsar acción a ejecutar
+     */
+    _init(texto, icono, alPulsar) {
+        super._init(texto, icono);
+        this._alPulsar = alPulsar;
+    }
+
+    /**
+     * Ejecuta la acción sin emitir la señal 'activate'.
+     *
+     * Quien cierra el menú es PopupMenuBase, que se conecta a esa señal y
+     * llama a itemActivated(). Al no emitirla, el menú permanece abierto.
+     *
+     * @param {Clutter.Event} _event evento que originó la activación
+     */
+    activate(_event) {
+        this._alPulsar();
+    }
+});
+
+/* -------------------------------------------------------------------------
  * Indicador del panel
  * ------------------------------------------------------------------------- */
 const IndicadorVnc = GObject.registerClass(
@@ -315,8 +343,9 @@ class IndicadorVnc extends PanelMenu.Button {
 
         this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
-        const recargar = new PopupMenu.PopupImageMenuItem(_('Recargar conexiones'), 'view-refresh-symbolic');
-        recargar.connect('activate', () => this.recargar());
+        // Este no cierra el menú: así se ve cómo se refrescan las entradas.
+        const recargar = new ItemAccionPersistente(
+            _('Recargar conexiones'), 'view-refresh-symbolic', () => this.recargar());
         this.menu.addMenuItem(recargar);
 
         const abrir = new PopupMenu.PopupImageMenuItem(_('Abrir carpeta'), 'folder-symbolic');
