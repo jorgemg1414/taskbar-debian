@@ -68,7 +68,9 @@ export default class VncMenuPreferences extends ExtensionPreferences {
         /* ---------------------- Disponibilidad ------------------------ */
         const grupoChecks = new Adw.PreferencesGroup({
             title: _('Disponibilidad'),
-            description: _('Punto verde o rojo según si el puerto responde.'),
+            description: _('Punto verde o rojo según si el puerto responde. Solo se ' +
+                'consulta la red mientras el menú está abierto, salvo que actives ' +
+                'las comprobaciones en segundo plano.'),
         });
         pagina.add(grupoChecks);
 
@@ -77,13 +79,22 @@ export default class VncMenuPreferences extends ExtensionPreferences {
         grupoChecks.add(filaActivar);
 
         const filaIntervalo = new Adw.SpinRow({
-            title: _('Intervalo'),
-            subtitle: _('Segundos entre comprobaciones automáticas.'),
+            title: _('Refresco con el menú abierto'),
+            subtitle: _('Segundos entre comprobaciones mientras miras el menú.'),
             adjustment: new Gtk.Adjustment({lower: 10, upper: 3600, step_increment: 10, page_increment: 60}),
         });
         settings.bind('check-interval', filaIntervalo, 'value', Gio.SettingsBindFlags.DEFAULT);
         settings.bind('enable-checks', filaIntervalo, 'sensitive', Gio.SettingsBindFlags.GET);
         grupoChecks.add(filaIntervalo);
+
+        const filaFondo = new Adw.SpinRow({
+            title: _('Comprobar en segundo plano'),
+            subtitle: _('Segundos entre comprobaciones con el menú cerrado. 0 las desactiva.'),
+            adjustment: new Gtk.Adjustment({lower: 0, upper: 86400, step_increment: 60, page_increment: 300}),
+        });
+        settings.bind('background-check-interval', filaFondo, 'value', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('enable-checks', filaFondo, 'sensitive', Gio.SettingsBindFlags.GET);
+        grupoChecks.add(filaFondo);
 
         const filaTimeout = new Adw.SpinRow({
             title: _('Tiempo de espera'),

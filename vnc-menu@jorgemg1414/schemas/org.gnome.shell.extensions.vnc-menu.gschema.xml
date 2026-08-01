@@ -49,8 +49,22 @@
     <key name="check-interval" type="i">
       <range min="10" max="3600"/>
       <default>60</default>
-      <summary>Intervalo de comprobación (segundos)</summary>
-      <description>Cada cuántos segundos se vuelve a comprobar el estado de los hosts.</description>
+      <summary>Intervalo con el menú abierto (segundos)</summary>
+      <description>
+        Cada cuántos segundos se refresca el estado mientras el menú está abierto.
+      </description>
+    </key>
+
+    <key name="background-check-interval" type="i">
+      <range min="0" max="86400"/>
+      <default>0</default>
+      <summary>Intervalo en segundo plano (segundos)</summary>
+      <description>
+        Cada cuántos segundos se comprueban los hosts con el menú cerrado.
+        0 desactiva las comprobaciones en segundo plano: solo se consulta la red
+        cuando abres el menú, que es lo recomendable en portátiles o fuera de la
+        red local.
+      </description>
     </key>
 
     <key name="check-timeout" type="i">

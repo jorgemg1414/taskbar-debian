@@ -152,6 +152,20 @@ export class ComprobadorPuertos {
     }
 
     /**
+     * Cancela las comprobaciones en vuelo sin inutilizar el comprobador.
+     * Se usa al cerrar el menú: los estados ya conocidos se conservan.
+     */
+    cancelarPendientes() {
+        for (const [id, cancellable] of this._enCurso) {
+            cancellable.cancel();
+            // Una comprobación a medias no dice nada del host.
+            if (this._estados.get(id) === ESTADO.COMPROBANDO)
+                this._estados.delete(id);
+        }
+        this._enCurso.clear();
+    }
+
+    /**
      * Cancela todas las comprobaciones pendientes y deja el objeto inservible.
      * Se llama desde disable().
      */

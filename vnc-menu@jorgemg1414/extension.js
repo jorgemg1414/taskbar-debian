@@ -148,7 +148,8 @@ class IndicadorVnc extends PanelMenu.Button {
         this._monitores = [];           // {monitor, handlerId}
         this._idsSettings = [];
         this._idRecarga = 0;            // timeout de rebote del FileMonitor
-        this._idIntervalo = 0;          // timeout periódico de comprobación
+        this._idIntervaloMenu = 0;      // refresco mientras el menú está abierto
+        this._idIntervaloFondo = 0;     // comprobación con el menú cerrado
         this._cancellable = new Gio.Cancellable();
         this._destruido = false;
 
@@ -163,14 +164,17 @@ class IndicadorVnc extends PanelMenu.Button {
             alCambiar: (id, estado) => this._items.get(id)?.fijarEstado(estado),
         });
 
-        // Al abrir el menú se refresca el estado de los hosts.
+        // El estado se consulta al abrir el menú y se deja de consultar al
+        // cerrarlo: así no se toca la red cuando nadie está mirando.
         this._idAbrir = this.menu.connect('open-state-changed', (_menu, abierto) => {
-            if (abierto && this._settings.get_boolean('enable-checks'))
-                this._comprobador.comprobarTodas(this._conexiones);
+            if (abierto)
+                this._alAbrirMenu();
+            else
+                this._alCerrarMenu();
         });
 
         this._conectarSettings();
-        this._programarIntervalo();
+        this._programarIntervaloFondo();
         this._reconstruirMenu();   // pinta el estado «cargando»
         this.recargar();
     }
@@ -199,9 +203,19 @@ class IndicadorVnc extends PanelMenu.Button {
             (this._icono.icon_name = this._settings.get_string('panel-icon')));
         conectar('check-timeout', () =>
             (this._comprobador.timeout = this._settings.get_int('check-timeout')));
-        conectar('check-interval', () => this._programarIntervalo());
+        conectar('check-interval', () => {
+            if (this.menu.isOpen)
+                this._programarIntervaloMenu();
+        });
+        conectar('background-check-interval', () => this._programarIntervaloFondo());
         conectar('enable-checks', () => {
-            this._programarIntervalo();
+            this._programarIntervaloFondo();
+            if (!this._settings.get_boolean('enable-checks')) {
+                this._pararIntervaloMenu();
+                this._comprobador.cancelarPendientes();
+            } else if (this.menu.isOpen) {
+                this._alAbrirMenu();
+            }
             this._reconstruirMenu();
         });
     }
@@ -236,7 +250,9 @@ class IndicadorVnc extends PanelMenu.Button {
                 this._reconstruirMenu();
                 this._vigilarCarpeta();
 
-                if (this._settings.get_boolean('enable-checks'))
+                // Solo se consulta la red si el menú está a la vista; si no, el
+                // estado se resolverá la próxima vez que lo abras.
+                if (this.menu.isOpen && this._settings.get_boolean('enable-checks'))
                     this._comprobador.comprobarTodas(this._conexiones);
             })
             .catch(e => {
@@ -300,23 +316,70 @@ class IndicadorVnc extends PanelMenu.Button {
         this._monitores = [];
     }
 
-    /* ---------------------- Comprobación periódica ------------------- */
+    /* ---------------------- Comprobación de estado ------------------- */
 
     /**
-     * (Re)programa la comprobación periódica de disponibilidad.
+     * Al abrir el menú: comprueba los hosts y programa el refresco periódico
+     * mientras siga abierto.
      */
-    _programarIntervalo() {
-        if (this._idIntervalo) {
-            GLib.source_remove(this._idIntervalo);
-            this._idIntervalo = 0;
-        }
-
+    _alAbrirMenu() {
         if (!this._settings.get_boolean('enable-checks'))
             return;
 
+        this._comprobador.comprobarTodas(this._conexiones);
+        this._programarIntervaloMenu();
+    }
+
+    /**
+     * Al cerrar el menú: se para el refresco y se abandonan las comprobaciones
+     * en vuelo, para no dejar sockets abiertos por algo que ya nadie ve.
+     */
+    _alCerrarMenu() {
+        this._pararIntervaloMenu();
+        this._comprobador.cancelarPendientes();
+    }
+
+    /**
+     * (Re)programa el refresco periódico mientras el menú está abierto.
+     */
+    _programarIntervaloMenu() {
+        this._pararIntervaloMenu();
+
         const segundos = this._settings.get_int('check-interval');
-        this._idIntervalo = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, segundos, () => {
+        this._idIntervaloMenu = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, segundos, () => {
             this._comprobador.comprobarTodas(this._conexiones);
+            return GLib.SOURCE_CONTINUE;
+        });
+    }
+
+    /**
+     * Detiene el refresco asociado al menú abierto.
+     */
+    _pararIntervaloMenu() {
+        if (this._idIntervaloMenu) {
+            GLib.source_remove(this._idIntervaloMenu);
+            this._idIntervaloMenu = 0;
+        }
+    }
+
+    /**
+     * (Re)programa la comprobación en segundo plano, con el menú cerrado.
+     * Desactivada por omisión (intervalo 0).
+     */
+    _programarIntervaloFondo() {
+        if (this._idIntervaloFondo) {
+            GLib.source_remove(this._idIntervaloFondo);
+            this._idIntervaloFondo = 0;
+        }
+
+        const segundos = this._settings.get_int('background-check-interval');
+        if (!this._settings.get_boolean('enable-checks') || segundos <= 0)
+            return;
+
+        this._idIntervaloFondo = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, segundos, () => {
+            // Con el menú abierto ya se está refrescando por su cuenta.
+            if (!this.menu.isOpen)
+                this._comprobador.comprobarTodas(this._conexiones);
             return GLib.SOURCE_CONTINUE;
         });
     }
@@ -513,9 +576,10 @@ class IndicadorVnc extends PanelMenu.Button {
             GLib.source_remove(this._idRecarga);
             this._idRecarga = 0;
         }
-        if (this._idIntervalo) {
-            GLib.source_remove(this._idIntervalo);
-            this._idIntervalo = 0;
+        this._pararIntervaloMenu();
+        if (this._idIntervaloFondo) {
+            GLib.source_remove(this._idIntervaloFondo);
+            this._idIntervaloFondo = 0;
         }
 
         // Escaneos y comprobaciones de red pendientes.
