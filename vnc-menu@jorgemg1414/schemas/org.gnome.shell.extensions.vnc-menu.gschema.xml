@@ -98,6 +98,15 @@
       <description>Muestra el host y el puerto a la derecha del nombre de cada conexión.</description>
     </key>
 
+    <key name="show-latency" type="b">
+      <default>true</default>
+      <summary>Mostrar la latencia</summary>
+      <description>
+        Muestra los milisegundos que tardó el host en aceptar la conexión.
+        Incluye la resolución DNS, que es justo lo que se nota al conectar.
+      </description>
+    </key>
+
     <key name="panel-badge" type="b">
       <default>true</default>
       <summary>Contador de conexiones caídas en el panel</summary>

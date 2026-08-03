@@ -102,6 +102,14 @@ export default class VncMenuPreferences extends ExtensionPreferences {
         settings.bind('enable-checks', filaActivar, 'active', Gio.SettingsBindFlags.DEFAULT);
         grupoChecks.add(filaActivar);
 
+        const filaLatencia = new Adw.SwitchRow({
+            title: _('Mostrar la latencia'),
+            subtitle: _('Milisegundos que tarda el host en responder, junto a cada conexión.'),
+        });
+        settings.bind('show-latency', filaLatencia, 'active', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('enable-checks', filaLatencia, 'sensitive', Gio.SettingsBindFlags.GET);
+        grupoChecks.add(filaLatencia);
+
         const filaIntervalo = new Adw.SpinRow({
             title: _('Refresco con el menú abierto'),
             subtitle: _('Segundos entre comprobaciones mientras miras el menú.'),

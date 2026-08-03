@@ -92,6 +92,15 @@
     margin-right: 6px;
 }
 
+/* Milisegundos de respuesta, al final de la fila. */
+.vnc-latencia {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.8em;
+    margin-left: 10px;
+    min-width: 48px;
+    text-align: right;
+}
+
 /* Avisos: carpeta inexistente, sin conexiones, cargando… */
 .vnc-aviso {
     color: rgba(255, 255, 255, 0.7);

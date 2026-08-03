@@ -47,8 +47,9 @@ class ItemConexion extends PopupMenu.PopupBaseMenuItem {
     /**
      * @param {object} conexion conexión a representar
      * @param {boolean} mostrarHost si se muestra "host:puerto" a la derecha
+     * @param {boolean} mostrarLatencia si se muestran los milisegundos de respuesta
      */
-    _init(conexion, mostrarHost) {
+    _init(conexion, mostrarHost, mostrarLatencia) {
         super._init();
 
         this.conexion = conexion;
@@ -77,14 +78,24 @@ class ItemConexion extends PopupMenu.PopupBaseMenuItem {
             });
             this.add_child(this._host);
         }
+
+        if (mostrarLatencia) {
+            this._latencia = new St.Label({
+                text: '',
+                style_class: 'vnc-latencia',
+                y_align: Clutter.ActorAlign.CENTER,
+            });
+            this.add_child(this._latencia);
+        }
     }
 
     /**
-     * Cambia el color del punto según el estado.
+     * Cambia el color del punto según el estado y actualiza la latencia.
      *
      * @param {string} estado valor de ESTADO
+     * @param {number|null} latencia milisegundos de respuesta, si se conocen
      */
-    fijarEstado(estado) {
+    fijarEstado(estado, latencia = null) {
         const clases = {
             [ESTADO.ARRIBA]: 'vnc-punto vnc-punto-arriba',
             [ESTADO.ABAJO]: 'vnc-punto vnc-punto-abajo',
@@ -99,7 +110,13 @@ class ItemConexion extends PopupMenu.PopupBaseMenuItem {
             [ESTADO.COMPROBANDO]: _('comprobando…'),
             [ESTADO.DESCONOCIDO]: _('estado desconocido'),
         };
-        this.accessible_name = `${this.conexion.nombre} — ${textos[estado] ?? ''}`;
+        // Los milisegundos solo dicen algo de un host que responde.
+        const ms = estado === ESTADO.ARRIBA && latencia !== null ? `${latencia} ms` : '';
+        if (this._latencia)
+            this._latencia.text = ms;
+
+        this.accessible_name =
+            `${this.conexion.nombre} — ${textos[estado] ?? ''}${ms ? `, ${ms}` : ''}`;
     }
 });
 
@@ -256,8 +273,8 @@ class IndicadorVnc extends PanelMenu.Button {
 
         this._comprobador = new ComprobadorPuertos({
             timeout: this._settings.get_int('check-timeout'),
-            alCambiar: (id, estado) => {
-                this._items.get(id)?.fijarEstado(estado);
+            alCambiar: (id, estado, latencia) => {
+                this._items.get(id)?.fijarEstado(estado, latencia);
                 this._actualizarInsignia();
             },
         });
@@ -297,6 +314,7 @@ class IndicadorVnc extends PanelMenu.Button {
 
         conectar('connections-dir', () => this.recargar());
         conectar('show-host', () => this._reconstruirMenu());
+        conectar('show-latency', () => this._reconstruirMenu());
         conectar('enable-search', () => this._reconstruirMenu());
         conectar('search-threshold', () => this._reconstruirMenu());
         conectar('panel-icon', () =>
@@ -636,6 +654,8 @@ class IndicadorVnc extends PanelMenu.Button {
     _pintarGrupos() {
         const grupos = agruparConexiones(this._conexiones);
         const mostrarHost = this._settings.get_boolean('show-host');
+        const mostrarLatencia = this._settings.get_boolean('show-latency') &&
+                                this._settings.get_boolean('enable-checks');
         const hayVariosGrupos = grupos.length > 1 || grupos[0]?.nombre !== GRUPO_SIN_NOMBRE;
 
         let primero = true;
@@ -653,11 +673,12 @@ class IndicadorVnc extends PanelMenu.Button {
             primero = false;
 
             for (const conexion of grupo.conexiones) {
-                const item = new ItemConexion(conexion, mostrarHost);
+                const item = new ItemConexion(conexion, mostrarHost, mostrarLatencia);
                 item.fijarEstado(
                     this._settings.get_boolean('enable-checks')
                         ? this._comprobador.estadoDe(conexion.id)
-                        : ESTADO.DESCONOCIDO);
+                        : ESTADO.DESCONOCIDO,
+                    this._comprobador.latenciaDe(conexion.id));
                 item.connect('activate', () => this._conectar(conexion));
                 this._seccionLista.addMenuItem(item);
                 this._items.set(conexion.id, item);
