@@ -39,6 +39,9 @@ menu. Clicking an entry opens your VNC client.
   turn on background checks.
 - **Down count in the panel.** How many connections aren't answering, next to
   the icon, so you don't have to open the menu to find out.
+- **Open sessions.** The VNC windows you already have open are listed at the top
+  of the menu: clicking one brings it to the front instead of opening a second
+  session against the same machine.
 - **Search.** With many connections a filter field appears at the top of the
   menu: type part of a name or host, ↓/↑ to walk the results, Enter to connect.
 - **Right click on a connection** for its own actions: copy the host, check it
@@ -168,6 +171,7 @@ taskbar-debian/
     ├── connections.js     Async folder scanning and connection file parsing
     ├── checker.js         Port checks, asynchronous and cancellable
     ├── asyncgio.js        Promise wrappers around Gio's async calls
+    ├── ventanas.js        Finds the windows of open VNC sessions
     ├── prefs.js           Preferences window (libadwaita)
     ├── stylesheet.css     Menu styles
     ├── schemas/           GSettings schema

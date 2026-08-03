@@ -40,6 +40,9 @@ los presenta como menú. Al pulsar una entrada se abre el cliente VNC.
   salvo que actives las comprobaciones en segundo plano.
 - **Contador de caídas en el panel.** Cuántas conexiones no responden, junto al
   icono, para no tener que abrir el menú a mirar.
+- **Sesiones abiertas.** Las ventanas VNC que ya tienes abiertas salen al
+  principio del menú: pulsar una la trae al frente en vez de abrir otra sesión
+  contra la misma sucursal.
 - **Buscador.** Con muchas conexiones aparece un campo de filtro al principio del
   menú: escribe parte del nombre o del host, ↓/↑ recorren los resultados e Intro
   conecta.
@@ -171,6 +174,7 @@ taskbar-debian/
     ├── connections.js     Escaneo asíncrono de la carpeta y parser de conexiones
     ├── checker.js         Comprobación de puertos, asíncrona y cancelable
     ├── asyncgio.js        Envoltorios de Promise sobre las llamadas de Gio
+    ├── ventanas.js        Localiza las ventanas de sesiones VNC abiertas
     ├── prefs.js           Ventana de preferencias (libadwaita)
     ├── stylesheet.css     Estilos del menú
     ├── schemas/           Esquema de GSettings

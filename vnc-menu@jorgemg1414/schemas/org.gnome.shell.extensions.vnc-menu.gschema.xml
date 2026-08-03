@@ -98,6 +98,15 @@
       <description>Muestra el host y el puerto a la derecha del nombre de cada conexión.</description>
     </key>
 
+    <key name="show-sessions" type="b">
+      <default>true</default>
+      <summary>Mostrar las sesiones abiertas</summary>
+      <description>
+        Lista al principio del menú las ventanas VNC que ya están abiertas.
+        Pulsar una trae su ventana al frente en vez de abrir otra sesión.
+      </description>
+    </key>
+
     <key name="show-latency" type="b">
       <default>true</default>
       <summary>Mostrar la latencia</summary>

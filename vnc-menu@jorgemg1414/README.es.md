@@ -83,6 +83,7 @@ niveles de profundidad.
 
 | Elemento | Qué hace |
 |---|---|
+| **Sesiones abiertas** | Arriba del menú, las ventanas VNC que ya tienes abiertas; al pulsar una se trae su ventana al frente en vez de abrir otra sesión |
 | Entrada de conexión | Lanza el cliente VNC con `Gio.Subprocess` (nunca bloquea el shell) |
 | Clic derecho en una entrada | Abre debajo una fila de acciones: **Copiar** el host, **Comprobar** ahora y **Ver archivo** en el gestor de archivos |
 | Punto verde | El puerto acepta conexiones |
@@ -252,6 +253,7 @@ Desde el menú → **Preferencias**, o con `gnome-extensions prefs vnc-menu@jorg
 | Archivos `.vnc` | `remmina -c vnc://%h:%p` | Comando de conexión |
 | Archivos `.remmina` | `remmina -c %f` | Comando de conexión |
 | Abrir carpeta | `nautilus %f` | Gestor de archivos |
+| Sesiones abiertas | sí | Ventanas VNC ya abiertas, al principio del menú |
 | Icono del panel | `computer-symbolic` | Cualquier icono simbólico del tema |
 | Contador de caídas en el panel | sí | Cuántas conexiones no responden, junto al icono |
 | Mostrar host y puerto | sí | `host:puerto` a la derecha del nombre |

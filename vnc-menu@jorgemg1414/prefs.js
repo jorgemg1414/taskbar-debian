@@ -53,6 +53,14 @@ export default class VncMenuPreferences extends ExtensionPreferences {
         settings.bind('panel-badge', filaInsignia, 'active', Gio.SettingsBindFlags.DEFAULT);
         grupoCarpeta.add(filaInsignia);
 
+        const filaSesiones = new Adw.SwitchRow({
+            title: _('Sesiones abiertas'),
+            subtitle: _('Lista arriba del menú las ventanas VNC ya abiertas; ' +
+                'al pulsar una se trae su ventana al frente.'),
+        });
+        settings.bind('show-sessions', filaSesiones, 'active', Gio.SettingsBindFlags.DEFAULT);
+        grupoCarpeta.add(filaSesiones);
+
         const filaBuscador = new Adw.SwitchRow({
             title: _('Buscador en el menú'),
             subtitle: _('Filtra las conexiones al escribir. Intro conecta con la primera.'),

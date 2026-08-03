@@ -42,7 +42,7 @@ fi
 # ---------------------------- Copia -------------------------------
 mkdir -p "$DESTINO/schemas"
 
-for archivo in metadata.json extension.js prefs.js connections.js checker.js asyncgio.js stylesheet.css; do
+for archivo in metadata.json extension.js prefs.js connections.js checker.js asyncgio.js ventanas.js stylesheet.css; do
     install -m 644 "${ORIGEN}/${archivo}" "${DESTINO}/${archivo}"
 done
 

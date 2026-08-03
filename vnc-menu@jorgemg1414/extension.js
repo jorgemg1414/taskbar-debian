@@ -22,6 +22,7 @@ import * as BoxPointer from 'resource:///org/gnome/shell/ui/boxpointer.js';
 
 import {escanearConexiones, agruparConexiones, expandirRuta, GRUPO_SIN_NOMBRE} from './connections.js';
 import {ComprobadorPuertos, ESTADO} from './checker.js';
+import {listarSesiones} from './ventanas.js';
 
 // Milisegundos que se espera tras un cambio en la carpeta antes de recargar
 // (los gestores de archivos generan varios eventos seguidos).
@@ -277,6 +278,7 @@ class IndicadorVnc extends PanelMenu.Button {
         this._scroll = null;            // zona con desplazamiento de la lista
         this._seccionLista = null;      // sección donde viven las conexiones
         this._contexto = null;          // fila de acciones del clic derecho
+        this._seccionSesiones = null;   // sesiones VNC ya abiertas
         this._textoFiltro = '';
         this._idRecarga = 0;            // timeout de rebote del FileMonitor
         this._idIntervaloMenu = 0;      // refresco mientras el menú está abierto
@@ -354,6 +356,7 @@ class IndicadorVnc extends PanelMenu.Button {
         conectar('connections-dir', () => this.recargar());
         conectar('show-host', () => this._reconstruirMenu());
         conectar('show-latency', () => this._reconstruirMenu());
+        conectar('show-sessions', () => this._pintarSesiones());
         conectar('enable-search', () => this._reconstruirMenu());
         conectar('search-threshold', () => this._reconstruirMenu());
         conectar('panel-icon', () =>
@@ -486,6 +489,9 @@ class IndicadorVnc extends PanelMenu.Button {
         // El área de trabajo puede haber cambiado (otro monitor, otra escala).
         this._ajustarAltoLista();
 
+        // Las ventanas van y vienen sin avisar a la extensión.
+        this._pintarSesiones();
+
         // El foco se pide en cuanto el menú termina de abrirse; hacerlo antes
         // no funciona porque la animación todavía está reordenando el foco.
         if (this._buscador && !this._idFoco) {
@@ -580,6 +586,12 @@ class IndicadorVnc extends PanelMenu.Button {
         this._scroll = null;
         this._contexto = null;   // removeAll() ya lo ha destruido
 
+        // Las sesiones abiertas van arriba del todo, y se repintan cada vez
+        // que se abre el menú porque cambian por su cuenta.
+        this._seccionSesiones = new PopupMenu.PopupMenuSection();
+        this.menu.addMenuItem(this._seccionSesiones);
+        this._pintarSesiones();
+
         this._pintarBuscador();
         this._pintarLista();
 
@@ -609,6 +621,35 @@ class IndicadorVnc extends PanelMenu.Button {
                 },
             },
         ]));
+    }
+
+    /**
+     * Rellena la sección con las sesiones VNC que ya están abiertas. Pulsar
+     * una trae su ventana al frente en vez de abrir una segunda conexión.
+     */
+    _pintarSesiones() {
+        if (!this._seccionSesiones)
+            return;
+
+        this._seccionSesiones.removeAll();
+
+        if (!this._settings.get_boolean('show-sessions'))
+            return;
+
+        const sesiones = listarSesiones(this._conexiones);
+        if (sesiones.length === 0)
+            return;
+
+        const cabecera = new PopupMenu.PopupSeparatorMenuItem(_('Sesiones abiertas'));
+        cabecera.add_style_class_name('vnc-primera-cabecera');
+        this._seccionSesiones.addMenuItem(cabecera);
+
+        for (const sesion of sesiones) {
+            const item = new PopupMenu.PopupImageMenuItem(
+                sesion.titulo, 'video-display-symbolic');
+            item.connect('activate', () => Main.activateWindow(sesion.ventana));
+            this._seccionSesiones.addMenuItem(item);
+        }
     }
 
     /**
@@ -1091,6 +1132,7 @@ class IndicadorVnc extends PanelMenu.Button {
         this._scroll = null;
         this._seccionLista = null;
         this._contexto = null;
+        this._seccionSesiones = null;
         this._insignia = null;
         this._conexiones = [];
         this._settings = null;

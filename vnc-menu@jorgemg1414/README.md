@@ -83,6 +83,7 @@ take precedence over labels). Up to 4 levels deep are scanned.
 
 | Item | What it does |
 |---|---|
+| **Open sessions** | At the top of the menu, the VNC windows you already have open; clicking one brings its window to the front instead of opening a second session |
 | Connection entry | Launches the VNC client through `Gio.Subprocess` (never blocks the shell) |
 | Right click on an entry | Opens a row of actions below it: **Copy** the host, **Check** it now, **View file** in the file manager |
 | Green dot | The port accepts connections |
@@ -251,6 +252,7 @@ Menu → **Preferences**, or `gnome-extensions prefs vnc-menu@jorgemg1414`.
 | `.vnc` files | `remmina -c vnc://%h:%p` | Connection command |
 | `.remmina` files | `remmina -c %f` | Connection command |
 | Open folder | `nautilus %f` | File manager |
+| Open sessions | yes | VNC windows already open, at the top of the menu |
 | Panel icon | `computer-symbolic` | Any symbolic icon from the theme |
 | Panel down counter | yes | How many connections aren't answering, next to the icon |
 | Show host and port | yes | `host:port` to the right of the name |
