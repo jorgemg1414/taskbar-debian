@@ -16,6 +16,7 @@ The code is written against the modern extension API (ESM, GNOME 45+):
 | Folder | Contents |
 |---|---|
 | [`vnc-menu@jorgemg1414/`](vnc-menu@jorgemg1414/) | **VNC Menu** — top bar menu listing your saved VNC connections, grouped, with a reachability indicator |
+| [`wol-menu@jorgemg1414/`](wol-menu@jorgemg1414/) | **Wake on LAN** — power machines on remotely from the top bar |
 | [`herramientas/`](herramientas/) | Helper scripts: turn `.vnc` files into Remmina profiles and store their password in the GNOME keyring |
 
 ---
@@ -166,6 +167,7 @@ If it says it doesn't exist after installing, the session still needs a restart.
 ```
 taskbar-debian/
 ├── herramientas/          Helper scripts (see above)
+├── wol-menu@jorgemg1414/  Wake on LAN (see its own README)
 └── vnc-menu@jorgemg1414/
     ├── extension.js       Indicator, menu, client launching, teardown in disable()
     ├── connections.js     Async folder scanning and connection file parsing

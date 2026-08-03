@@ -1,0 +1,9 @@
+{
+  "uuid": "wol-menu@jorgemg1414",
+  "name": "Wake on LAN",
+  "description": "Indicador en la barra superior para encender equipos a distancia. Manda el paquete mágico de Wake-on-LAN por UDP a la dirección de difusión de su red.",
+  "shell-version": ["48"],
+  "settings-schema": "org.gnome.shell.extensions.wol-menu",
+  "gettext-domain": "wol-menu",
+  "version": 1
+}

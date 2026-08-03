@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.wol-menu"
+          path="/org/gnome/shell/extensions/wol-menu/">
+
+    <key name="equipos" type="as">
+      <default>[]</default>
+      <summary>Equipos que se pueden encender</summary>
+      <description>
+        Un JSON por equipo, con las claves nombre, mac, destino y puerto.
+        «destino» es la dirección a la que se manda el paquete mágico: la de
+        difusión de la red donde vive el equipo (por ejemplo 192.168.10.255), o
+        vacío para usar 255.255.255.255.
+      </description>
+    </key>
+
+    <key name="show-mac" type="b">
+      <default>false</default>
+      <summary>Mostrar la MAC</summary>
+      <description>Añade la dirección física a la derecha de cada equipo del menú.</description>
+    </key>
+
+    <key name="panel-icon" type="s">
+      <default>'network-wired-symbolic'</default>
+      <summary>Icono del panel</summary>
+      <description>Nombre del icono simbólico que se muestra en la barra superior.</description>
+    </key>
+
+  </schema>
+</schemalist>

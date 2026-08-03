@@ -1,0 +1,14 @@
+/* stylesheet.css — estilos del menú de Wake on LAN */
+
+/* MAC a la derecha del nombre, en tono apagado. */
+.wol-mac {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.8em;
+    margin-left: 14px;
+}
+
+/* Aviso de que todavía no hay equipos configurados. */
+.wol-aviso {
+    color: rgba(255, 255, 255, 0.7);
+    font-style: italic;
+}

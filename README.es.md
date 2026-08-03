@@ -17,6 +17,7 @@ extensiones (ESM, GNOME 45+): `import ... from 'gi://…'`, clase que extiende
 | Carpeta | Contenido |
 |---|---|
 | [`vnc-menu@jorgemg1414/`](vnc-menu@jorgemg1414/) | **VNC Menu** — menú en la barra superior con tus conexiones VNC guardadas, agrupadas y con indicador de disponibilidad |
+| [`wol-menu@jorgemg1414/`](wol-menu@jorgemg1414/) | **Wake on LAN** — encender equipos a distancia desde la barra superior |
 | [`herramientas/`](herramientas/) | Scripts para convertir archivos `.vnc` en perfiles de Remmina y guardar su contraseña en el llavero de GNOME |
 
 ---
@@ -169,6 +170,7 @@ Si dice «no existe» después de instalarla, es que falta reiniciar la sesión.
 ```
 taskbar-debian/
 ├── herramientas/          Scripts auxiliares (ver arriba)
+├── wol-menu@jorgemg1414/  Wake on LAN (ver su propio README)
 └── vnc-menu@jorgemg1414/
     ├── extension.js       Indicador, menú, lanzamiento y limpieza en disable()
     ├── connections.js     Escaneo asíncrono de la carpeta y parser de conexiones
