@@ -18,6 +18,7 @@ import {Extension, gettext as _} from 'resource:///org/gnome/shell/extensions/ex
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as BoxPointer from 'resource:///org/gnome/shell/ui/boxpointer.js';
 
 import {escanearConexiones, agruparConexiones, expandirRuta, GRUPO_SIN_NOMBRE} from './connections.js';
 import {ComprobadorPuertos, ESTADO} from './checker.js';
@@ -975,6 +976,11 @@ class IndicadorVnc extends PanelMenu.Button {
      * @param {object} conexion conexión seleccionada
      */
     _conectar(conexion) {
+        // Las conexiones viven dentro del St.ScrollView, fuera de la sección
+        // que el menú vigila para cerrarse solo al activar una entrada, así
+        // que hay que cerrarlo a mano.
+        this.menu.itemActivated(BoxPointer.PopupAnimation.FULL);
+
         const esRemmina = conexion.extension === '.remmina';
         const configurada = esRemmina
             ? this._settings.get_string('remmina-command')
