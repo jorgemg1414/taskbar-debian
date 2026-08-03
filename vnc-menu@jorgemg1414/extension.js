@@ -35,6 +35,10 @@ const ALTERNATIVAS_VNC = [
 ];
 const ALTERNATIVAS_REMMINA = ['remmina -c %f'];
 
+// Parte del alto de la pantalla que puede ocupar la lista de conexiones. El
+// resto queda para el buscador, el pie y los márgenes del menú.
+const PROPORCION_ALTO_LISTA = 0.6;
+
 /* -------------------------------------------------------------------------
  * Elemento de menú de una conexión: punto de estado + nombre + host:puerto
  * ------------------------------------------------------------------------- */
@@ -153,30 +157,53 @@ class ItemBuscador extends PopupMenu.PopupBaseMenuItem {
 });
 
 /* -------------------------------------------------------------------------
- * Elemento de acción que NO cierra el menú al pulsarlo
+ * Fila de acciones: varios botones icono+texto repartidos en una sola línea
  * ------------------------------------------------------------------------- */
-const ItemAccionPersistente = GObject.registerClass(
-class ItemAccionPersistente extends PopupMenu.PopupImageMenuItem {
+const ItemAcciones = GObject.registerClass(
+class ItemAcciones extends PopupMenu.PopupBaseMenuItem {
     /**
-     * @param {string} texto etiqueta del elemento
-     * @param {string} icono nombre del icono simbólico
-     * @param {Function} alPulsar acción a ejecutar
+     * Tres entradas de menú ocupaban tres filas y dejaban el pie pegado al
+     * borde de la pantalla; en horizontal ocupan una sola.
+     *
+     * @param {{icono: string, texto: string, alPulsar: Function}[]} acciones botones a pintar
      */
-    _init(texto, icono, alPulsar) {
-        super._init(texto, icono);
-        this._alPulsar = alPulsar;
-    }
+    _init(acciones) {
+        // No es activable: quien recibe los clics es cada botón.
+        super._init({
+            reactive: false,
+            activate: false,
+            hover: false,
+            can_focus: false,
+            style_class: 'vnc-acciones',
+        });
 
-    /**
-     * Ejecuta la acción sin emitir la señal 'activate'.
-     *
-     * Quien cierra el menú es PopupMenuBase, que se conecta a esa señal y
-     * llama a itemActivated(). Al no emitirla, el menú permanece abierto.
-     *
-     * @param {Clutter.Event} _event evento que originó la activación
-     */
-    activate(_event) {
-        this._alPulsar();
+        for (const {icono, texto, alPulsar} of acciones) {
+            const boton = new St.Button({
+                style_class: 'vnc-accion',
+                can_focus: true,
+                x_expand: true,
+                accessible_name: texto,
+            });
+
+            const caja = new St.BoxLayout({
+                orientation: Clutter.Orientation.HORIZONTAL,
+                x_align: Clutter.ActorAlign.CENTER,
+                x_expand: true,
+            });
+            caja.add_child(new St.Icon({
+                icon_name: icono,
+                style_class: 'vnc-accion-icono',
+                y_align: Clutter.ActorAlign.CENTER,
+            }));
+            caja.add_child(new St.Label({
+                text: texto,
+                y_align: Clutter.ActorAlign.CENTER,
+            }));
+            boton.set_child(caja);
+
+            boton.connect('clicked', () => alPulsar());
+            this.add_child(boton);
+        }
     }
 });
 
@@ -203,6 +230,8 @@ class IndicadorVnc extends PanelMenu.Button {
         this._cabeceras = [];           // {cabecera, items} por grupo, para filtrar
         this._buscador = null;          // ItemBuscador, si procede
         this._itemSinCoincidencias = null;
+        this._scroll = null;            // zona con desplazamiento de la lista
+        this._seccionLista = null;      // sección donde viven las conexiones
         this._textoFiltro = '';
         this._idRecarga = 0;            // timeout de rebote del FileMonitor
         this._idIntervaloMenu = 0;      // refresco mientras el menú está abierto
@@ -383,6 +412,9 @@ class IndicadorVnc extends PanelMenu.Button {
      * mientras siga abierto.
      */
     _alAbrirMenu() {
+        // El área de trabajo puede haber cambiado (otro monitor, otra escala).
+        this._ajustarAltoLista();
+
         // El foco se pide en cuanto el menú termina de abrirse; hacerlo antes
         // no funciona porque la animación todavía está reordenando el foco.
         if (this._buscador && !this._idFoco) {
@@ -473,8 +505,59 @@ class IndicadorVnc extends PanelMenu.Button {
         this._cabeceras = [];
         this._buscador = null;
         this._itemSinCoincidencias = null;
+        this._scroll = null;
 
         this._pintarBuscador();
+        this._pintarLista();
+
+        this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+        this.menu.addMenuItem(new ItemAcciones([
+            // Recargar no cierra el menú: así se ve cómo se refrescan las entradas.
+            {
+                icono: 'view-refresh-symbolic',
+                texto: _('Recargar'),
+                alPulsar: () => this.recargar(),
+            },
+            {
+                icono: 'folder-symbolic',
+                texto: _('Carpeta'),
+                alPulsar: () => {
+                    this.menu.close();
+                    this._abrirCarpeta();
+                },
+            },
+            {
+                icono: 'preferences-system-symbolic',
+                texto: _('Ajustes'),
+                alPulsar: () => {
+                    this.menu.close();
+                    this._extension.openPreferences();
+                },
+            },
+        ]));
+    }
+
+    /**
+     * Pinta la lista de conexiones dentro de una zona con desplazamiento, para
+     * que el menú nunca crezca más que la pantalla y el pie quede siempre
+     * visible y con aire.
+     */
+    _pintarLista() {
+        this._scroll = new St.ScrollView({
+            style_class: 'vnc-lista',
+            hscrollbar_policy: St.PolicyType.NEVER,
+            vscrollbar_policy: St.PolicyType.AUTOMATIC,
+            x_expand: true,
+        });
+
+        this._seccionLista = new PopupMenu.PopupMenuSection();
+        this._scroll.set_child(this._seccionLista.actor);
+
+        // El scroll va dentro de una sección para que removeAll() lo destruya.
+        const contenedor = new PopupMenu.PopupMenuSection();
+        contenedor.actor.add_child(this._scroll);
+        this.menu.addMenuItem(contenedor);
 
         if (this._motivoVacio === 'inexistente') {
             this._itemInformativo(_('No se encontró la carpeta:'));
@@ -487,20 +570,22 @@ class IndicadorVnc extends PanelMenu.Button {
             this._pintarGrupos();
         }
 
-        this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+        this._ajustarAltoLista();
+    }
 
-        // Este no cierra el menú: así se ve cómo se refrescan las entradas.
-        const recargar = new ItemAccionPersistente(
-            _('Recargar conexiones'), 'view-refresh-symbolic', () => this.recargar());
-        this.menu.addMenuItem(recargar);
+    /**
+     * Limita el alto de la lista a una parte del área de trabajo. El valor va
+     * en píxeles lógicos, de ahí la división por el factor de escala.
+     */
+    _ajustarAltoLista() {
+        if (!this._scroll)
+            return;
 
-        const abrir = new PopupMenu.PopupImageMenuItem(_('Abrir carpeta'), 'folder-symbolic');
-        abrir.connect('activate', () => this._abrirCarpeta());
-        this.menu.addMenuItem(abrir);
+        const area = Main.layoutManager.getWorkAreaForMonitor(Main.layoutManager.primaryIndex);
+        const escala = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+        const alto = Math.max(200, Math.round(area.height * PROPORCION_ALTO_LISTA / escala));
 
-        const prefs = new PopupMenu.PopupImageMenuItem(_('Preferencias'), 'preferences-system-symbolic');
-        prefs.connect('activate', () => this._extension.openPreferences());
-        this.menu.addMenuItem(prefs);
+        this._scroll.style = `max-height: ${alto}px;`;
     }
 
     /**
@@ -521,7 +606,7 @@ class IndicadorVnc extends PanelMenu.Button {
                 cabecera = new PopupMenu.PopupSeparatorMenuItem(grupo.nombre);
                 if (primero)
                     cabecera.add_style_class_name('vnc-primera-cabecera');
-                this.menu.addMenuItem(cabecera);
+                this._seccionLista.addMenuItem(cabecera);
             }
             primero = false;
 
@@ -532,7 +617,7 @@ class IndicadorVnc extends PanelMenu.Button {
                         ? this._comprobador.estadoDe(conexion.id)
                         : ESTADO.DESCONOCIDO);
                 item.connect('activate', () => this._conectar(conexion));
-                this.menu.addMenuItem(item);
+                this._seccionLista.addMenuItem(item);
                 this._items.set(conexion.id, item);
                 itemsDelGrupo.push(item);
             }
@@ -545,7 +630,7 @@ class IndicadorVnc extends PanelMenu.Button {
         this._itemSinCoincidencias = new PopupMenu.PopupMenuItem(
             _('Ninguna conexión coincide'), {reactive: false, style_class: 'vnc-aviso'});
         this._itemSinCoincidencias.visible = false;
-        this.menu.addMenuItem(this._itemSinCoincidencias);
+        this._seccionLista.addMenuItem(this._itemSinCoincidencias);
 
         // Si se venía filtrando (p. ej. tras recargar), se mantiene el filtro.
         if (this._textoFiltro)
@@ -628,7 +713,7 @@ class IndicadorVnc extends PanelMenu.Button {
      */
     _itemInformativo(texto) {
         const item = new PopupMenu.PopupMenuItem(texto, {reactive: false, style_class: 'vnc-aviso'});
-        this.menu.addMenuItem(item);
+        this._seccionLista.addMenuItem(item);
     }
 
     /* -------------------------- Lanzamiento -------------------------- */
@@ -775,6 +860,8 @@ class IndicadorVnc extends PanelMenu.Button {
         this._cabeceras = [];
         this._buscador = null;
         this._itemSinCoincidencias = null;
+        this._scroll = null;
+        this._seccionLista = null;
         this._conexiones = [];
         this._settings = null;
         this._extension = null;
