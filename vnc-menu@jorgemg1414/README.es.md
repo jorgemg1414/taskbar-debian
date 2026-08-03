@@ -84,13 +84,25 @@ niveles de profundidad.
 | Elemento | Qué hace |
 |---|---|
 | Entrada de conexión | Lanza el cliente VNC con `Gio.Subprocess` (nunca bloquea el shell) |
+| Clic derecho en una entrada | Abre debajo una fila de acciones: **Copiar** el host, **Comprobar** ahora y **Ver archivo** en el gestor de archivos |
 | Punto verde | El puerto acepta conexiones |
 | Punto rojo | Puerto cerrado, host inalcanzable o se agotó el tiempo de espera |
-| Punto amarillo | Comprobación en curso |
+| Punto amarillo | Comprobación en curso (o esperando turno) |
 | Punto gris | Sin comprobar todavía (o comprobaciones desactivadas) |
-| **Recargar conexiones** | Vuelve a escanear la carpeta. No cierra el menú, así ves cómo se refrescan las entradas y su estado |
-| **Abrir carpeta** | Abre `~/Documentos/VNC` en Nautilus |
-| **Preferencias** | Abre los ajustes de la extensión |
+| Milisegundos | Lo que tardó el host en aceptar la conexión, resolución DNS incluida |
+| Contador del panel | Cuántas conexiones no responden |
+| **Recargar** | Vuelve a escanear la carpeta. No cierra el menú, así ves cómo se refrescan las entradas y su estado |
+| **Carpeta** | Abre `~/Documentos/VNC` en Nautilus |
+| **Ajustes** | Abre los ajustes de la extensión |
+
+La lista se desplaza: tengas las conexiones que tengas, el menú no pasa de
+alrededor del 60 % de la pantalla y la fila de acciones se queda en su sitio.
+
+### Teclado
+
+**↓/↑** recorren las conexiones visibles, saltando cabeceras de grupo y lo que
+esconda el filtro, y desplazando la lista según haga falta. **↑** en la primera
+devuelve el foco al buscador. **Intro** lanza la conexión enfocada.
 
 ### Buscador
 
@@ -114,7 +126,13 @@ son tantas conexiones TCP como entradas tengas, cada intervalo, también cuando
 estás fuera de la red donde viven esos equipos.
 
 Todo es asíncrono (`Gio.SocketClient`, 2 s de tiempo de espera) y las
-comprobaciones pendientes se cancelan en `disable()`.
+comprobaciones pendientes se cancelan en `disable()`. Como mucho corren **8 a la
+vez**; el resto espera en cola y entra según se liberan huecos, así que veinte
+sucursales no son veinte sockets simultáneos.
+
+El **contador del panel** dice cuántos hosts están caídos sin abrir el menú. Con
+el menú cerrado solo se mantiene al día si activas las comprobaciones en segundo
+plano; si no, muestra lo que se sabía la última vez que lo miraste.
 
 ---
 
@@ -235,10 +253,12 @@ Desde el menú → **Preferencias**, o con `gnome-extensions prefs vnc-menu@jorg
 | Archivos `.remmina` | `remmina -c %f` | Comando de conexión |
 | Abrir carpeta | `nautilus %f` | Gestor de archivos |
 | Icono del panel | `computer-symbolic` | Cualquier icono simbólico del tema |
+| Contador de caídas en el panel | sí | Cuántas conexiones no responden, junto al icono |
 | Mostrar host y puerto | sí | `host:puerto` a la derecha del nombre |
 | Buscador en el menú | sí | Filtrar escribiendo |
 | Mostrarlo a partir de | 8 | Conexiones necesarias para que aparezca el buscador |
 | Comprobar disponibilidad | sí | Punto verde/rojo |
+| Mostrar la latencia | sí | Milisegundos que tarda cada host en responder |
 | Refresco con el menú abierto | 60 s | Entre comprobaciones mientras miras el menú |
 | Comprobar en segundo plano | 0 (desactivado) | Segundos entre comprobaciones con el menú cerrado |
 | Tiempo de espera | 2 s | Antes de dar un host por caído |

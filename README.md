@@ -32,12 +32,17 @@ menu. Clicking an entry opens your VNC client.
   `.remmina` (INI). The menu label is the filename without its extension.
 - **Automatic grouping.** By subfolder, or by the labels inside each file
   (`Labels=` for RealVNC, `group=` for Remmina) when there are no subfolders.
-- **Per-host status.** A green or red dot shows whether the port answers.
-  Checks run asynchronously through `Gio.SocketClient` with a 2 s timeout, and
-  only while the menu is open — with the menu closed nothing touches the
-  network, unless you turn on background checks.
+- **Per-host status.** A green or red dot shows whether the port answers, with
+  the response time in milliseconds beside it. Checks run asynchronously through
+  `Gio.SocketClient` with a 2 s timeout, at most 8 at a time, and only while the
+  menu is open — with the menu closed nothing touches the network, unless you
+  turn on background checks.
+- **Down count in the panel.** How many connections aren't answering, next to
+  the icon, so you don't have to open the menu to find out.
 - **Search.** With many connections a filter field appears at the top of the
-  menu: type part of a name or host, press Enter to connect to the first match.
+  menu: type part of a name or host, ↓/↑ to walk the results, Enter to connect.
+- **Right click on a connection** for its own actions: copy the host, check it
+  now, or open the file in the file manager.
 - **Refreshes itself.** The folder is scanned with `Gio` and watched with
   `Gio.FileMonitor`, so adding, removing or editing a connection updates the
   menu right away — no shell reload.

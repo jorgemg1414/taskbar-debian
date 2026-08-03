@@ -84,13 +84,26 @@ take precedence over labels). Up to 4 levels deep are scanned.
 | Item | What it does |
 |---|---|
 | Connection entry | Launches the VNC client through `Gio.Subprocess` (never blocks the shell) |
+| Right click on an entry | Opens a row of actions below it: **Copy** the host, **Check** it now, **View file** in the file manager |
 | Green dot | The port accepts connections |
 | Red dot | Port closed, host unreachable, or the timeout expired |
-| Yellow dot | Check in progress |
+| Yellow dot | Check in progress (or waiting its turn) |
 | Grey dot | Not checked yet (or checks disabled) |
-| **Reload connections** | Rescans the folder. Keeps the menu open, so you can watch entries and their status refresh |
-| **Open folder** | Opens the connections folder in Nautilus |
-| **Preferences** | Opens the extension settings |
+| Milliseconds | How long the host took to accept the connection, DNS lookup included |
+| Panel counter | How many connections are not answering |
+| **Reload** | Rescans the folder. Keeps the menu open, so you can watch entries and their status refresh |
+| **Folder** | Opens the connections folder in Nautilus |
+| **Settings** | Opens the extension settings |
+
+The list scrolls: however many connections you have, the menu never grows past
+about 60% of the screen and the action row stays in place.
+
+### Keyboard
+
+**↓/↑** walk through the visible connections, skipping group headers and
+anything hidden by the filter, scrolling the list along the way. **↑** on the
+first one returns focus to the search field. **Enter** launches the focused
+connection.
 
 ### Search
 
@@ -113,7 +126,13 @@ as you have entries, every interval, including when you're away from the network
 those machines live on.
 
 Everything is asynchronous (`Gio.SocketClient`, 2 s timeout) and pending checks
-are cancelled in `disable()`.
+are cancelled in `disable()`. At most **8 checks run at a time**; the rest queue
+up and start as slots free, so twenty branches don't mean twenty simultaneous
+sockets.
+
+The **panel counter** shows how many hosts are down without opening the menu.
+With the menu closed it only stays current if background checks are on —
+otherwise it shows what was known the last time you looked.
 
 ---
 
@@ -233,10 +252,12 @@ Menu → **Preferences**, or `gnome-extensions prefs vnc-menu@jorgemg1414`.
 | `.remmina` files | `remmina -c %f` | Connection command |
 | Open folder | `nautilus %f` | File manager |
 | Panel icon | `computer-symbolic` | Any symbolic icon from the theme |
+| Panel down counter | yes | How many connections aren't answering, next to the icon |
 | Show host and port | yes | `host:port` to the right of the name |
 | Search field | yes | Filter as you type |
 | Show it from | 8 | Connections needed for the search field to appear |
 | Check availability | yes | Green/red dot |
+| Show latency | yes | Milliseconds each host takes to answer |
 | Refresh while menu is open | 60 s | Between checks while you're looking at the menu |
 | Check in the background | 0 (off) | Seconds between checks with the menu closed |
 | Timeout | 2 s | Before considering a host down |

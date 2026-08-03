@@ -33,13 +33,18 @@ los presenta como menú. Al pulsar una entrada se abre el cliente VNC.
   `.remmina` (INI). El nombre visible es el del archivo sin extensión.
 - **Agrupación automática.** Por subcarpetas, o por las etiquetas del propio
   archivo (`Labels=` en RealVNC, `group=` en Remmina) cuando no hay subcarpetas.
-- **Estado de cada equipo.** Un punto verde o rojo indica si el puerto responde.
-  Se comprueba de forma asíncrona con `Gio.SocketClient` y 2 s de espera, y solo
-  mientras el menú está abierto: con el menú cerrado no se toca la red, salvo que
-  actives las comprobaciones en segundo plano.
+- **Estado de cada equipo.** Un punto verde o rojo indica si el puerto responde,
+  con el tiempo de respuesta en milisegundos al lado. Se comprueba de forma
+  asíncrona con `Gio.SocketClient` y 2 s de espera, ocho a la vez como mucho, y
+  solo mientras el menú está abierto: con el menú cerrado no se toca la red,
+  salvo que actives las comprobaciones en segundo plano.
+- **Contador de caídas en el panel.** Cuántas conexiones no responden, junto al
+  icono, para no tener que abrir el menú a mirar.
 - **Buscador.** Con muchas conexiones aparece un campo de filtro al principio del
-  menú: escribe parte del nombre o del host e Intro conecta con la primera
-  coincidencia.
+  menú: escribe parte del nombre o del host, ↓/↑ recorren los resultados e Intro
+  conecta.
+- **Clic derecho en una conexión** para sus propias acciones: copiar el host,
+  comprobarla ahora o abrir el archivo en el gestor de archivos.
 - **Se actualiza sola.** La carpeta se escanea con `Gio` y se vigila con
   `Gio.FileMonitor`: al añadir, borrar o editar una conexión el menú cambia al
   momento, sin recargar el shell.
