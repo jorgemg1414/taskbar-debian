@@ -48,6 +48,17 @@
     margin-right: 6px;
 }
 
+/* Contador de conexiones caídas, pegado al icono del panel. */
+.vnc-insignia {
+    background-color: #e01b24;
+    color: #ffffff;
+    font-size: 0.7em;
+    font-weight: bold;
+    border-radius: 9px;
+    padding: 1px 6px;
+    margin-left: 2px;
+}
+
 /* Zona con desplazamiento que contiene las conexiones. El alto máximo lo
    calcula extension.js a partir del tamaño de la pantalla. */
 .vnc-lista {

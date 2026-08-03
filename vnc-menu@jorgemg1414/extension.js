@@ -246,9 +246,20 @@ class IndicadorVnc extends PanelMenu.Button {
         });
         this.add_child(this._icono);
 
+        // Contador de conexiones sin respuesta, para enterarte sin abrir el menú.
+        this._insignia = new St.Label({
+            style_class: 'vnc-insignia',
+            y_align: Clutter.ActorAlign.CENTER,
+            visible: false,
+        });
+        this.add_child(this._insignia);
+
         this._comprobador = new ComprobadorPuertos({
             timeout: this._settings.get_int('check-timeout'),
-            alCambiar: (id, estado) => this._items.get(id)?.fijarEstado(estado),
+            alCambiar: (id, estado) => {
+                this._items.get(id)?.fijarEstado(estado);
+                this._actualizarInsignia();
+            },
         });
 
         // El estado se consulta al abrir el menú y se deja de consultar al
@@ -290,6 +301,7 @@ class IndicadorVnc extends PanelMenu.Button {
         conectar('search-threshold', () => this._reconstruirMenu());
         conectar('panel-icon', () =>
             (this._icono.icon_name = this._settings.get_string('panel-icon')));
+        conectar('panel-badge', () => this._actualizarInsignia());
         conectar('check-timeout', () =>
             (this._comprobador.timeout = this._settings.get_int('check-timeout')));
         conectar('check-interval', () => {
@@ -306,6 +318,7 @@ class IndicadorVnc extends PanelMenu.Button {
                 this._alAbrirMenu();
             }
             this._reconstruirMenu();
+            this._actualizarInsignia();
         });
     }
 
@@ -337,6 +350,7 @@ class IndicadorVnc extends PanelMenu.Button {
                 this._comprobador.podar(new Set(this._conexiones.map(c => c.id)));
 
                 this._reconstruirMenu();
+                this._actualizarInsignia();
                 this._vigilarCarpeta();
 
                 // Solo se consulta la red si el menú está a la vista; si no, el
@@ -571,6 +585,34 @@ class IndicadorVnc extends PanelMenu.Button {
         }
 
         this._ajustarAltoLista();
+    }
+
+    /**
+     * Actualiza el contador del panel con las conexiones que no responden.
+     *
+     * Solo tiene sentido si las comprobaciones están activas; y para que se
+     * mantenga al día con el menú cerrado hace falta el intervalo de fondo.
+     */
+    _actualizarInsignia() {
+        if (this._destruido || !this._insignia)
+            return;
+
+        const activa = this._settings.get_boolean('panel-badge') &&
+                       this._settings.get_boolean('enable-checks');
+
+        let caidas = 0;
+        if (activa) {
+            for (const conexion of this._conexiones) {
+                if (this._comprobador.estadoDe(conexion.id) === ESTADO.ABAJO)
+                    caidas++;
+            }
+        }
+
+        this._insignia.text = String(caidas);
+        this._insignia.visible = caidas > 0;
+        this.accessible_name = caidas > 0
+            ? `${_('VNC Menu')} — ${caidas} ${_('sin respuesta')}`
+            : _('VNC Menu');
     }
 
     /**
@@ -862,6 +904,7 @@ class IndicadorVnc extends PanelMenu.Button {
         this._itemSinCoincidencias = null;
         this._scroll = null;
         this._seccionLista = null;
+        this._insignia = null;
         this._conexiones = [];
         this._settings = null;
         this._extension = null;

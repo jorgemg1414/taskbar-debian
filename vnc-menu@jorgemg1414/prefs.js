@@ -45,6 +45,14 @@ export default class VncMenuPreferences extends ExtensionPreferences {
         settings.bind('panel-icon', filaIcono, 'text', Gio.SettingsBindFlags.DEFAULT);
         grupoCarpeta.add(filaIcono);
 
+        const filaInsignia = new Adw.SwitchRow({
+            title: _('Contador de caídas en el panel'),
+            subtitle: _('Cuántas conexiones no responden, junto al icono. Con el menú ' +
+                'cerrado solo se actualiza si activas las comprobaciones en segundo plano.'),
+        });
+        settings.bind('panel-badge', filaInsignia, 'active', Gio.SettingsBindFlags.DEFAULT);
+        grupoCarpeta.add(filaInsignia);
+
         const filaBuscador = new Adw.SwitchRow({
             title: _('Buscador en el menú'),
             subtitle: _('Filtra las conexiones al escribir. Intro conecta con la primera.'),

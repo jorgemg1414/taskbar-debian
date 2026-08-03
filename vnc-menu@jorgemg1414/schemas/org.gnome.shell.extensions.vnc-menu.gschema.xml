@@ -98,6 +98,16 @@
       <description>Muestra el host y el puerto a la derecha del nombre de cada conexión.</description>
     </key>
 
+    <key name="panel-badge" type="b">
+      <default>true</default>
+      <summary>Contador de conexiones caídas en el panel</summary>
+      <description>
+        Muestra junto al icono del panel cuántas conexiones no responden.
+        Para que se mantenga al día con el menú cerrado hay que activar las
+        comprobaciones en segundo plano.
+      </description>
+    </key>
+
     <key name="panel-icon" type="s">
       <default>'computer-symbolic'</default>
       <summary>Icono del panel</summary>
