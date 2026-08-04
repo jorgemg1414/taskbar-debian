@@ -16,6 +16,7 @@ The code is written against the modern extension API (ESM, GNOME 45+):
 | Folder | Contents |
 |---|---|
 | [`vnc-menu@jorgemg1414/`](vnc-menu@jorgemg1414/) | **VNC Menu** — top bar menu listing your saved VNC connections, grouped, with a reachability indicator |
+| [`ssh-menu@jorgemg1414/`](ssh-menu@jorgemg1414/) | **SSH Menu** — the machines in your `~/.ssh/config`: terminal session or SFTP, from the same row |
 | [`wol-menu@jorgemg1414/`](wol-menu@jorgemg1414/) | **Wake on LAN** — power machines on remotely from the top bar |
 | [`herramientas/`](herramientas/) | Helper scripts: turn `.vnc` files into Remmina profiles and store their password in the GNOME keyring |
 
@@ -70,6 +71,29 @@ Full documentation (formats, settings, troubleshooting):
 
 ---
 
+## SSH Menu
+
+The same idea applied to `~/.ssh/config`: every `Host` block becomes a menu
+entry, so shell and files for a machine sit in the same row.
+
+- **Clicking a machine runs `ssh <alias>`** in a terminal — ssh itself applies
+  the user, port, key and `ProxyJump` from your config.
+- **The button on the right opens it over SFTP** in the file manager. GVfs
+  mounts it and the file manager asks for the password: the extension never
+  touches credentials.
+- **Mounts stay listed** at the top of the menu, with an eject button, because
+  an SFTP connection outlives the window you opened it from.
+- **Same machinery as the VNC menu:** grouping (here by `# Group: NAME`
+  comments), green/red dot with latency, down counter in the panel, search
+  field, and `Gio.FileMonitor` on the config files.
+- **Machines behind a `ProxyJump` aren't checked** — they don't accept a direct
+  connection, so a red dot would be a lie. They show `⇢ <jump>` instead.
+
+Full documentation (grouping, commands, jump hosts, troubleshooting):
+**[ssh-menu@jorgemg1414/README.md](ssh-menu@jorgemg1414/README.md)**
+
+---
+
 ## Helper scripts
 
 `.vnc` files carry their password encrypted with RealVNC's own key, which
@@ -105,10 +129,11 @@ gsettings --schemadir ~/.local/share/gnome-shell/extensions/vnc-menu@jorgemg1414
 
 - GNOME Shell 48 (tested on 48.7, Debian 13, Wayland session)
 - `glib-compile-schemas` — package `libglib2.0-dev-bin`
-- A VNC client: `remmina` + `remmina-plugin-vnc`, or `tigervnc-viewer`
+- For the VNC menu: `remmina` + `remmina-plugin-vnc`, or `tigervnc-viewer`
+- For the SSH menu: `openssh-client`, and `gvfs-backends` for SFTP
 
 ```bash
-sudo apt install libglib2.0-dev-bin remmina remmina-plugin-vnc
+sudo apt install libglib2.0-dev-bin remmina remmina-plugin-vnc openssh-client gvfs-backends
 ```
 
 ---
@@ -167,6 +192,7 @@ If it says it doesn't exist after installing, the session still needs a restart.
 ```
 taskbar-debian/
 ├── herramientas/          Helper scripts (see above)
+├── ssh-menu@jorgemg1414/  SSH Menu (see its own README)
 ├── wol-menu@jorgemg1414/  Wake on LAN (see its own README)
 └── vnc-menu@jorgemg1414/
     ├── extension.js       Indicator, menu, client launching, teardown in disable()

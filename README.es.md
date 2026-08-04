@@ -17,6 +17,7 @@ extensiones (ESM, GNOME 45+): `import ... from 'gi://…'`, clase que extiende
 | Carpeta | Contenido |
 |---|---|
 | [`vnc-menu@jorgemg1414/`](vnc-menu@jorgemg1414/) | **VNC Menu** — menú en la barra superior con tus conexiones VNC guardadas, agrupadas y con indicador de disponibilidad |
+| [`ssh-menu@jorgemg1414/`](ssh-menu@jorgemg1414/) | **SSH Menu** — los equipos de tu `~/.ssh/config`: sesión en terminal o SFTP, desde la misma fila |
 | [`wol-menu@jorgemg1414/`](wol-menu@jorgemg1414/) | **Wake on LAN** — encender equipos a distancia desde la barra superior |
 | [`herramientas/`](herramientas/) | Scripts para convertir archivos `.vnc` en perfiles de Remmina y guardar su contraseña en el llavero de GNOME |
 
@@ -73,6 +74,32 @@ Documentación completa (formatos, ajustes, depuración):
 
 ---
 
+## SSH Menu
+
+La misma idea aplicada a `~/.ssh/config`: cada bloque `Host` es una entrada del
+menú, de modo que la consola y los archivos de un equipo están en la misma fila.
+
+- **Al pulsar un equipo se lanza `ssh <alias>`** en una terminal, para que sea el
+  propio ssh quien aplique el usuario, el puerto, la clave y el `ProxyJump` que
+  tengas configurados.
+- **El botón de la derecha lo abre por SFTP** en el gestor de archivos. Quien
+  monta es GVfs y quien pide la contraseña es el gestor de archivos: la
+  extensión no toca credenciales.
+- **Los montajes se quedan listados** al principio del menú, con su botón de
+  expulsar, porque una conexión SFTP sigue viva aunque cierres la ventana desde
+  la que la abriste.
+- **La misma maquinaria que el menú de VNC:** agrupación (aquí con comentarios
+  `# Grupo: NOMBRE`), punto verde/rojo con latencia, contador de caídos en el
+  panel, buscador y `Gio.FileMonitor` sobre los archivos de configuración.
+- **Los equipos detrás de un `ProxyJump` no se comprueban** — no aceptan
+  conexión directa, así que un punto rojo sería mentira. En su lugar muestran
+  `⇢ <salto>`.
+
+Documentación completa (agrupación, comandos, saltos, depuración):
+**[ssh-menu@jorgemg1414/README.es.md](ssh-menu@jorgemg1414/README.es.md)**
+
+---
+
 ## Herramientas
 
 Los archivos `.vnc` llevan la contraseña cifrada con la clave propia de RealVNC,
@@ -108,10 +135,11 @@ gsettings --schemadir ~/.local/share/gnome-shell/extensions/vnc-menu@jorgemg1414
 
 - GNOME Shell 48 (probado en 48.7, Debian 13, sesión Wayland)
 - `glib-compile-schemas` — paquete `libglib2.0-dev-bin`
-- Un cliente VNC: `remmina` + `remmina-plugin-vnc`, o `tigervnc-viewer`
+- Para el menú de VNC: `remmina` + `remmina-plugin-vnc`, o `tigervnc-viewer`
+- Para el menú de SSH: `openssh-client`, y `gvfs-backends` para el SFTP
 
 ```bash
-sudo apt install libglib2.0-dev-bin remmina remmina-plugin-vnc
+sudo apt install libglib2.0-dev-bin remmina remmina-plugin-vnc openssh-client gvfs-backends
 ```
 
 ---
@@ -170,6 +198,7 @@ Si dice «no existe» después de instalarla, es que falta reiniciar la sesión.
 ```
 taskbar-debian/
 ├── herramientas/          Scripts auxiliares (ver arriba)
+├── ssh-menu@jorgemg1414/  SSH Menu (ver su propio README)
 ├── wol-menu@jorgemg1414/  Wake on LAN (ver su propio README)
 └── vnc-menu@jorgemg1414/
     ├── extension.js       Indicador, menú, lanzamiento y limpieza en disable()
