@@ -94,6 +94,9 @@ menú, de modo que la consola y los archivos de un equipo están en la misma fil
 - **Los equipos detrás de un `ProxyJump` no se comprueban** — no aceptan
   conexión directa, así que un punto rojo sería mentira. En su lugar muestran
   `⇢ <salto>`.
+- **Al que no responde se le puede encender desde ahí mismo**, con el paquete
+  mágico, si se le conoce la MAC: por un comentario `# MAC:` en su bloque o
+  porque ya esté dado de alta en la extensión Wake on LAN.
 
 Documentación completa (agrupación, comandos, saltos, depuración):
 **[ssh-menu@jorgemg1414/README.es.md](ssh-menu@jorgemg1414/README.es.md)**

@@ -55,7 +55,8 @@ keep working even when they aren't shown.
   host or user, ↓/↑ walk the results, Enter opens the session (with Ctrl or
   Shift, the other two ways in).
 - **Right-click on a machine** for its own actions: copy `ssh <alias>`, check it
-  now, or open the file where it is defined in the editor.
+  now, open the file where it is defined in the editor and, when it isn't
+  answering, **power it on**.
 - **Keeps itself up to date.** The config files are watched with
   `Gio.FileMonitor`: adding or editing a block updates the menu right away, with
   no shell reload.
@@ -133,6 +134,43 @@ plus a `Host internal-tunnel` block pointing at `localhost` port `2222`.
 
 ---
 
+## Powering on a machine that's down
+
+When a machine shows a red dot, right-clicking offers **Encender** (power on):
+the Wake-on-LAN magic packet goes out without a trip to the other menu. The
+action only shows up when the machine **isn't answering** — if it answers it's
+already on — and when its MAC is known.
+
+The MAC comes from one of two places:
+
+**1. A comment in its block**, which is the most direct and travels along with
+the rest of your config:
+
+```sshconfig
+# MAC: aa:bb:cc:dd:ee:ff
+# Difusión: 192.168.10.255
+Host north
+    HostName 192.168.10.5
+    User jorge
+```
+
+All three ways of writing a MAC work (`aa:bb:…`, `aa-bb-…`, `aabbcc…`), and the
+comment can sit above the `Host` line or inside the block. The broadcast address
+is optional: without it, `255.255.255.255` is used, which only reaches your own
+network.
+
+**2. The machines in the Wake on LAN extension**, if you have it installed. They
+are read from its settings and matched **by name**: the machine's name there has
+to equal the alias of the `Host` block (or its `HostName`). That way the MAC
+isn't written down twice.
+
+> Since the protocol has no reply, the notification says "packet sent", not
+> "machine on": that's the only thing that can honestly be claimed. And it only
+> works if the target machine was set up for it beforehand — that's covered in
+> the [Wake on LAN README](../wol-menu@jorgemg1414/README.md).
+
+---
+
 ## Settings
 
 From the menu → **Ajustes**, or with `gnome-extensions prefs ssh-menu@jorgemg1414`.
@@ -147,6 +185,7 @@ From the menu → **Ajustes**, or with `gnome-extensions prefs ssh-menu@jorgemg1
 | File manager button | yes | The per-row 📁; hidden, Ctrl+click still works |
 | Terminal sftp button | yes | The per-row ⇅; hidden, Shift+click still works |
 | Mounted folders | yes | The list of SFTP mounts at the top of the menu |
+| Power on from the menu | yes | "Encender" on right-click for a down machine with a MAC |
 | Remote start folder | empty | Empty lands you in your home on the server |
 | Check availability | yes | The green/red dot |
 | Show latency | yes | Response time in milliseconds |
@@ -292,6 +331,7 @@ ssh-menu@jorgemg1414/
 ├── hosts.js           Reads and parses ~/.ssh/config, Include directives and all
 ├── checker.js         Port checks, asynchronous and cancellable
 ├── montajes.js        Mounted SFTP folders (Gio.VolumeMonitor)
+├── wol.js             Magic packet and machine MACs, for powering them on
 ├── asyncgio.js        Promise wrappers around the Gio calls
 ├── prefs.js           Preferences window (libadwaita)
 ├── stylesheet.css     Menu styles

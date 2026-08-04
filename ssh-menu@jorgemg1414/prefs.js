@@ -108,6 +108,23 @@ export default class SshMenuPreferences extends ExtensionPreferences {
         settings.bind('sftp-path', filaRuta, 'text', Gio.SettingsBindFlags.DEFAULT);
         grupoSftp.add(filaRuta);
 
+        /* ------------------------- Wake on LAN ------------------------- */
+        const grupoWol = new Adw.PreferencesGroup({
+            title: _('Encendido'),
+            description: _('Cuando un equipo no responde, el clic derecho ofrece ' +
+                '«Encender» si se le conoce la MAC. Sale de un comentario ' +
+                '«# MAC: aa:bb:cc:dd:ee:ff» en su bloque del config, o de los equipos ' +
+                'que ya tengas en la extensión Wake on LAN, emparejando por nombre.'),
+        });
+        pagina.add(grupoWol);
+
+        const filaWol = new Adw.SwitchRow({
+            title: _('Encender desde el menú'),
+            subtitle: _('El paquete mágico se manda igual que en la extensión Wake on LAN.'),
+        });
+        settings.bind('enable-wol', filaWol, 'active', Gio.SettingsBindFlags.DEFAULT);
+        grupoWol.add(filaWol);
+
         /* -------------------------- Comandos --------------------------- */
         const grupoComandos = new Adw.PreferencesGroup({
             title: _('Comandos'),

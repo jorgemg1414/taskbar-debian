@@ -55,7 +55,8 @@ teclado siguen funcionando aunque no se vean.
   alias, del host o del usuario, ↓/↑ recorren los resultados e Intro abre la
   sesión (con Ctrl o Mayús, las otras dos formas de entrar).
 - **Clic derecho en un equipo** para sus propias acciones: copiar `ssh <alias>`,
-  comprobarlo ahora o abrir en el editor el archivo donde está definido.
+  comprobarlo ahora, abrir en el editor el archivo donde está definido y, si no
+  responde, **encenderlo**.
 - **Se actualiza sola.** Los archivos de configuración se vigilan con
   `Gio.FileMonitor`: al añadir o editar un bloque el menú cambia al momento, sin
   recargar el shell.
@@ -134,6 +135,42 @@ y añadir un bloque `Host interno-tunel` que apunte a `localhost` puerto `2222`.
 
 ---
 
+## Encender un equipo caído
+
+Cuando un equipo sale con el punto rojo, el clic derecho ofrece **Encender**: se
+manda el paquete mágico de Wake-on-LAN sin tener que irse al otro menú. La
+acción solo aparece si el equipo **no responde** —si contesta ya está
+encendido— y si se le conoce la MAC.
+
+La MAC sale de uno de estos dos sitios:
+
+**1. Un comentario en su bloque**, que es lo más directo y viaja con el resto de
+la configuración:
+
+```sshconfig
+# MAC: aa:bb:cc:dd:ee:ff
+# Difusión: 192.168.10.255
+Host norte
+    HostName 192.168.10.5
+    User jorge
+```
+
+Valen las tres formas de escribir una MAC (`aa:bb:…`, `aa-bb-…`, `aabbcc…`), y
+el comentario puede ir encima del `Host` o dentro del bloque. La difusión es
+opcional: sin ella se usa `255.255.255.255`, que solo llega a tu propia red.
+
+**2. Los equipos de la extensión Wake on LAN**, si la tienes instalada. Se leen
+de sus ajustes y se emparejan **por nombre**: el nombre del equipo allí tiene
+que ser igual que el alias del bloque `Host` (o que su `HostName`). Así no hay
+que apuntar la MAC dos veces.
+
+> Como el protocolo no tiene respuesta, la notificación dice «paquete enviado»,
+> no «equipo encendido»: es lo único que se puede afirmar. Y para que funcione
+> hay que haberlo preparado antes en el equipo destino — está contado en el
+> [README de Wake on LAN](../wol-menu@jorgemg1414/README.es.md).
+
+---
+
 ## Ajustes
 
 Desde el menú → **Ajustes**, o con `gnome-extensions prefs ssh-menu@jorgemg1414`.
@@ -148,6 +185,7 @@ Desde el menú → **Ajustes**, o con `gnome-extensions prefs ssh-menu@jorgemg14
 | Botón del gestor de archivos | sí | El 📁 de cada fila; oculto, sigue habiendo Ctrl+clic |
 | Botón de sftp en terminal | sí | El ⇅ de cada fila; oculto, sigue habiendo Mayús+clic |
 | Carpetas montadas | sí | La lista de montajes SFTP al principio del menú |
+| Encender desde el menú | sí | «Encender» en el clic derecho de un equipo caído con MAC |
 | Carpeta remota de inicio | vacío | Vacío te deja en tu carpeta personal del servidor |
 | Comprobar disponibilidad | sí | El punto verde/rojo |
 | Mostrar la latencia | sí | Milisegundos de respuesta |
@@ -292,6 +330,7 @@ ssh-menu@jorgemg1414/
 ├── hosts.js           Lectura y parseo de ~/.ssh/config, con sus Include
 ├── checker.js         Comprobación de puertos, asíncrona y cancelable
 ├── montajes.js        Carpetas SFTP montadas (Gio.VolumeMonitor)
+├── wol.js             Paquete mágico y MAC de los equipos, para encenderlos
 ├── asyncgio.js        Envoltorios de Promise sobre las llamadas de Gio
 ├── prefs.js           Ventana de preferencias (libadwaita)
 ├── stylesheet.css     Estilos del menú

@@ -148,6 +148,16 @@
       </description>
     </key>
 
+    <key name="enable-wol" type="b">
+      <default>true</default>
+      <summary>Encender equipos desde el menú</summary>
+      <description>
+        Añade «Encender» a las acciones del clic derecho cuando el equipo no
+        responde y se le conoce la MAC, ya sea por un comentario «# MAC:» en su
+        bloque o porque esté dado de alta en la extensión Wake on LAN.
+      </description>
+    </key>
+
     <key name="show-mounts" type="b">
       <default>true</default>
       <summary>Mostrar las carpetas montadas</summary>

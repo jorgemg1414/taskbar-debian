@@ -27,6 +27,7 @@ import {
 } from './hosts.js';
 import {ComprobadorPuertos, ESTADO} from './checker.js';
 import {listarMontajesSftp, idsMontados, uriDeMontaje, desmontar} from './montajes.js';
+import {ajustesWol, leerEquiposWol, datosWolDe, despertar} from './wol.js';
 
 // Milisegundos que se espera tras un cambio en la configuración antes de
 // recargar (los editores guardan en varios pasos).
@@ -444,6 +445,8 @@ class IndicadorSsh extends PanelMenu.Button {
         this._monitores = [];           // {monitor, handlerId}
         this._idsSettings = [];
         this._idsVolumenes = [];        // señales de Gio.VolumeMonitor
+        this._settingsWol = null;       // ajustes de la extensión Wake on LAN
+        this._wolConsultado = false;    // si ya se buscó esa extensión
         this._cabeceras = [];           // {cabecera, items} por grupo, para filtrar
         this._buscador = null;          // ItemBuscador, si procede
         this._itemSinCoincidencias = null;
@@ -1162,7 +1165,23 @@ class IndicadorSsh extends PanelMenu.Button {
             return;
 
         const host = item.host;
-        const contexto = new ItemAcciones([
+        const acciones = [];
+
+        // Encender solo se ofrece si el equipo no está respondiendo: si
+        // contesta, ya está encendido y el botón sobraría.
+        const wol = this._wolDe(host);
+        if (wol && this._comprobador.estadoDe(host.id) !== ESTADO.ARRIBA) {
+            acciones.push({
+                icono: 'system-shutdown-symbolic',
+                texto: _('Encender'),
+                alPulsar: () => {
+                    this._cerrarContexto();
+                    this._despertar(host, wol);
+                },
+            });
+        }
+
+        acciones.push(
             {
                 icono: 'edit-copy-symbolic',
                 texto: _('Copiar'),
@@ -1189,13 +1208,64 @@ class IndicadorSsh extends PanelMenu.Button {
                     // El equipo puede estar definido en un archivo incluido.
                     this._editarConfig(host.ruta);
                 },
-            },
-        ]);
+            });
+
+        const contexto = new ItemAcciones(acciones);
         contexto._idHost = host.id;
 
         const posicion = this._seccionLista._getMenuItems().indexOf(item);
         this._seccionLista.addMenuItem(contexto, posicion + 1);
         this._contexto = contexto;
+    }
+
+    /**
+     * Con qué datos se puede encender un equipo, si es que se puede.
+     *
+     * Salen del comentario «# MAC:» de su bloque o de los equipos que ya
+     * tengas dados de alta en la extensión Wake on LAN, que se leen de sus
+     * propios ajustes. Si no está instalada, sencillamente no hay nada.
+     *
+     * @param {object} host equipo del menú
+     * @returns {object|null} datos del paquete mágico, o null
+     */
+    _wolDe(host) {
+        if (!this._settings.get_boolean('enable-wol'))
+            return null;
+
+        // La extensión hermana se busca una sola vez por sesión.
+        if (!this._wolConsultado) {
+            this._wolConsultado = true;
+            this._settingsWol = ajustesWol(this._extension.path);
+        }
+
+        return datosWolDe(host, leerEquiposWol(this._settingsWol));
+    }
+
+    /**
+     * Manda el paquete mágico a un equipo caído.
+     *
+     * @param {object} host equipo del menú
+     * @param {object} datos mac, destino y puerto con los que despertarlo
+     */
+    _despertar(host, datos) {
+        despertar(datos, this._cancellableAcciones)
+            .then(error => {
+                if (this._destruido)
+                    return;
+                if (error) {
+                    Main.notifyError('SSH Menu',
+                        `${_('No se pudo encender')} «${host.nombre}»: ${error}`);
+                } else {
+                    // El protocolo no tiene respuesta: que el paquete salga no
+                    // garantiza que el equipo arranque, así que se dice eso.
+                    Main.notify('SSH Menu',
+                        `${_('Paquete de encendido enviado a')} «${host.nombre}»`);
+                }
+            })
+            .catch(e => {
+                if (!this._destruido)
+                    console.error(`[ssh-menu] Fallo al encender: ${e.message}`);
+            });
     }
 
     /**
@@ -1504,6 +1574,7 @@ class IndicadorSsh extends PanelMenu.Button {
         for (const id of this._idsSettings)
             this._settings.disconnect(id);
         this._idsSettings = [];
+        this._settingsWol = null;
 
         if (this._idAbrir) {
             this.menu.disconnect(this._idAbrir);

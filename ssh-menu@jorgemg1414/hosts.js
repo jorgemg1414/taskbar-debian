@@ -232,6 +232,8 @@ function emitirBloque(bloque, ruta, acc) {
             grupo: bloque.grupo,
             ruta,
             linea: bloque.linea,
+            mac: bloque.mac ?? '',
+            difusion: bloque.difusion ?? '',
         });
     }
 }
@@ -311,6 +313,8 @@ async function leerConfig(ruta, grupoBase, profundidad, cancellable, acc) {
 
     let grupo = grupoBase;
     let bloque = null;
+    // Comentarios que se han visto antes de abrir el bloque al que se refieren.
+    let pendiente = {mac: '', difusion: ''};
 
     const cerrarBloque = () => {
         if (bloque)
@@ -327,8 +331,31 @@ async function leerConfig(ruta, grupoBase, profundidad, cancellable, acc) {
         if (linea.startsWith('#')) {
             // Comentario de agrupación: «# Grupo: SUCURSALES».
             const etiqueta = linea.match(/^#+\s*(?:grupo|group)\s*[:=]\s*(.+)$/i);
-            if (etiqueta)
+            if (etiqueta) {
                 grupo = etiqueta[1].trim();
+                continue;
+            }
+
+            // «# MAC: aa:bb:cc:dd:ee:ff» y su dirección de difusión, para poder
+            // encender el equipo desde el menú. Valen dentro del bloque o justo
+            // encima de su línea «Host».
+            const anotar = (clave, valor) => {
+                if (bloque)
+                    bloque[clave] = valor;
+                else
+                    pendiente[clave] = valor;
+            };
+
+            const mac = linea.match(/^#+\s*mac\s*[:=]\s*(.+)$/i);
+            if (mac) {
+                anotar('mac', mac[1].trim());
+                continue;
+            }
+
+            const difusion = linea.match(/^#+\s*(?:difusi[oó]n|broadcast)\s*[:=]\s*(.+)$/i);
+            if (difusion)
+                anotar('difusion', difusion[1].trim());
+
             continue;
         }
 
@@ -340,8 +367,18 @@ async function leerConfig(ruta, grupoBase, profundidad, cancellable, acc) {
         if (clave === 'host') {
             cerrarBloque();
             const alias = valor.split(/\s+/).filter(a => a !== '');
-            if (alias.length > 0)
-                bloque = {alias, claves: new Map(), grupo, linea: i + 1};
+            if (alias.length > 0) {
+                bloque = {
+                    alias,
+                    claves: new Map(),
+                    grupo,
+                    linea: i + 1,
+                    mac: pendiente.mac,
+                    difusion: pendiente.difusion,
+                };
+            }
+            // Los comentarios de arriba ya están consumidos por este bloque.
+            pendiente = {mac: '', difusion: ''};
         } else if (clave === 'match') {
             // Los bloques Match son condicionales: no describen un equipo.
             cerrarBloque();
@@ -385,6 +422,9 @@ function construirHost(bruto, globales) {
         usuario: conRespaldo('user'),
         // Si hay salto, la conexión no es directa: el punto de estado no vale.
         salto: bruto.claves.get('proxyjump') ?? '',
+        // De los comentarios «# MAC:» y «# Difusión:», para encenderlo.
+        mac: bruto.mac ?? '',
+        difusion: bruto.difusion ?? '',
         ruta: bruto.ruta,
         linea: bruto.linea,
         grupo: bruto.grupo || GRUPO_SIN_NOMBRE,
