@@ -37,12 +37,12 @@ const RETARDO_RECARGA_MS = 700;
 // troceado se hace antes de sustituir los marcadores, así que las comillas
 // hacen su trabajo aunque el alias lleve espacios.
 const ALTERNATIVAS_TERMINAL = [
+    'tilix -e "ssh %n"',
     'gnome-terminal -- ssh %n',
     'ptyxis -- ssh %n',
     'kgx -e "ssh %n"',
     'konsole -e ssh %n',
     'xfce4-terminal -e "ssh %n"',
-    'tilix -e "ssh %n"',
     'alacritty -e ssh %n',
     'kitty ssh %n',
     'x-terminal-emulator -e ssh %n',

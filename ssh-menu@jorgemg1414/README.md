@@ -151,14 +151,25 @@ split into arguments: an alias with spaces can't turn into extra arguments.
 
 | Command | Default |
 |---|---|
-| Open SSH session | `gnome-terminal -- ssh %n` |
+| Open SSH session | `tilix -e "ssh %n"` |
 | Open SFTP | empty (the default file manager) |
 | Edit config | `gnome-text-editor %f` |
 
 If the configured program isn't installed, alternatives are tried: for the
-terminal, `ptyxis`, `kgx`, `konsole`, `xfce4-terminal`, `tilix`, `alacritty`,
-`kitty`, `x-terminal-emulator` and `xterm`; for the editor, `gedit`, `kate` and
-`xdg-open`.
+terminal, `gnome-terminal`, `ptyxis`, `kgx`, `konsole`, `xfce4-terminal`,
+`alacritty`, `kitty`, `x-terminal-emulator` and `xterm`; for the editor,
+`gedit`, `kate` and `xdg-open`.
+
+**About Tilix:** its `-e` runs the command directly, without a shell, which is
+why the template quotes `ssh %n` — that way it arrives as a single command. Also
+mind the Tilix profile, which by default **closes the window as soon as the
+command exits** (`exit-action` = `close`): if the connection fails, the error
+goes with it. To be able to read it, this variant waits for a keypress when
+`ssh` exits with an error:
+
+```
+tilix -e "bash -c 'ssh %n || read -n1 -s -p \"[Enter] para cerrar\"'"
+```
 
 To have SFTP opened by something else, that's what the template is for:
 

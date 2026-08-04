@@ -152,14 +152,25 @@ la orden: un alias con espacios no puede convertirse en argumentos extra.
 
 | Comando | Por omisión |
 |---|---|
-| Abrir sesión SSH | `gnome-terminal -- ssh %n` |
+| Abrir sesión SSH | `tilix -e "ssh %n"` |
 | Abrir SFTP | vacío (el gestor de archivos predeterminado) |
 | Editar configuración | `gnome-text-editor %f` |
 
 Si el programa configurado no está instalado se prueban alternativas: para la
-terminal, `ptyxis`, `kgx`, `konsole`, `xfce4-terminal`, `tilix`, `alacritty`,
-`kitty`, `x-terminal-emulator` y `xterm`; para el editor, `gedit`, `kate` y
-`xdg-open`.
+terminal, `gnome-terminal`, `ptyxis`, `kgx`, `konsole`, `xfce4-terminal`,
+`alacritty`, `kitty`, `x-terminal-emulator` y `xterm`; para el editor, `gedit`,
+`kate` y `xdg-open`.
+
+**Sobre Tilix:** su `-e` ejecuta la orden directamente, sin pasar por un
+intérprete, por eso la plantilla lleva `ssh %n` entre comillas: así llega como
+una sola orden. Y ojo con el perfil de Tilix, que por omisión **cierra la
+ventana en cuanto la orden termina** (`exit-action` = `close`): si la conexión
+falla, el error se va con ella. Para poder leerlo, esta variante espera a que
+pulses una tecla cuando `ssh` sale con error:
+
+```
+tilix -e "bash -c 'ssh %n || read -n1 -s -p \"[Enter] para cerrar\"'"
+```
 
 Si prefieres que el SFTP lo abra otro programa, ahí tienes la plantilla:
 

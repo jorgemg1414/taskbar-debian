@@ -13,7 +13,7 @@
     </key>
 
     <key name="terminal-command" type="s">
-      <default>'gnome-terminal -- ssh %n'</default>
+      <default>'tilix -e "ssh %n"'</default>
       <summary>Comando para abrir la sesión SSH</summary>
       <description>
         Plantilla del comando que se ejecuta al pulsar un equipo.
@@ -21,7 +21,7 @@
         %d = usuario@host, %f = archivo de configuración, %s = URL sftp://.
         Lo recomendable es pasarle el alias (%n) y dejar que ssh aplique tu
         configuración. Si el programa no está instalado se prueban alternativas
-        (ptyxis, kgx, konsole, xterm…).
+        (gnome-terminal, ptyxis, kgx, konsole, xterm…).
       </description>
     </key>
 
