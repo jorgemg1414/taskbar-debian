@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.ssh-menu"
+          path="/org/gnome/shell/extensions/ssh-menu/">
+
+    <key name="config-path" type="s">
+      <default>'~/.ssh/config'</default>
+      <summary>Archivo de configuración de SSH</summary>
+      <description>
+        Archivo del que se leen los bloques «Host». Se siguen las directivas
+        Include. Se admite ~ como atajo de la carpeta personal.
+      </description>
+    </key>
+
+    <key name="terminal-command" type="s">
+      <default>'gnome-terminal -- ssh %n'</default>
+      <summary>Comando para abrir la sesión SSH</summary>
+      <description>
+        Plantilla del comando que se ejecuta al pulsar un equipo.
+        Sustituciones: %n = alias, %h = host, %p = puerto, %u = usuario,
+        %d = usuario@host, %f = archivo de configuración, %s = URL sftp://.
+        Lo recomendable es pasarle el alias (%n) y dejar que ssh aplique tu
+        configuración. Si el programa no está instalado se prueban alternativas
+        (ptyxis, kgx, konsole, xterm…).
+      </description>
+    </key>
+
+    <key name="sftp-command" type="s">
+      <default>''</default>
+      <summary>Comando para abrir el SFTP</summary>
+      <description>
+        Plantilla del comando de la acción SFTP. Vacío usa el gestor de archivos
+        predeterminado, que es lo habitual. Ejemplo: «nautilus %s».
+      </description>
+    </key>
+
+    <key name="sftp-path" type="s">
+      <default>''</default>
+      <summary>Carpeta remota de inicio</summary>
+      <description>
+        Carpeta en la que se abre el SFTP. Vacío deja que el servidor te sitúe
+        en tu carpeta personal.
+      </description>
+    </key>
+
+    <key name="editor-command" type="s">
+      <default>'gnome-text-editor %f'</default>
+      <summary>Comando para editar la configuración</summary>
+      <description>
+        Plantilla del comando de «Editar config». %f se sustituye por la ruta
+        del archivo.
+      </description>
+    </key>
+
+    <key name="enable-checks" type="b">
+      <default>true</default>
+      <summary>Comprobar disponibilidad</summary>
+      <description>
+        Muestra un punto verde/rojo según si el puerto de SSH responde. Los
+        equipos que se alcanzan con ProxyJump no se comprueban: no aceptan
+        conexión directa.
+      </description>
+    </key>
+
+    <key name="check-interval" type="i">
+      <range min="10" max="3600"/>
+      <default>60</default>
+      <summary>Intervalo con el menú abierto (segundos)</summary>
+      <description>
+        Cada cuántos segundos se refresca el estado mientras el menú está abierto.
+      </description>
+    </key>
+
+    <key name="background-check-interval" type="i">
+      <range min="0" max="86400"/>
+      <default>0</default>
+      <summary>Intervalo en segundo plano (segundos)</summary>
+      <description>
+        Cada cuántos segundos se comprueban los equipos con el menú cerrado.
+        0 desactiva las comprobaciones en segundo plano: solo se consulta la red
+        cuando abres el menú, que es lo recomendable en portátiles o fuera de la
+        red local.
+      </description>
+    </key>
+
+    <key name="check-timeout" type="i">
+      <range min="1" max="30"/>
+      <default>2</default>
+      <summary>Tiempo de espera de la comprobación (segundos)</summary>
+      <description>Segundos que se espera a que el puerto responda antes de marcarlo como caído.</description>
+    </key>
+
+    <key name="enable-search" type="b">
+      <default>true</default>
+      <summary>Buscador en el menú</summary>
+      <description>
+        Muestra un campo de búsqueda al principio del menú cuando hay muchos
+        equipos, para filtrar escribiendo.
+      </description>
+    </key>
+
+    <key name="search-threshold" type="i">
+      <range min="0" max="500"/>
+      <default>8</default>
+      <summary>Equipos a partir de los cuales aparece el buscador</summary>
+      <description>
+        Número mínimo de equipos para que se muestre el campo de búsqueda.
+      </description>
+    </key>
+
+    <key name="show-target" type="b">
+      <default>true</default>
+      <summary>Mostrar usuario@host</summary>
+      <description>
+        Muestra a la derecha del alias el destino real, con el puerto si no es
+        el 22.
+      </description>
+    </key>
+
+    <key name="show-sftp" type="b">
+      <default>true</default>
+      <summary>Botón de SFTP en cada equipo</summary>
+      <description>
+        Añade a la derecha de cada equipo un botón que abre su carpeta remota en
+        el gestor de archivos. Con el botón oculto sigue funcionando Ctrl+clic.
+      </description>
+    </key>
+
+    <key name="show-mounts" type="b">
+      <default>true</default>
+      <summary>Mostrar las carpetas montadas</summary>
+      <description>
+        Lista al principio del menú las carpetas SFTP montadas ahora mismo, con
+        un botón para desmontarlas.
+      </description>
+    </key>
+
+    <key name="show-latency" type="b">
+      <default>true</default>
+      <summary>Mostrar la latencia</summary>
+      <description>
+        Muestra los milisegundos que tardó el equipo en aceptar la conexión.
+        Incluye la resolución DNS, que es justo lo que se nota al conectar.
+      </description>
+    </key>
+
+    <key name="panel-badge" type="b">
+      <default>true</default>
+      <summary>Contador de equipos caídos en el panel</summary>
+      <description>
+        Muestra junto al icono del panel cuántos equipos no responden.
+        Para que se mantenga al día con el menú cerrado hay que activar las
+        comprobaciones en segundo plano.
+      </description>
+    </key>
+
+    <key name="panel-icon" type="s">
+      <default>'utilities-terminal-symbolic'</default>
+      <summary>Icono del panel</summary>
+      <description>Nombre del icono simbólico que se muestra en la barra superior.</description>
+    </key>
+
+  </schema>
+</schemalist>

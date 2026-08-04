@@ -1,0 +1,9 @@
+{
+  "uuid": "ssh-menu@jorgemg1414",
+  "name": "SSH Menu",
+  "description": "Indicador en la barra superior con los equipos de tu ~/.ssh/config. Abre la sesión SSH en una terminal, o la misma máquina por SFTP en el gestor de archivos, y comprueba la disponibilidad de cada host.",
+  "shell-version": ["48"],
+  "settings-schema": "org.gnome.shell.extensions.ssh-menu",
+  "gettext-domain": "ssh-menu",
+  "version": 1
+}

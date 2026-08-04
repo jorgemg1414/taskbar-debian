@@ -1,0 +1,144 @@
+/* stylesheet.css — estilos del menú de equipos SSH */
+
+/* Punto de disponibilidad a la izquierda de cada equipo. */
+.ssh-punto {
+    width: 10px;
+    height: 10px;
+    border-radius: 5px;
+    margin-right: 10px;
+    border: 1px solid rgba(0, 0, 0, 0.35);
+}
+
+/* Puerto abierto: el equipo responde. */
+.ssh-punto-arriba {
+    background-color: #2ec27e;
+    box-shadow: 0 0 4px rgba(46, 194, 126, 0.8);
+}
+
+/* Puerto cerrado, host inalcanzable o tiempo de espera agotado. */
+.ssh-punto-abajo {
+    background-color: #e01b24;
+}
+
+/* Comprobación en curso. */
+.ssh-punto-comprobando {
+    background-color: #f5c211;
+}
+
+/* Todavía no se ha comprobado, las comprobaciones están desactivadas o el
+   equipo va por un salto y no se comprueba. */
+.ssh-punto-desconocido {
+    background-color: rgba(255, 255, 255, 0.25);
+}
+
+/* "usuario@host" a la derecha del alias, en tono apagado. */
+.ssh-destino {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.85em;
+    margin-left: 14px;
+}
+
+/* Equipo al que se llega saltando por otro. */
+.ssh-salto {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.8em;
+    margin-left: 10px;
+}
+
+/* Botón de SFTP a la derecha de cada equipo, y de expulsar en los montajes. */
+.ssh-boton-sftp {
+    padding: 4px 6px;
+    margin-left: 8px;
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.ssh-boton-sftp:hover,
+.ssh-boton-sftp:focus {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.95);
+}
+
+/* Con la carpeta ya montada el botón lleva a lo que ya está abierto. */
+.ssh-boton-sftp-montado {
+    color: #62a0ea;
+}
+
+.ssh-boton-sftp-icono {
+    icon-size: 16px;
+}
+
+/* Campo de búsqueda al principio del menú. */
+.ssh-buscador {
+    margin: 2px 0 6px 0;
+    min-width: 220px;
+}
+
+.ssh-buscador-icono {
+    icon-size: 16px;
+    margin-right: 6px;
+}
+
+/* Contador de equipos caídos, pegado al icono del panel. */
+.ssh-insignia {
+    background-color: #e01b24;
+    color: #ffffff;
+    font-size: 0.7em;
+    font-weight: bold;
+    border-radius: 9px;
+    padding: 1px 6px;
+    margin-left: 2px;
+}
+
+/* Zona con desplazamiento que contiene los equipos. El alto máximo lo calcula
+   extension.js a partir del tamaño de la pantalla. */
+.ssh-lista {
+    padding-right: 2px;
+}
+
+/* Fila de acciones del pie, en horizontal para no gastar tres filas. */
+.ssh-acciones {
+    padding: 4px 8px 2px 8px;
+    spacing: 6px;
+}
+
+.ssh-accion {
+    padding: 8px 6px;
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.9em;
+}
+
+.ssh-accion:hover,
+.ssh-accion:focus {
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.ssh-accion:active {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.ssh-accion-icono {
+    icon-size: 16px;
+    margin-right: 6px;
+}
+
+/* Milisegundos de respuesta, al final de la fila. */
+.ssh-latencia {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.8em;
+    margin-left: 10px;
+    min-width: 48px;
+    text-align: right;
+}
+
+/* Avisos: configuración inexistente, sin equipos, cargando… */
+.ssh-aviso {
+    color: rgba(255, 255, 255, 0.7);
+    font-style: italic;
+}
+
+/* La primera cabecera de grupo no necesita separación extra arriba. */
+.ssh-primera-cabecera {
+    margin-top: 0;
+}
