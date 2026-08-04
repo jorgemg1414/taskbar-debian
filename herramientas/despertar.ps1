@@ -4,8 +4,8 @@
 # Windows: no necesita instalar nada, PowerShell trae todo lo que hace falta.
 #
 # Uso:
-#   .\despertar.ps1 -Mac 34:5A:60:4C:4F:76
-#   .\despertar.ps1 -Mac 34:5A:60:4C:4F:76 -Destino 10.10.255.255
+#   .\despertar.ps1 -Mac AA:BB:CC:DD:EE:FF
+#   .\despertar.ps1 -Mac AA:BB:CC:DD:EE:FF -Destino 192.168.10.255
 #
 # Si tu equipo tiene máscara /16 o mayor, ojo: la difusión de tu subred no es
 # «x.x.x.255». Con 255.255.255.255 sale siempre por el cable local y funciona
@@ -20,7 +20,7 @@ param(
     [int]$Puerto = 9
 )
 
-# Se aceptan 34:5A:.., 34-5A-.. y 345A60...
+# Se aceptan AA:BB:.., AA-BB-.. y AABBCC...
 $limpia = ($Mac -replace '[^0-9A-Fa-f]', '')
 if ($limpia.Length -ne 12) {
     Write-Error "MAC no valida: «$Mac»"

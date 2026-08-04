@@ -7,9 +7,9 @@
 # máquina cualquiera, sin instalar nada (usa Python 3, que ya viene en Debian).
 #
 # Uso:
-#   ./despertar.sh 34:5a:60:4c:4f:76
-#   ./despertar.sh 34:5a:60:4c:4f:76 10.255.255.255
-#   ./despertar.sh 34:5a:60:4c:4f:76 10.255.255.255 9
+#   ./despertar.sh aa:bb:cc:dd:ee:ff
+#   ./despertar.sh aa:bb:cc:dd:ee:ff 192.168.10.255
+#   ./despertar.sh aa:bb:cc:dd:ee:ff 192.168.10.255 9
 #
 set -euo pipefail
 
@@ -19,7 +19,7 @@ PUERTO="${3:-9}"
 
 if [[ -z "$MAC" ]]; then
     echo "Uso: $0 <MAC> [difusión] [puerto]" >&2
-    echo "Ejemplo: $0 34:5a:60:4c:4f:76 10.255.255.255" >&2
+    echo "Ejemplo: $0 aa:bb:cc:dd:ee:ff 192.168.10.255" >&2
     exit 1
 fi
 
