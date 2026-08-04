@@ -2,12 +2,33 @@
 
 *[Léeme en español](README.es.md)*
 
-A top bar indicator listing the machines in your `~/.ssh/config`. Clicking one
-opens the SSH session in a terminal; the button on the right opens that same
-machine over **SFTP** in the file manager.
+A top bar indicator listing the machines in your `~/.ssh/config`. Every machine
+carries all three ways in on its own row: shell, files in a window, and files on
+the command line.
 
-The point is having shell and files in one place: same machine, same row, two
-ways in.
+---
+
+## The three ways in
+
+```
+ ●  north         jorge@10.20.0.5    12 ms   [📁] [⇅]
+ └─ click ─ ssh in the terminal        │    └─ sftp in the terminal (get, put)
+                                       └─ the folder in the file manager
+```
+
+| Action | How | What it runs |
+|---|---|---|
+| SSH session | Click the row, or Enter in the search box | `ssh <alias>` in the terminal |
+| Remote folder | 📁 button, Ctrl+click, or Ctrl+Enter | The `sftp://…` URL in the file manager |
+| Transfer from the shell | ⇅ button, Shift+click, or Shift+Enter | `sftp <alias>` in the terminal |
+| Machine actions | Right click | Copy, check, edit its block |
+
+All three use the **alias**, never `user@host`: that way `ssh` and `sftp` are the
+ones applying the user, port, key and `ProxyJump` from your config. The
+extension doesn't reimplement it.
+
+Both buttons can be hidden independently in the settings; the keyboard shortcuts
+keep working even when they aren't shown.
 
 ---
 
@@ -16,13 +37,11 @@ ways in.
 - **Reads your config as it is.** Every `Host` block in `~/.ssh/config` becomes a
   menu entry. `Include` directives are followed, so a config split across
   several files shows up too.
-- **Opens the session by alias.** The command launched is `ssh <alias>`, not
-  `ssh user@host`: that way ssh itself applies the user, port, key, `ProxyJump`
-  and everything else in the block. The extension doesn't reimplement your
-  config.
-- **SFTP in the same row.** The button on the right opens `sftp://…` in the file
-  manager. GVfs does the mounting and the file manager asks for the password or
-  key passphrase: **the extension never touches credentials**.
+- **SFTP both ways.** The folder button opens `sftp://…` in the file manager, for
+  drag and drop; the arrows button opens `sftp <alias>` in the terminal, for
+  `get`, `put`, `ls` and `cd`. GVfs does the mounting for the graphical one and
+  the file manager asks for the password or key passphrase: **the extension
+  never touches credentials**.
 - **Mounted folders at the top of the menu.** SFTP connections stay alive after
   you close the Files window; the menu lists them and unmounts them with one
   click on the eject button.
@@ -33,8 +52,8 @@ ways in.
   checks.
 - **Down counter in the panel**, so you don't have to open the menu to look.
 - **Search field.** With many machines a filter appears: type part of the alias,
-  host or user, ↓/↑ walk the results, Enter opens the session and Ctrl+Enter the
-  SFTP.
+  host or user, ↓/↑ walk the results, Enter opens the session (with Ctrl or
+  Shift, the other two ways in).
 - **Right-click on a machine** for its own actions: copy `ssh <alias>`, check it
   now, or open the file where it is defined in the editor.
 - **Keeps itself up to date.** The config files are watched with
@@ -125,7 +144,8 @@ From the menu → **Ajustes**, or with `gnome-extensions prefs ssh-menu@jorgemg1
 | Panel icon | `utilities-terminal-symbolic` | Any symbolic icon from the theme |
 | Down counter | yes | How many machines don't answer, next to the icon |
 | Search field | yes, from 8 machines | Filter box at the top of the menu |
-| SFTP button | yes | The per-row button; Ctrl+click still works without it |
+| File manager button | yes | The per-row 📁; hidden, Ctrl+click still works |
+| Terminal sftp button | yes | The per-row ⇅; hidden, Shift+click still works |
 | Mounted folders | yes | The list of SFTP mounts at the top of the menu |
 | Remote start folder | empty | Empty lands you in your home on the server |
 | Check availability | yes | The green/red dot |
@@ -152,7 +172,8 @@ split into arguments: an alias with spaces can't turn into extra arguments.
 | Command | Default |
 |---|---|
 | Open SSH session | `tilix -e "ssh %n"` |
-| Open SFTP | empty (`nautilus %s`, or whichever you have) |
+| Open SFTP in the file manager | empty (`nautilus %s`, or whichever you have) |
+| Open sftp in a terminal | `tilix -e "sftp %n"` |
 | Edit config | `gnome-text-editor %f` |
 
 If the configured program isn't installed, alternatives are tried: for the

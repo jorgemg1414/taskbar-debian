@@ -2,12 +2,33 @@
 
 *[Read this in English](README.md)*
 
-Indicador en la barra superior con los equipos de tu `~/.ssh/config`. Al pulsar
-uno se abre la sesión SSH en una terminal; el botón de la derecha abre esa misma
-máquina por **SFTP** en el gestor de archivos.
+Indicador en la barra superior con los equipos de tu `~/.ssh/config`. Cada
+equipo tiene en su fila las tres formas de entrar: consola, archivos en ventana
+y archivos por línea de comandos.
 
-La idea es que consola y archivos estén en el mismo sitio: el mismo equipo, la
-misma fila, dos formas de entrar.
+---
+
+## Las tres formas de entrar
+
+```
+ ●  norte         jorge@10.20.0.5    12 ms   [📁] [⇅]
+ └─ clic ─ ssh en la terminal          │    └─ sftp en la terminal (get, put)
+                                       └─ la carpeta en el gestor de archivos
+```
+
+| Acción | Cómo | Qué lanza |
+|---|---|---|
+| Sesión SSH | Clic en la fila, o Intro en el buscador | `ssh <alias>` en la terminal |
+| Carpeta remota | Botón 📁, Ctrl+clic, o Ctrl+Intro | La URL `sftp://…` en el gestor de archivos |
+| Transferir por consola | Botón ⇅, Mayús+clic, o Mayús+Intro | `sftp <alias>` en la terminal |
+| Acciones del equipo | Clic derecho | Copiar, comprobar, editar su bloque |
+
+Las tres usan el **alias**, nunca `usuario@host`: así son `ssh` y `sftp` quienes
+aplican el usuario, el puerto, la clave y el `ProxyJump` de tu configuración. La
+extensión no la reimplementa.
+
+Los dos botones se pueden ocultar por separado en los ajustes; los atajos de
+teclado siguen funcionando aunque no se vean.
 
 ---
 
@@ -16,13 +37,11 @@ misma fila, dos formas de entrar.
 - **Lee tu configuración tal cual está.** Cada bloque `Host` de `~/.ssh/config`
   es una entrada del menú. Se siguen las directivas `Include`, así que si tienes
   la configuración partida en varios archivos también salen.
-- **Abre la sesión con el alias.** El comando que se lanza es `ssh <alias>`, no
-  `ssh usuario@host`: así es el propio ssh quien aplica el usuario, el puerto,
-  la clave, el `ProxyJump` y todo lo demás que tengas en el bloque. La extensión
-  no reimplementa tu configuración.
-- **SFTP en la misma fila.** El botón de la derecha abre `sftp://…` en el gestor
-  de archivos. Quien monta es GVfs y quien pide la contraseña o la frase de la
-  clave es el gestor de archivos: **la extensión no toca credenciales**.
+- **SFTP de las dos maneras.** El botón de la carpeta abre `sftp://…` en el
+  gestor de archivos, para arrastrar y soltar; el de las flechas abre `sftp
+  <alias>` en la terminal, para `get`, `put`, `ls` y `cd`. Quien monta el modo
+  gráfico es GVfs y quien pide la contraseña o la frase de la clave es el gestor
+  de archivos: **la extensión no toca credenciales**.
 - **Carpetas montadas al principio del menú.** Las conexiones SFTP siguen vivas
   aunque cierres la ventana de Archivos; el menú las lista y las desmonta con un
   clic en el botón de expulsar.
@@ -33,8 +52,8 @@ misma fila, dos formas de entrar.
   comprobaciones en segundo plano.
 - **Contador de caídos en el panel**, para no tener que abrir el menú a mirar.
 - **Buscador.** Con muchos equipos aparece un campo de filtro: escribe parte del
-  alias, del host o del usuario, ↓/↑ recorren los resultados, Intro abre la
-  sesión y Ctrl+Intro el SFTP.
+  alias, del host o del usuario, ↓/↑ recorren los resultados e Intro abre la
+  sesión (con Ctrl o Mayús, las otras dos formas de entrar).
 - **Clic derecho en un equipo** para sus propias acciones: copiar `ssh <alias>`,
   comprobarlo ahora o abrir en el editor el archivo donde está definido.
 - **Se actualiza sola.** Los archivos de configuración se vigilan con
@@ -126,7 +145,8 @@ Desde el menú → **Ajustes**, o con `gnome-extensions prefs ssh-menu@jorgemg14
 | Icono del panel | `utilities-terminal-symbolic` | Cualquier icono simbólico del tema |
 | Contador de caídos | sí | Cuántos equipos no responden, junto al icono |
 | Buscador | sí, desde 8 equipos | Campo de filtro al principio del menú |
-| Botón de SFTP | sí | El botón de cada fila; con él oculto sigue habiendo Ctrl+clic |
+| Botón del gestor de archivos | sí | El 📁 de cada fila; oculto, sigue habiendo Ctrl+clic |
+| Botón de sftp en terminal | sí | El ⇅ de cada fila; oculto, sigue habiendo Mayús+clic |
 | Carpetas montadas | sí | La lista de montajes SFTP al principio del menú |
 | Carpeta remota de inicio | vacío | Vacío te deja en tu carpeta personal del servidor |
 | Comprobar disponibilidad | sí | El punto verde/rojo |
@@ -153,7 +173,8 @@ la orden: un alias con espacios no puede convertirse en argumentos extra.
 | Comando | Por omisión |
 |---|---|
 | Abrir sesión SSH | `tilix -e "ssh %n"` |
-| Abrir SFTP | vacío (`nautilus %s`, o el gestor que tengas) |
+| Abrir SFTP en el gestor de archivos | vacío (`nautilus %s`, o el gestor que tengas) |
+| Abrir sftp en una terminal | `tilix -e "sftp %n"` |
 | Editar configuración | `gnome-text-editor %f` |
 
 Si el programa configurado no está instalado se prueban alternativas: para la

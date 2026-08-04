@@ -33,21 +33,33 @@ import {listarMontajesSftp, idsMontados, uriDeMontaje, desmontar} from './montaj
 const RETARDO_RECARGA_MS = 700;
 
 // Terminales alternativas, en orden, por si la configurada no está instalada.
+// %o es el hueco de la orden que se ejecuta dentro (ssh o sftp).
+//
 // Las que esperan la orden como una sola cadena la llevan entrecomillada: el
 // troceado se hace antes de sustituir los marcadores, así que las comillas
 // hacen su trabajo aunque el alias lleve espacios.
-const ALTERNATIVAS_TERMINAL = [
-    'tilix -e "ssh %n"',
-    'gnome-terminal -- ssh %n',
-    'ptyxis -- ssh %n',
-    'kgx -e "ssh %n"',
-    'konsole -e ssh %n',
-    'xfce4-terminal -e "ssh %n"',
-    'alacritty -e ssh %n',
-    'kitty ssh %n',
-    'x-terminal-emulator -e ssh %n',
-    'xterm -e ssh %n',
+const PLANTILLAS_TERMINAL = [
+    'tilix -e "%o"',
+    'gnome-terminal -- %o',
+    'ptyxis -- %o',
+    'kgx -e "%o"',
+    'konsole -e %o',
+    'xfce4-terminal -e "%o"',
+    'alacritty -e %o',
+    'kitty %o',
+    'x-terminal-emulator -e %o',
+    'xterm -e %o',
 ];
+
+/**
+ * Alternativas de terminal para una orden concreta.
+ *
+ * @param {string} orden orden a ejecutar dentro, con sus marcadores («ssh %n»)
+ * @returns {string[]} plantillas listas para probar en orden
+ */
+function alternativasTerminal(orden) {
+    return PLANTILLAS_TERMINAL.map(plantilla => plantilla.replace('%o', orden));
+}
 
 // Gestores de archivos alternativos para el SFTP.
 //
@@ -82,16 +94,17 @@ const PROPORCION_ALTO_LISTA = 0.6;
  * ------------------------------------------------------------------------- */
 const ItemHost = GObject.registerClass({
     // El clic derecho no conecta: pide las acciones de ese equipo.
-    Signals: {'contexto': {}, 'sftp': {}},
+    Signals: {'contexto': {}, 'sftp': {}, 'sftp-terminal': {}},
 }, class ItemHost extends PopupMenu.PopupBaseMenuItem {
     /**
      * @param {object} host equipo a representar
      * @param {object} opciones qué partes de la fila se pintan
      * @param {boolean} opciones.mostrarDestino si se muestra «usuario@host»
      * @param {boolean} opciones.mostrarLatencia si se muestran los milisegundos
-     * @param {boolean} opciones.mostrarSftp si se muestra el botón de SFTP
+     * @param {boolean} opciones.mostrarSftp si se muestra el botón del gestor de archivos
+     * @param {boolean} opciones.mostrarSftpTerminal si se muestra el botón de sftp en terminal
      */
-    _init(host, {mostrarDestino, mostrarLatencia, mostrarSftp}) {
+    _init(host, {mostrarDestino, mostrarLatencia, mostrarSftp, mostrarSftpTerminal}) {
         super._init();
 
         this.host = host;
@@ -140,21 +153,44 @@ const ItemHost = GObject.registerClass({
             this.add_child(this._latencia);
         }
 
+        // Los botones se comen el clic (St.Button consume el evento), así que
+        // pulsarlos no lanza además la sesión de terminal de la fila.
         if (mostrarSftp) {
-            // El botón se come el clic (St.Button consume el evento), así que
-            // pulsarlo no lanza además la sesión de terminal de la fila.
-            this._botonSftp = new St.Button({
-                style_class: 'ssh-boton-sftp',
-                can_focus: true,
-                accessible_name: _('Abrir por SFTP'),
-                child: new St.Icon({
-                    icon_name: 'folder-remote-symbolic',
-                    style_class: 'ssh-boton-sftp-icono',
-                }),
-            });
-            this._botonSftp.connect('clicked', () => this.emit('sftp'));
-            this.add_child(this._botonSftp);
+            this._botonSftp = this._crearBoton(
+                'folder-remote-symbolic',
+                _('Abrir por SFTP en el gestor de archivos'),
+                () => this.emit('sftp'));
         }
+
+        if (mostrarSftpTerminal) {
+            this._crearBoton(
+                'network-transmit-receive-symbolic',
+                _('Abrir sftp en una terminal (get, put…)'),
+                () => this.emit('sftp-terminal'));
+        }
+    }
+
+    /**
+     * Añade a la fila un botón de icono con su acción.
+     *
+     * @param {string} icono nombre del icono simbólico
+     * @param {string} descripcion texto para el lector de pantalla
+     * @param {Function} alPulsar acción al pulsarlo
+     * @returns {St.Button} el botón creado
+     */
+    _crearBoton(icono, descripcion, alPulsar) {
+        const boton = new St.Button({
+            style_class: 'ssh-boton-sftp',
+            can_focus: true,
+            accessible_name: descripcion,
+            child: new St.Icon({
+                icon_name: icono,
+                style_class: 'ssh-boton-sftp-icono',
+            }),
+        });
+        boton.connect('clicked', () => alPulsar());
+        this.add_child(boton);
+        return boton;
     }
 
     /**
@@ -173,7 +209,7 @@ const ItemHost = GObject.registerClass({
 
         this._botonSftp.accessible_name = montado
             ? _('Abrir la carpeta montada')
-            : _('Abrir por SFTP');
+            : _('Abrir por SFTP en el gestor de archivos');
     }
 
     /**
@@ -273,7 +309,7 @@ class ItemBuscador extends PopupMenu.PopupBaseMenuItem {
      * @param {object} opciones opciones del buscador
      * @param {string} opciones.texto texto inicial del filtro
      * @param {Function} opciones.alEscribir callback con el texto escrito
-     * @param {Function} opciones.alAceptar callback al pulsar Intro (recibe si había Ctrl)
+     * @param {Function} opciones.alAceptar callback al pulsar Intro (recibe los modificadores)
      * @param {Function} opciones.alNavegar callback con +1/-1 al pulsar ↓/↑
      */
     _init({texto = '', alEscribir, alAceptar, alNavegar}) {
@@ -298,11 +334,15 @@ class ItemBuscador extends PopupMenu.PopupBaseMenuItem {
 
         this.entrada.clutter_text.connect('key-press-event', (_actor, evento) => {
             const tecla = evento.get_key_symbol();
-            const conCtrl = (evento.get_state() & Clutter.ModifierType.CONTROL_MASK) !== 0;
+            const estado = evento.get_state();
 
-            // Intro abre la sesión con la primera coincidencia; con Ctrl, el SFTP.
+            // Intro abre la sesión con la primera coincidencia; con Ctrl, el
+            // SFTP en el gestor de archivos; con Mayús, el sftp de terminal.
             if (tecla === Clutter.KEY_Return || tecla === Clutter.KEY_KP_Enter) {
-                alAceptar(conCtrl);
+                alAceptar({
+                    ctrl: (estado & Clutter.ModifierType.CONTROL_MASK) !== 0,
+                    shift: (estado & Clutter.ModifierType.SHIFT_MASK) !== 0,
+                });
                 return Clutter.EVENT_STOP;
             }
 
@@ -504,6 +544,7 @@ class IndicadorSsh extends PanelMenu.Button {
         conectar('show-target', () => this._reconstruirMenu());
         conectar('show-latency', () => this._reconstruirMenu());
         conectar('show-sftp', () => this._reconstruirMenu());
+        conectar('show-sftp-terminal', () => this._reconstruirMenu());
         conectar('show-mounts', () => this._pintarMontajes());
         conectar('enable-search', () => this._reconstruirMenu());
         conectar('search-threshold', () => this._reconstruirMenu());
@@ -915,6 +956,7 @@ class IndicadorSsh extends PanelMenu.Button {
             mostrarLatencia: this._settings.get_boolean('show-latency') &&
                              this._settings.get_boolean('enable-checks'),
             mostrarSftp: this._settings.get_boolean('show-sftp'),
+            mostrarSftpTerminal: this._settings.get_boolean('show-sftp-terminal'),
         };
         const comprobando = this._settings.get_boolean('enable-checks');
         const hayVariosGrupos = grupos.length > 1 || grupos[0]?.nombre !== GRUPO_SIN_NOMBRE;
@@ -940,14 +982,19 @@ class IndicadorSsh extends PanelMenu.Button {
                         ? this._comprobador.estadoDe(host.id)
                         : ESTADO.DESCONOCIDO,
                     this._comprobador.latenciaDe(host.id));
-                // Ctrl+clic abre el SFTP en vez de la terminal.
+                // Ctrl+clic abre el SFTP gráfico y Mayús+clic el de terminal,
+                // lo mismo que hacen los dos botones de la derecha.
                 item.connect('activate', (_item, evento) => {
-                    if (this._conCtrl(evento))
+                    const estado = this._modificadores(evento);
+                    if (estado.ctrl)
                         this._abrirSftp(host);
+                    else if (estado.shift)
+                        this._abrirSftpTerminal(host);
                     else
                         this._conectar(host);
                 });
                 item.connect('sftp', () => this._abrirSftp(host));
+                item.connect('sftp-terminal', () => this._abrirSftpTerminal(host));
                 item.connect('contexto', () => this._alternarContexto(item));
                 this._seccionLista.addMenuItem(item);
                 this._items.set(host.id, item);
@@ -975,14 +1022,17 @@ class IndicadorSsh extends PanelMenu.Button {
     }
 
     /**
-     * Si un evento traía la tecla Ctrl pulsada.
+     * Modificadores que traía el evento que activó un elemento.
      *
      * @param {Clutter.Event|null} evento evento que activó el elemento
-     * @returns {boolean} true si había Ctrl
+     * @returns {{ctrl: boolean, shift: boolean}} teclas pulsadas
      */
-    _conCtrl(evento) {
+    _modificadores(evento) {
         const estado = evento?.get_state?.() ?? 0;
-        return (estado & Clutter.ModifierType.CONTROL_MASK) !== 0;
+        return {
+            ctrl: (estado & Clutter.ModifierType.CONTROL_MASK) !== 0,
+            shift: (estado & Clutter.ModifierType.SHIFT_MASK) !== 0,
+        };
     }
 
     /* --------------------------- Búsqueda ---------------------------- */
@@ -999,7 +1049,7 @@ class IndicadorSsh extends PanelMenu.Button {
         this._buscador = new ItemBuscador({
             texto: this._textoFiltro,
             alEscribir: texto => this._aplicarFiltro(texto),
-            alAceptar: conCtrl => this._activarPrimeroVisible(conCtrl),
+            alAceptar: estado => this._activarPrimeroVisible(estado),
             alNavegar: delta => this._moverFoco(delta),
         });
         this.menu.addMenuItem(this._buscador);
@@ -1159,14 +1209,16 @@ class IndicadorSsh extends PanelMenu.Button {
     /**
      * Activa el primer equipo visible (Intro en el buscador).
      *
-     * @param {boolean} conCtrl si se pulsó Ctrl+Intro, que abre el SFTP
+     * @param {{ctrl: boolean, shift: boolean}} estado modificadores pulsados
      */
-    _activarPrimeroVisible(conCtrl) {
+    _activarPrimeroVisible({ctrl, shift}) {
         for (const item of this._items.values()) {
             if (!item.visible)
                 continue;
-            if (conCtrl)
+            if (ctrl)
                 this._abrirSftp(item.host);
+            else if (shift)
+                this._abrirSftpTerminal(item.host);
             else
                 item.activate(Clutter.get_current_event());
             return;
@@ -1276,11 +1328,33 @@ class IndicadorSsh extends PanelMenu.Button {
 
         const configurada = this._settings.get_string('terminal-command');
         const lanzado = this._lanzar(
-            [configurada, ...ALTERNATIVAS_TERMINAL], this._valoresDe(host));
+            [configurada, ...alternativasTerminal('ssh %n')], this._valoresDe(host));
 
         if (!lanzado) {
             Main.notifyError('SSH Menu',
                 `${_('No se pudo abrir la terminal para')} «${host.nombre}». ${_('Revisa el comando en las preferencias.')}`);
+        }
+    }
+
+    /**
+     * Abre una sesión interactiva de sftp en una terminal, la de los comandos
+     * «get», «put», «ls» y «cd».
+     *
+     * Igual que con ssh, se lanza «sftp <alias>»: sftp lee el mismo
+     * ~/.ssh/config, así que respeta usuario, puerto, clave y ProxyJump.
+     *
+     * @param {object} host equipo seleccionado
+     */
+    _abrirSftpTerminal(host) {
+        this.menu.itemActivated(BoxPointer.PopupAnimation.FULL);
+
+        const configurada = this._settings.get_string('sftp-terminal-command');
+        const lanzado = this._lanzar(
+            [configurada, ...alternativasTerminal('sftp %n')], this._valoresDe(host));
+
+        if (!lanzado) {
+            Main.notifyError('SSH Menu',
+                `${_('No se pudo abrir sftp en una terminal para')} «${host.nombre}». ${_('Revisa el comando en las preferencias.')}`);
         }
     }
 

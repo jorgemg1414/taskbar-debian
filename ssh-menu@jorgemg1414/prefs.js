@@ -74,19 +74,28 @@ export default class SshMenuPreferences extends ExtensionPreferences {
         /* ---------------------------- SFTP ----------------------------- */
         const grupoSftp = new Adw.PreferencesGroup({
             title: _('SFTP'),
-            description: _('El botón de la derecha de cada equipo abre su carpeta remota ' +
-                'en el gestor de archivos (también con Ctrl+clic, o Ctrl+Intro desde el ' +
-                'buscador). Quien monta y quien pide la contraseña es el gestor de ' +
-                'archivos: la extensión no toca credenciales.'),
+            description: _('Cada equipo lleva dos botones a la derecha: la carpeta abre ' +
+                'la máquina en el gestor de archivos y las flechas abren una sesión de ' +
+                'sftp en una terminal, con sus get y put. Quien monta y quien pide la ' +
+                'contraseña del modo gráfico es el gestor de archivos: la extensión no ' +
+                'toca credenciales.'),
         });
         pagina.add(grupoSftp);
 
         const filaBotonSftp = new Adw.SwitchRow({
-            title: _('Botón de SFTP en cada equipo'),
-            subtitle: _('Con el botón oculto sigue funcionando Ctrl+clic.'),
+            title: _('Botón del gestor de archivos'),
+            subtitle: _('Abre la carpeta remota en Archivos. Con el botón oculto sigue funcionando Ctrl+clic.'),
         });
         settings.bind('show-sftp', filaBotonSftp, 'active', Gio.SettingsBindFlags.DEFAULT);
         grupoSftp.add(filaBotonSftp);
+
+        const filaBotonSftpTerminal = new Adw.SwitchRow({
+            title: _('Botón de sftp en terminal'),
+            subtitle: _('Abre «sftp <alias>» para mover archivos con get y put. ' +
+                'Con el botón oculto sigue funcionando Mayús+clic.'),
+        });
+        settings.bind('show-sftp-terminal', filaBotonSftpTerminal, 'active', Gio.SettingsBindFlags.DEFAULT);
+        grupoSftp.add(filaBotonSftpTerminal);
 
         const filaMontajes = new Adw.SwitchRow({
             title: _('Carpetas montadas'),
@@ -112,9 +121,13 @@ export default class SshMenuPreferences extends ExtensionPreferences {
         settings.bind('terminal-command', filaTerminal, 'text', Gio.SettingsBindFlags.DEFAULT);
         grupoComandos.add(filaTerminal);
 
-        const filaSftp = new Adw.EntryRow({title: _('Abrir SFTP')});
+        const filaSftp = new Adw.EntryRow({title: _('Abrir SFTP en el gestor de archivos')});
         settings.bind('sftp-command', filaSftp, 'text', Gio.SettingsBindFlags.DEFAULT);
         grupoComandos.add(filaSftp);
+
+        const filaSftpTerminal = new Adw.EntryRow({title: _('Abrir sftp en una terminal')});
+        settings.bind('sftp-terminal-command', filaSftpTerminal, 'text', Gio.SettingsBindFlags.DEFAULT);
+        grupoComandos.add(filaSftpTerminal);
 
         const filaEditor = new Adw.EntryRow({title: _('Editar configuración')});
         settings.bind('editor-command', filaEditor, 'text', Gio.SettingsBindFlags.DEFAULT);

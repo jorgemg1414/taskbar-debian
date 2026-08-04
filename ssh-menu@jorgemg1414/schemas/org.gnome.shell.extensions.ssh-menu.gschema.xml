@@ -27,11 +27,22 @@
 
     <key name="sftp-command" type="s">
       <default>''</default>
-      <summary>Comando para abrir el SFTP</summary>
+      <summary>Comando para abrir el SFTP gráfico</summary>
       <description>
         Plantilla del comando que abre la carpeta remota en el gestor de
         archivos. Vacío prueba nautilus, nemo, caja, thunar, dolphin y pcmanfm
         con la URL como argumento, que es lo habitual. Ejemplo: «nautilus %s».
+      </description>
+    </key>
+
+    <key name="sftp-terminal-command" type="s">
+      <default>'tilix -e "sftp %n"'</default>
+      <summary>Comando para abrir sftp en una terminal</summary>
+      <description>
+        Plantilla del comando que abre una sesión interactiva de sftp, la de
+        «get», «put», «ls» y «cd». Como con ssh, lo suyo es pasarle el alias
+        (%n): sftp lee el mismo ~/.ssh/config. Si el programa no está instalado
+        se prueban las mismas terminales alternativas.
       </description>
     </key>
 
@@ -120,10 +131,20 @@
 
     <key name="show-sftp" type="b">
       <default>true</default>
-      <summary>Botón de SFTP en cada equipo</summary>
+      <summary>Botón del gestor de archivos en cada equipo</summary>
       <description>
         Añade a la derecha de cada equipo un botón que abre su carpeta remota en
         el gestor de archivos. Con el botón oculto sigue funcionando Ctrl+clic.
+      </description>
+    </key>
+
+    <key name="show-sftp-terminal" type="b">
+      <default>true</default>
+      <summary>Botón de sftp en terminal en cada equipo</summary>
+      <description>
+        Añade a la derecha de cada equipo un botón que abre una sesión
+        interactiva de sftp en una terminal. Con el botón oculto sigue
+        funcionando Mayús+clic.
       </description>
     </key>
 
