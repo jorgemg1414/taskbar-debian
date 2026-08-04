@@ -123,6 +123,37 @@ lee Remmina. Si le pasas rutas de perfiles, solo hace esos. La contraseña viaja
 por una tubería y nunca como argumento, así que no aparece en `ps` ni en el
 historial del intérprete.
 
+### Entrar sin contraseña
+
+```bash
+./autorizar-clave.sh <destino> [más destinos...]
+```
+
+Autoriza tu clave pública en el equipo remoto, que es lo que quita la
+contraseña de las tres vías a la vez: la sesión SSH, el `sftp` de consola y el
+montaje de la carpeta en Archivos. El destino es lo mismo que le pasarías a
+`ssh`: un alias de `~/.ssh/config` —los que salen en el menú— o `usuario@host`.
+
+Sabe dónde va la clave en cada sistema, que es justo lo que hace fallar a
+`ssh-copy-id` contra un Windows:
+
+| Sistema | Archivo |
+|---|---|
+| Linux, BSD | `~/.ssh/authorized_keys`, con permisos 600 |
+| Windows, cuenta normal | `%USERPROFILE%\.ssh\authorized_keys` |
+| Windows, cuenta administradora | `%ProgramData%\ssh\administrators_authorized_keys` |
+
+El último es el que se atraganta: `sshd` solo lo lee si la ACL deja únicamente a
+SYSTEM y a Administradores, y si no cuadra ignora la clave **sin decir nada**.
+El script la arregla con `icacls`, dando los permisos **por SID** y no por
+nombre de grupo, porque en un Windows en español el grupo se llama
+«Administradores» y `icacls` fallaría.
+
+La contraseña la pide `ssh`: el script no la lee, no la guarda y no la pasa por
+la línea de comandos. Abre una sola conexión multiplexada por equipo, así que
+solo hay que teclearla una vez. Y solo viaja la mitad pública de la clave —
+si le pasas una privada por error, se planta y no la manda.
+
 Después, apunta la extensión a los perfiles:
 
 ```bash

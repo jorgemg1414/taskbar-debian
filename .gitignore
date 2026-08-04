@@ -1,6 +1,22 @@
 # Configuración local de Claude Code (permisos de esta máquina)
 .claude/settings.local.json
 
+# Nada sensible en el repositorio, que es público. Las claves, los archivos de
+# conexión y la configuración de ssh se quedan en tu equipo: aquí solo va
+# código y documentación con ejemplos inventados.
+id_rsa*
+id_ecdsa*
+id_ed25519*
+*.pem
+*.ppk
+*.pub
+known_hosts*
+authorized_keys*
+ssh_config
+*.vnc
+*.vncloc
+*.remmina
+
 # Basura de editores y del escritorio
 *~
 *.swp

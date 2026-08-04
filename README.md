@@ -117,6 +117,37 @@ reads from. Pass profile paths as arguments to do only some of them. The
 password is piped in, never passed as an argument, so it never shows up in `ps`
 or your shell history.
 
+### Getting in without a password
+
+```bash
+./autorizar-clave.sh <target> [more targets...]
+```
+
+Authorises your public key on the remote machine, which is what removes the
+password from all three routes at once: the SSH session, the terminal `sftp` and
+mounting the folder in Files. The target is whatever you'd hand to `ssh`: an
+alias from `~/.ssh/config` — the ones listed in the menu — or `user@host`.
+
+It knows where the key goes on each system, which is exactly what makes
+`ssh-copy-id` fail against Windows:
+
+| System | File |
+|---|---|
+| Linux, BSD | `~/.ssh/authorized_keys`, mode 600 |
+| Windows, ordinary account | `%USERPROFILE%\.ssh\authorized_keys` |
+| Windows, administrator account | `%ProgramData%\ssh\administrators_authorized_keys` |
+
+That last one is the tricky one: `sshd` only reads it if the ACL grants nothing
+beyond SYSTEM and Administrators, and when it doesn't match it ignores the key
+**silently**. The script fixes it with `icacls`, granting **by SID** rather than
+by group name, because on a Spanish Windows the group is called
+«Administradores» and `icacls` would fail.
+
+The password is asked for by `ssh`: the script never reads it, stores it or puts
+it on a command line. It opens a single multiplexed connection per machine, so
+it only has to be typed once. And only the public half of the key travels — hand
+it a private key by mistake and it refuses to send anything.
+
 Then point the extension at the profiles:
 
 ```bash
