@@ -39,9 +39,21 @@ tuyo. Suele hacer falta lo siguiente:
    sudo ethtool enp3s0 | grep -i wake
    ```
 
-   Debe decir `Wake-on: g`. Si dice `d`, se activa con
-   `sudo ethtool -s enp3s0 wol g`, que **no sobrevive al reinicio**: hay que
-   dejarlo en la configuración de red o en una unidad de systemd.
+   Debe decir `Wake-on: g`. Si dice `d`, primero repasa el punto 1: mientras
+   la BIOS no lo permita, la tarjeta ignora lo que le pidas desde el sistema.
+   Es especialmente típico de las Realtek RTL8125 con el driver `r8169`.
+
+   Con la BIOS ya en orden, lo que hace que sobreviva a los reinicios es
+   dejarlo en NetworkManager, que lo reaplica cada vez que levanta la
+   conexión (`sudo ethtool -s ... wol g` se pierde al reiniciar):
+
+   ```bash
+   sudo nmcli connection modify «TU CONEXIÓN» 802-3-ethernet.wake-on-lan magic
+   sudo nmcli connection up «TU CONEXIÓN»
+   ```
+
+   El ajuste solo llega a la tarjeta al activar la conexión, así que sin el
+   segundo comando `ethtool` seguirá diciendo `d` hasta el próximo reinicio.
 4. **Si el destino es Windows**, en el Administrador de dispositivos, en la
    tarjeta de red: *Permitir que este dispositivo reactive el equipo*. Y
    desactiva el *Inicio rápido*, porque deja la máquina en un estado del que

@@ -39,9 +39,21 @@ yours. Usually all of this is needed:
    sudo ethtool enp3s0 | grep -i wake
    ```
 
-   It should say `Wake-on: g`. If it says `d`, turn it on with
-   `sudo ethtool -s enp3s0 wol g`, which **does not survive a reboot**: put it
-   in the network configuration or a systemd unit.
+   It should say `Wake-on: g`. If it says `d`, go back to point 1 first: while
+   the BIOS forbids it, the card ignores anything the OS asks for. This is
+   especially typical of Realtek RTL8125 cards on the `r8169` driver.
+
+   With the BIOS sorted, what makes it survive reboots is storing it in
+   NetworkManager, which reapplies it every time the connection comes up
+   (`sudo ethtool -s ... wol g` is lost on reboot):
+
+   ```bash
+   sudo nmcli connection modify «YOUR CONNECTION» 802-3-ethernet.wake-on-lan magic
+   sudo nmcli connection up «YOUR CONNECTION»
+   ```
+
+   The setting only reaches the card when the connection is activated, so
+   without the second command `ethtool` will keep saying `d` until you reboot.
 4. **If the target runs Windows**, in Device Manager, on the network card:
    *Allow this device to wake the computer*. And turn off *Fast Startup*, which
    leaves the machine in a state it won't wake from.
