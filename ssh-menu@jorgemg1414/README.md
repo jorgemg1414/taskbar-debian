@@ -152,7 +152,7 @@ split into arguments: an alias with spaces can't turn into extra arguments.
 | Command | Default |
 |---|---|
 | Open SSH session | `tilix -e "ssh %n"` |
-| Open SFTP | empty (the default file manager) |
+| Open SFTP | empty (`nautilus %s`, or whichever you have) |
 | Edit config | `gnome-text-editor %f` |
 
 If the configured program isn't installed, alternatives are tried: for the
@@ -171,11 +171,25 @@ goes with it. To be able to read it, this variant waits for a keypress when
 tilix -e "bash -c 'ssh %n || read -n1 -s -p \"[Enter] para cerrar\"'"
 ```
 
-To have SFTP opened by something else, that's what the template is for:
+For SFTP, with no command configured it tries `nautilus`, `nemo`, `caja`,
+`thunar`, `dolphin` and `pcmanfm`, always with the URL as an argument. To have it
+opened by something else, that's what the template is for:
 
 ```
 nautilus %s
 ```
+
+**Why the file manager is launched instead of just "opening the URL":** on Debian
+13 no application declares `x-scheme-handler/sftp`, so the standard GIO route
+(`launch_default_for_uri`, or `gio open`) answers *"The specified location is not
+mounted"* without ever trying to mount it. Check it with:
+
+```bash
+gio mime x-scheme-handler/sftp
+```
+
+Nautilus, on the other hand, mounts it itself when handed the URL as an
+argument.
 
 ---
 

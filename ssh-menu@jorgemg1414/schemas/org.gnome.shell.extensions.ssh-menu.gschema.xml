@@ -29,8 +29,9 @@
       <default>''</default>
       <summary>Comando para abrir el SFTP</summary>
       <description>
-        Plantilla del comando de la acción SFTP. Vacío usa el gestor de archivos
-        predeterminado, que es lo habitual. Ejemplo: «nautilus %s».
+        Plantilla del comando que abre la carpeta remota en el gestor de
+        archivos. Vacío prueba nautilus, nemo, caja, thunar, dolphin y pcmanfm
+        con la URL como argumento, que es lo habitual. Ejemplo: «nautilus %s».
       </description>
     </key>
 

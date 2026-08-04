@@ -153,7 +153,7 @@ la orden: un alias con espacios no puede convertirse en argumentos extra.
 | Comando | Por omisión |
 |---|---|
 | Abrir sesión SSH | `tilix -e "ssh %n"` |
-| Abrir SFTP | vacío (el gestor de archivos predeterminado) |
+| Abrir SFTP | vacío (`nautilus %s`, o el gestor que tengas) |
 | Editar configuración | `gnome-text-editor %f` |
 
 Si el programa configurado no está instalado se prueban alternativas: para la
@@ -172,11 +172,24 @@ pulses una tecla cuando `ssh` sale con error:
 tilix -e "bash -c 'ssh %n || read -n1 -s -p \"[Enter] para cerrar\"'"
 ```
 
-Si prefieres que el SFTP lo abra otro programa, ahí tienes la plantilla:
+Para el SFTP, si no hay comando configurado se prueban `nautilus`, `nemo`,
+`caja`, `thunar`, `dolphin` y `pcmanfm`, siempre con la URL como argumento. Si
+prefieres otro programa, ahí tienes la plantilla:
 
 ```
 nautilus %s
 ```
+
+**Por qué se lanza el gestor de archivos en vez de «abrir la URL» sin más:** en
+Debian 13 ningún programa declara `x-scheme-handler/sftp`, así que la vía
+estándar de GIO (`launch_default_for_uri`, o `gio open`) contesta *«la ubicación
+especificada no está montada»* sin llegar a intentar montarla. Se comprueba con:
+
+```bash
+gio mime x-scheme-handler/sftp
+```
+
+Nautilus, en cambio, monta él mismo cuando le pasas la URL como argumento.
 
 ---
 

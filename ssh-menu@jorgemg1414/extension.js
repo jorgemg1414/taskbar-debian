@@ -49,6 +49,22 @@ const ALTERNATIVAS_TERMINAL = [
     'xterm -e ssh %n',
 ];
 
+// Gestores de archivos alternativos para el SFTP.
+//
+// La URL se les pasa como argumento en vez de usar Gio.AppInfo: en Debian 13
+// ningún programa declara «x-scheme-handler/sftp», así que
+// launch_default_for_uri() contesta «la ubicación no está montada» sin llegar a
+// intentar montarla. El gestor de archivos, en cambio, monta él mismo y pide la
+// contraseña con su propio diálogo.
+const ALTERNATIVAS_GESTOR = [
+    'nautilus %s',
+    'nemo %s',
+    'caja %s',
+    'thunar %s',
+    'dolphin %s',
+    'pcmanfm %s',
+];
+
 // Editores alternativos para «Editar config».
 const ALTERNATIVAS_EDITOR = [
     'gnome-text-editor %f',
@@ -805,7 +821,7 @@ class IndicadorSsh extends PanelMenu.Button {
 
         for (const montaje of montajes) {
             const item = new ItemMontaje(montaje);
-            item.connect('activate', () => this._abrirUri(uriDeMontaje(montaje.mount)));
+            item.connect('activate', () => this._abrirCarpetaRemota(uriDeMontaje(montaje.mount)));
             item.connect('desmontar', () => this._desmontar(montaje));
             this._seccionMontajes.addMenuItem(item);
         }
@@ -1271,10 +1287,9 @@ class IndicadorSsh extends PanelMenu.Button {
     /**
      * Abre la carpeta remota del equipo por SFTP.
      *
-     * Si ya está montada se abre el montaje (así se cae directamente en la
-     * carpeta personal del usuario remoto); si no, se le pasa la URL al gestor
-     * de archivos, que es quien monta y quien pide la contraseña o la clave: la
-     * extensión no toca credenciales.
+     * Si ya está montada se abre el montaje, así se cae directamente donde te
+     * deja GVfs: la carpeta personal del usuario remoto, no la raíz del
+     * servidor.
      *
      * @param {object} host equipo seleccionado
      */
@@ -1282,20 +1297,33 @@ class IndicadorSsh extends PanelMenu.Button {
         this.menu.itemActivated(BoxPointer.PopupAnimation.FULL);
 
         const montaje = listarMontajesSftp(this._hosts).find(m => m.id === host.id);
-        if (montaje) {
-            this._abrirUri(uriDeMontaje(montaje.mount));
-            return;
-        }
+        const uri = montaje
+            ? uriDeMontaje(montaje.mount)
+            : uriSftp(host, this._settings.get_string('sftp-path'));
 
-        const uri = uriSftp(host, this._settings.get_string('sftp-path'));
+        this._abrirCarpetaRemota(uri, this._valoresDe(host));
+    }
+
+    /**
+     * Abre una carpeta remota en el gestor de archivos, que es quien monta y
+     * quien pide la contraseña o la clave: la extensión no toca credenciales.
+     *
+     * @param {string} uri URL a abrir
+     * @param {object} [valores] marcadores para la plantilla configurada
+     */
+    _abrirCarpetaRemota(uri, valores = null) {
+        const marcadores = {...(valores ?? {}), '%s': uri};
+
         const configurada = this._settings.get_string('sftp-command');
+        if (configurada.trim() !== '' && this._lanzar([configurada], marcadores))
+            return;
 
-        // Con comando propio se usa ese; si no, el gestor predeterminado.
-        if (configurada.trim() !== '') {
-            if (this._lanzar([configurada], this._valoresDe(host)))
-                return;
-        }
+        if (this._lanzar(ALTERNATIVAS_GESTOR, marcadores))
+            return;
 
+        // Último recurso: la aplicación predeterminada del sistema. Con la
+        // carpeta ya montada funciona, porque entonces GIO la ve como un
+        // directorio y eso sí lo declara el gestor de archivos.
         this._abrirUri(uri);
     }
 
