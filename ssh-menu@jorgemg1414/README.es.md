@@ -11,9 +11,9 @@ y archivos por línea de comandos.
 ## Las tres formas de entrar
 
 ```
- ●  norte         jorge@10.20.0.5    12 ms   [📁] [⇅]
- └─ clic ─ ssh en la terminal          │    └─ sftp en la terminal (get, put)
-                                       └─ la carpeta en el gestor de archivos
+ ●  norte         usuario@10.20.0.5    12 ms   [📁] [⇅]
+ └─ clic ─ ssh en la terminal            │    └─ sftp en la terminal (get, put)
+                                         └─ la carpeta en el gestor de archivos
 ```
 
 | Acción | Cómo | Qué lanza |
@@ -74,11 +74,11 @@ siguiente comentario de grupo:
 
 Host norte
     HostName 10.20.0.5
-    User jorge
+    User usuario
 
 Host sur
     HostName 10.30.0.5
-    User jorge
+    User usuario
 
 # Grupo: SERVIDORES
 
@@ -154,7 +154,7 @@ la configuración:
 # Difusión: 192.168.10.255
 Host norte
     HostName 192.168.10.5
-    User jorge
+    User usuario
 ```
 
 Valen las tres formas de escribir una MAC (`aa:bb:…`, `aa-bb-…`, `aabbcc…`), y
@@ -285,7 +285,7 @@ Un bloque mínimo es esto:
 ```sshconfig
 Host miservidor
     HostName 192.168.1.10
-    User jorge
+    User usuario
 ```
 
 A partir de ahí, `ssh miservidor` funciona en la terminal y el equipo aparece en

@@ -6,7 +6,7 @@
  *     # Grupo: SUCURSALES
  *     Host oficina-norte
  *         HostName 10.20.0.5
- *         User jorge
+ *         User usuario
  *         Port 2222
  *
  * De cada bloque «Host» sale una entrada del menú. Los patrones con comodines
@@ -48,14 +48,14 @@ export const PLANTILLA_CONFIG = `# Configuración de SSH — la lee tanto el com
 
 Host servidor-ejemplo
     HostName 192.168.1.10
-    User jorge
+    User usuario
     Port 22
 
 # Un equipo al que solo se llega saltando por otro:
 #
 # Host interno
 #     HostName 10.0.0.5
-#     User jorge
+#     User usuario
 #     ProxyJump servidor-ejemplo
 
 # Valores por omisión para todos los equipos:

@@ -33,8 +33,8 @@ extensión la sondea y ya no hay que fiarse.
   con lo que se ve de un vistazo a cuál hace falta mandarle el paquete.
 - **Al mandarlo**, la fila se pone en amarillo y se sigue sondeando cada cinco
   segundos hasta que responde, con un límite de dos minutos por omisión. La
-  segunda notificación ya dice «*jorge-pc* ya responde (32 s)», o que sigue sin
-  responder pasado el plazo.
+  segunda notificación ya dice «*equipo-taller* ya responde (32 s)», o que
+  sigue sin responder pasado el plazo.
 - **Con «Encender todos»** se espera a todos a la vez y se resume: «3 de 4
   responden».
 

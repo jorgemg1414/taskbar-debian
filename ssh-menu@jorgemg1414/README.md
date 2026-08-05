@@ -11,9 +11,9 @@ the command line.
 ## The three ways in
 
 ```
- ●  north         jorge@10.20.0.5    12 ms   [📁] [⇅]
- └─ click ─ ssh in the terminal        │    └─ sftp in the terminal (get, put)
-                                       └─ the folder in the file manager
+ ●  north         usuario@10.20.0.5    12 ms   [📁] [⇅]
+ └─ click ─ ssh in the terminal          │    └─ sftp in the terminal (get, put)
+                                         └─ the folder in the file manager
 ```
 
 | Action | How | What it runs |
@@ -74,11 +74,11 @@ until the next group comment:
 
 Host north
     HostName 10.20.0.5
-    User jorge
+    User usuario
 
 Host south
     HostName 10.30.0.5
-    User jorge
+    User usuario
 
 # Group: SERVERS
 
@@ -153,7 +153,7 @@ the rest of your config:
 # Difusión: 192.168.10.255
 Host north
     HostName 192.168.10.5
-    User jorge
+    User usuario
 ```
 
 All three ways of writing a MAC work (`aa:bb:…`, `aa-bb-…`, `aabbcc…`), and the
@@ -286,7 +286,7 @@ A minimal block is this:
 ```sshconfig
 Host myserver
     HostName 192.168.1.10
-    User jorge
+    User usuario
 ```
 
 From then on `ssh myserver` works in the terminal and the machine shows up in

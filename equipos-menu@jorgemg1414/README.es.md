@@ -10,7 +10,7 @@ Es el paso siguiente al punto verde de los otros menús de este repositorio:
 aquel dice que el puerto 22 acepta conexiones; este entra y pregunta.
 
 ```
-● jorge-pc          ↑ 14 d · RAM 41% · / 78% · 12 act.
+● equipo-taller     ↑ 14 d · RAM 41% · / 78% · 12 act.
 ● servidor-copias   ↑ 96 d · RAM 12% · / 94%
 ● oficina-norte     la clave no está autorizada en el equipo
 ● portatil          sin respuesta
@@ -78,7 +78,7 @@ se entiende y hay que decírselo a mano con un comentario en su bloque:
 # Sistema: windows
 Host pc-oficina
     HostName 192.168.10.50
-    User jorge
+    User usuario
 ```
 
 ---
@@ -136,7 +136,7 @@ usuarios con sesión abierta, que es justo el caso en el que te vas a encontrar.
 `/etc/sudoers.d/` (créalo con `visudo -f`):
 
 ```
-jorge ALL=(root) NOPASSWD: /usr/bin/systemctl poweroff, /usr/bin/systemctl reboot, /usr/bin/systemctl suspend
+usuario ALL=(root) NOPASSWD: /usr/bin/systemctl poweroff, /usr/bin/systemctl reboot, /usr/bin/systemctl suspend
 ```
 
 Y en las preferencias de la extensión, pon las órdenes con `sudo -n` delante:
@@ -232,13 +232,13 @@ Lo primero, comprobar a mano lo mismo que hace la extensión. Si esto contesta,
 el menú también:
 
 ```bash
-ssh -o BatchMode=yes -o ConnectTimeout=5 jorge-pc 'uname -s; cat /proc/uptime'
+ssh -o BatchMode=yes -o ConnectTimeout=5 equipo-taller 'uname -s; cat /proc/uptime'
 ```
 
 Si pide contraseña o dice «Permission denied», la clave no está autorizada:
 
 ```bash
-cd herramientas && ./autorizar-clave.sh jorge-pc
+cd herramientas && ./autorizar-clave.sh equipo-taller
 ```
 
 Ver las conexiones compartidas que hay vivas ahora mismo:

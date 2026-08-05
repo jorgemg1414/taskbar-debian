@@ -33,8 +33,8 @@ probes it instead of guessing.
   you can see at a glance which one needs the packet.
 - **When you send it**, the row turns yellow and the machine is probed every
   five seconds until it answers, capped at two minutes by default. The second
-  notification then says "*jorge-pc* is answering (32 s)", or that it is still
-  silent once the deadline passes.
+  notification then says "*equipo-taller* is answering (32 s)", or that it is
+  still silent once the deadline passes.
 - **With Wake all**, every machine is waited on at once and the result is
   summarised: "3 of 4 answering".
 

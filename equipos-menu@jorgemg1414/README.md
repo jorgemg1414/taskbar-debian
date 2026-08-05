@@ -10,7 +10,7 @@ It is the next step after the green dot in this repository's other menus: that
 one says port 22 accepts connections; this one goes in and asks.
 
 ```
-● jorge-pc          ↑ 14 d · RAM 41% · / 78% · 12 act.
+● equipo-taller     ↑ 14 d · RAM 41% · / 78% · 12 act.
 ● backup-server     ↑ 96 d · RAM 12% · / 94%
 ● north-office      the key isn't authorised on the machine
 ● laptop            no answer
@@ -78,7 +78,7 @@ you have to say so by hand, with a comment in its block:
 # Sistema: windows
 Host office-pc
     HostName 192.168.10.50
-    User jorge
+    User usuario
 ```
 
 ---
@@ -137,7 +137,7 @@ logged in, which is exactly the case you'll run into.
 `/etc/sudoers.d/` (create it with `visudo -f`):
 
 ```
-jorge ALL=(root) NOPASSWD: /usr/bin/systemctl poweroff, /usr/bin/systemctl reboot, /usr/bin/systemctl suspend
+usuario ALL=(root) NOPASSWD: /usr/bin/systemctl poweroff, /usr/bin/systemctl reboot, /usr/bin/systemctl suspend
 ```
 
 Then, in the extension's preferences, prefix the commands with `sudo -n`:
@@ -230,13 +230,13 @@ To uninstall:
 First, check by hand what the extension does. If this answers, so will the menu:
 
 ```bash
-ssh -o BatchMode=yes -o ConnectTimeout=5 jorge-pc 'uname -s; cat /proc/uptime'
+ssh -o BatchMode=yes -o ConnectTimeout=5 equipo-taller 'uname -s; cat /proc/uptime'
 ```
 
 If it asks for a password or says "Permission denied", the key isn't authorised:
 
 ```bash
-cd herramientas && ./autorizar-clave.sh jorge-pc
+cd herramientas && ./autorizar-clave.sh equipo-taller
 ```
 
 To see which shared connections are alive right now:
