@@ -36,6 +36,11 @@ const RUTA_ARP = '/proc/net/arp';
 // Puerto habitual del paquete mágico. El 7 (echo) también se usa.
 export const PUERTO_POR_DEFECTO = 9;
 
+// Puerto TCP que se sondea para saber si un equipo está encendido, cuando la
+// sonda no lleva ninguno. El 22 es el de SSH: si el equipo también sale en el
+// menú de SSH, ya lo tiene abierto.
+export const PUERTO_SONDA = 22;
+
 // De dónde se leen los equipos ya configurados para Wake on LAN.
 const UUID_WOL = 'wol-menu@jorgemg1414';
 const ID_ESQUEMA_WOL = 'org.gnome.shell.extensions.wol-menu';
@@ -184,6 +189,39 @@ export function ajustesWol(rutaPropia) {
 }
 
 /**
+ * Interpreta la dirección con la que se comprueba si un equipo está encendido.
+ *
+ * Se admite «host», «host:puerto» y «[IPv6]:puerto». Sin puerto se usa el de
+ * SSH, que es el que suelen tener abierto los equipos que están en el menú.
+ *
+ * @param {string} texto dirección tal cual la escribió el usuario
+ * @returns {{host: string, port: number}|null} destino del sondeo, o null
+ */
+export function parsearSonda(texto) {
+    const limpio = (texto ?? '').trim();
+    if (limpio === '')
+        return null;
+
+    const puertoDe = numero => {
+        const n = parseInt(numero, 10);
+        return Number.isFinite(n) && n > 0 && n <= 65535 ? n : PUERTO_SONDA;
+    };
+
+    // «[2001:db8::1]:445»: IPv6 literal con puerto.
+    const corchetes = limpio.match(/^\[(.+)\]:(\d+)$/);
+    if (corchetes)
+        return {host: corchetes[1], port: puertoDe(corchetes[2])};
+
+    // Un solo ':' con cifras detrás es «host:puerto»; varios son un IPv6 suelto,
+    // que no puede llevar puerto sin corchetes.
+    const trozos = limpio.split(':');
+    if (trozos.length === 2 && /^\d+$/.test(trozos[1]) && trozos[0] !== '')
+        return {host: trozos[0], port: puertoDe(trozos[1])};
+
+    return {host: limpio.replace(/^\[|\]$/g, ''), port: PUERTO_SONDA};
+}
+
+/**
  * Lee la lista de equipos de los ajustes de Wake on LAN. Cada entrada es un
  * JSON, tal como los guarda esa extensión.
  *
@@ -217,6 +255,10 @@ export function leerEquipos(settings) {
             mac: crudo.mac,
             destino: crudo.destino ?? '',
             puerto: Number.isFinite(crudo.puerto) ? crudo.puerto : PUERTO_POR_DEFECTO,
+            // Dirección con la que se comprueba si ya está encendido. Es
+            // opcional: sin ella, del equipo solo se sabe que se le mandó el
+            // paquete.
+            sonda: crudo.sonda ?? '',
         });
     }
 
@@ -235,6 +277,7 @@ export function guardarEquipos(settings, equipos) {
         mac: e.mac ?? '',
         destino: e.destino ?? '',
         puerto: Number.isFinite(e.puerto) ? e.puerto : PUERTO_POR_DEFECTO,
+        sonda: e.sonda ?? '',
     })));
 }
 

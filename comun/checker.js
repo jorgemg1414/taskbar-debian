@@ -24,6 +24,109 @@ export const ESTADO = {
 // espera en cola y entra según van terminando.
 const MAX_PARALELO = 8;
 
+/**
+ * Abre y cierra una conexión TCP contra host:puerto, midiendo lo que tarda.
+ *
+ * @param {object} destino equipo a sondear
+ * @param {string} destino.host nombre o dirección
+ * @param {number} destino.port puerto TCP
+ * @param {number} timeout segundos de espera (incluye la resolución DNS)
+ * @param {Gio.Cancellable} cancellable cancelable
+ * @returns {Promise<number>} milisegundos que tardó en aceptar la conexión
+ * @throws {GLib.Error} si no responde, no resuelve o se cancela
+ */
+export async function sondearPuerto({host, port}, timeout, cancellable = null) {
+    // IPv6 literal necesita corchetes en la cadena "host:puerto".
+    const destino = host.includes(':') ? `[${host}]:${port}` : `${host}:${port}`;
+
+    // El timeout de Gio.SocketClient se aplica a la resolución DNS y a la
+    // conexión, así que un host DDNS caído no deja la comprobación colgada.
+    const cliente = new Gio.SocketClient({timeout});
+    const inicio = GLib.get_monotonic_time();
+
+    const conexion = await connectToHost(cliente, destino, port, cancellable);
+    // Cerrar en cuanto sabemos que el puerto acepta conexiones.
+    cerrarConexion(conexion);
+
+    // Incluye la resolución DNS, que es justo lo que se nota al conectar.
+    return Math.round((GLib.get_monotonic_time() - inicio) / 1000);
+}
+
+/**
+ * Espera sin bloquear, y se corta si se cancela.
+ *
+ * @param {number} ms milisegundos a esperar
+ * @param {Gio.Cancellable} cancellable cancelable
+ * @returns {Promise<void>} promesa resuelta al cumplirse el plazo
+ */
+function dormir(ms, cancellable) {
+    return new Promise(resolve => {
+        if (cancellable?.is_cancelled()) {
+            resolve();
+            return;
+        }
+
+        let idFuente = GLib.timeout_add(GLib.PRIORITY_DEFAULT, ms, () => {
+            idFuente = 0;
+            if (idCancelacion)
+                cancellable?.disconnect(idCancelacion);
+            resolve();
+            return GLib.SOURCE_REMOVE;
+        });
+
+        // Sin esto, un disable() dejaría vivo el temporizador hasta que venciera.
+        const idCancelacion = cancellable?.connect(() => {
+            if (idFuente) {
+                GLib.source_remove(idFuente);
+                idFuente = 0;
+            }
+            resolve();
+        });
+    });
+}
+
+/**
+ * Espera a que un equipo empiece a responder, sondeándolo cada pocos segundos.
+ *
+ * Es lo que convierte el paquete mágico de Wake-on-LAN, que no tiene respuesta,
+ * en algo que se puede afirmar: en vez de «paquete enviado», «ya responde».
+ *
+ * @param {object} destino equipo a sondear (host y port)
+ * @param {object} [opciones] cadencia de la espera
+ * @param {number} [opciones.timeout] segundos de espera de cada sondeo
+ * @param {number} [opciones.intervalo] segundos entre sondeo y sondeo
+ * @param {number} [opciones.limite] segundos que se espera como mucho
+ * @param {Gio.Cancellable} [cancellable] cancelable
+ * @returns {Promise<number|null>} segundos que tardó en responder, o null si no
+ */
+export async function esperarArranque(
+    destino, {timeout = 2, intervalo = 5, limite = 120} = {}, cancellable = null) {
+    const inicio = GLib.get_monotonic_time();
+    const transcurrido = () =>
+        Math.round((GLib.get_monotonic_time() - inicio) / 1000000);
+
+    for (;;) {
+        if (cancellable?.is_cancelled())
+            return null;
+
+        try {
+            await sondearPuerto(destino, timeout, cancellable);
+            return transcurrido();
+        } catch (e) {
+            if (e.matches?.(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                return null;
+            // Cualquier otro fallo es lo normal mientras el equipo arranca.
+        }
+
+        // Un equipo apagado rechaza o agota el plazo, así que cada vuelta ya
+        // consume su tiempo: se cuenta el real, no el número de intentos.
+        if (transcurrido() >= limite)
+            return null;
+
+        await dormir(intervalo * 1000, cancellable);
+    }
+}
+
 export class ComprobadorPuertos {
     /**
      * @param {object} opciones opciones del comprobador
@@ -150,22 +253,8 @@ export class ComprobadorPuertos {
         const cancellable = new Gio.Cancellable();
         this._enCurso.set(conexion.id, cancellable);
 
-        // IPv6 literal necesita corchetes en la cadena "host:puerto".
-        const destino = conexion.host.includes(':')
-            ? `[${conexion.host}]:${conexion.port}`
-            : `${conexion.host}:${conexion.port}`;
-
-        // El timeout de Gio.SocketClient se aplica a la resolución DNS y a la
-        // conexión, así que un host DDNS caído no deja la comprobación colgada.
-        const cliente = new Gio.SocketClient({timeout: this._timeout});
-        const inicio = GLib.get_monotonic_time();
-
-        connectToHost(cliente, destino, conexion.port, cancellable)
-            .then(conn => {
-                // Incluye la resolución DNS, que es justo lo que se nota al conectar.
-                const ms = Math.round((GLib.get_monotonic_time() - inicio) / 1000);
-                // Cerrar en cuanto sabemos que el puerto acepta conexiones.
-                cerrarConexion(conn);
+        sondearPuerto(conexion, this._timeout, cancellable)
+            .then(ms => {
                 this._terminar(conexion.id, cancellable, ESTADO.ARRIBA, ms);
             })
             .catch(e => {

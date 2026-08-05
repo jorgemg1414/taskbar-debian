@@ -11,7 +11,10 @@ import Gtk from 'gi://Gtk';
 
 import {ExtensionPreferences, gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-import {leerEquipos, guardarEquipos, formatearMac, PUERTO_POR_DEFECTO} from './wol.js';
+import {
+    leerEquipos, guardarEquipos, formatearMac, parsearSonda,
+    PUERTO_POR_DEFECTO, PUERTO_SONDA,
+} from './wol.js';
 
 export default class WolMenuPreferences extends ExtensionPreferences {
     /**
@@ -76,12 +79,49 @@ export default class WolMenuPreferences extends ExtensionPreferences {
                 mac: '',
                 destino: '',
                 puerto: PUERTO_POR_DEFECTO,
+                sonda: '',
             });
             guardar();
             repintar();
         });
 
         repintar();
+
+        /* ------------------------ Comprobación ------------------------- */
+        const grupoComprobar = new Adw.PreferencesGroup({
+            title: _('Comprobación'),
+            description: _('El paquete mágico no tiene respuesta: que salga no dice ' +
+                'si el equipo arrancó. Con la dirección de comprobación de cada equipo ' +
+                'sí se puede saber, sondeándola hasta que responde.'),
+        });
+        pagina.add(grupoComprobar);
+
+        const filaComprobar = new Adw.SwitchRow({
+            title: _('Comprobar si el equipo está encendido'),
+            subtitle: _('Pinta el punto verde o rojo al abrir el menú y espera al arranque.'),
+        });
+        settings.bind('enable-checks', filaComprobar, 'active', Gio.SettingsBindFlags.DEFAULT);
+        grupoComprobar.add(filaComprobar);
+
+        const filaEspera = new Adw.SpinRow({
+            title: _('Espera de cada sondeo'),
+            subtitle: _('Segundos que se espera a que acepte la conexión.'),
+            adjustment: new Gtk.Adjustment({
+                lower: 1, upper: 30, step_increment: 1, page_increment: 5,
+            }),
+        });
+        settings.bind('check-timeout', filaEspera, 'value', Gio.SettingsBindFlags.DEFAULT);
+        grupoComprobar.add(filaEspera);
+
+        const filaArranque = new Adw.SpinRow({
+            title: _('Espera al arranque'),
+            subtitle: _('Segundos que se sigue sondeando tras mandar el paquete. 0 no espera.'),
+            adjustment: new Gtk.Adjustment({
+                lower: 0, upper: 600, step_increment: 10, page_increment: 30,
+            }),
+        });
+        settings.bind('boot-timeout', filaArranque, 'value', Gio.SettingsBindFlags.DEFAULT);
+        grupoComprobar.add(filaArranque);
 
         /* -------------------------- Apariencia ------------------------- */
         const grupoAspecto = new Adw.PreferencesGroup({title: _('Apariencia')});
@@ -162,6 +202,25 @@ export default class WolMenuPreferences extends ExtensionPreferences {
             alCambiar();
         });
         fila.add_row(filaPuerto);
+
+        // Esta no es la dirección de difusión, sino la del equipo: es la que se
+        // sondea para saber si ya está encendido.
+        const filaSonda = new Adw.EntryRow({
+            title: _('Dirección para comprobarlo'),
+            text: equipo.sonda ?? '',
+        });
+        filaSonda.connect('changed', () => {
+            equipo.sonda = filaSonda.get_text();
+            const sonda = parsearSonda(equipo.sonda);
+            filaSonda.set_tooltip_text(sonda
+                ? `${_('Se sondea')} ${sonda.host}:${sonda.port}`
+                : _('Vacío: del equipo solo se sabrá que se le mandó el paquete'));
+            alCambiar();
+        });
+        filaSonda.set_tooltip_text(
+            `${_('Su IP o su nombre, con puerto opcional. Sin puerto se usa el')} ${PUERTO_SONDA} (SSH); ` +
+            `${_('para un Windows suele valer el 3389 o el 445.')}`);
+        fila.add_row(filaSonda);
 
         const filaBorrar = new Adw.ActionRow({title: _('Quitar este equipo')});
         const botonBorrar = new Gtk.Button({

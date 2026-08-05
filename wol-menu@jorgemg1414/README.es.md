@@ -17,9 +17,34 @@ apagado —sigue alimentada— y enciende el equipo.
 Lo manda la propia extensión con `Gio.Socket`, sin depender de `wakeonlan`,
 `etherwake` ni ningún programa externo.
 
-> **Es un disparo a ciegas.** El protocolo no tiene respuesta: que el paquete
-> salga no garantiza que el equipo arranque. La notificación dice «paquete
-> enviado», no «equipo encendido», porque es lo único que se puede afirmar.
+> **El protocolo no tiene respuesta.** Que el paquete salga no garantiza que el
+> equipo arranque, así que por sí solo lo único que se puede afirmar es
+> «paquete enviado».
+
+---
+
+## Saber si arrancó de verdad
+
+El paquete no contesta, pero el equipo encendido sí: si le das a cada uno una
+**dirección para comprobarlo** —la suya, con un puerto que tenga abierto—, la
+extensión la sondea y ya no hay que fiarse.
+
+- **Al abrir el menú**, un punto verde o rojo dice si el equipo está encendido,
+  con lo que se ve de un vistazo a cuál hace falta mandarle el paquete.
+- **Al mandarlo**, la fila se pone en amarillo y se sigue sondeando cada cinco
+  segundos hasta que responde, con un límite de dos minutos por omisión. La
+  segunda notificación ya dice «*jorge-pc* ya responde (32 s)», o que sigue sin
+  responder pasado el plazo.
+- **Con «Encender todos»** se espera a todos a la vez y se resume: «3 de 4
+  responden».
+
+Se sondea abriendo un puerto TCP, igual que hacen los menús de VNC y de SSH. Si
+el equipo también está en tu `~/.ssh/config`, con poner su IP basta: se usa el
+puerto 22. Para un Windows suelen valer el 3389 (escritorio remoto) o el 445
+(compartir archivos).
+
+Sin esa dirección, el equipo funciona como siempre: se manda el paquete, no hay
+punto de estado y la notificación dice solo que salió.
 
 ---
 
@@ -121,11 +146,15 @@ Cada equipo tiene:
 | MAC | `aa:bb:cc:dd:ee:ff`, `aa-bb-...` o `aabbccddeeff`; se valida al escribir |
 | Dirección de difusión | Ver arriba. Vacío = `255.255.255.255` |
 | Puerto | 9 por omisión; el 7 también se usa |
+| Dirección para comprobarlo | La **suya**, no la de difusión: `192.168.10.50` o `192.168.10.50:3389`. Sin puerto se usa el 22. Vacío, no se comprueba |
 
 Y a nivel general:
 
 | Ajuste | Por omisión | Descripción |
 |---|---|---|
+| Comprobar si el equipo está encendido | sí | Punto de estado al abrir el menú y espera al arranque |
+| Espera de cada sondeo | 2 s | Lo que se espera a que acepte la conexión, resolución del nombre incluida |
+| Espera al arranque | 120 s | Cuánto se sigue sondeando tras mandar el paquete. 0 no espera |
 | Icono del panel | `network-wired-symbolic` | Cualquier icono simbólico del tema |
 | Mostrar la MAC | no | La dirección física a la derecha de cada equipo |
 

@@ -17,9 +17,34 @@ it stays powered — and turns the machine on.
 The extension sends it itself through `Gio.Socket`, with no dependency on
 `wakeonlan`, `etherwake` or any external program.
 
-> **It's a shot in the dark.** The protocol has no reply: a packet going out
-> doesn't guarantee the machine boots. The notification says "packet sent", not
-> "machine on", because that is the only thing that can honestly be claimed.
+> **The protocol has no reply.** A packet going out doesn't guarantee the
+> machine boots, so on its own the only thing that can honestly be claimed is
+> "packet sent".
+
+---
+
+## Knowing whether it actually booted
+
+The packet never answers, but a machine that is up does: give each one a
+**check address** — its own address, on a port it has open — and the extension
+probes it instead of guessing.
+
+- **When the menu opens**, a green or red dot says whether the machine is on, so
+  you can see at a glance which one needs the packet.
+- **When you send it**, the row turns yellow and the machine is probed every
+  five seconds until it answers, capped at two minutes by default. The second
+  notification then says "*jorge-pc* is answering (32 s)", or that it is still
+  silent once the deadline passes.
+- **With Wake all**, every machine is waited on at once and the result is
+  summarised: "3 of 4 answering".
+
+Probing means opening a TCP port, the same thing the VNC and SSH menus do. If
+the machine is also in your `~/.ssh/config`, its IP alone is enough: port 22 is
+the default. For Windows, 3389 (remote desktop) or 445 (file sharing) usually
+work.
+
+Without a check address the machine behaves as before: the packet is sent, there
+is no status dot, and the notification only says it went out.
 
 ---
 
@@ -119,11 +144,15 @@ Each machine has:
 | MAC | `aa:bb:cc:dd:ee:ff`, `aa-bb-...` or `aabbccddeeff`; validated as you type |
 | Broadcast address | See above. Empty = `255.255.255.255` |
 | Port | 9 by default; 7 is also used |
+| Check address | **Its own** address, not the broadcast one: `192.168.10.50` or `192.168.10.50:3389`. Without a port, 22 is used. Empty means no checking |
 
 And globally:
 
 | Setting | Default | Description |
 |---|---|---|
+| Check whether the machine is on | yes | Status dot when the menu opens, and waiting for the boot |
+| Probe timeout | 2 s | How long to wait for the connection, name resolution included |
+| Boot timeout | 120 s | How long to keep probing after sending the packet. 0 doesn't wait |
 | Panel icon | `network-wired-symbolic` | Any symbolic icon from the theme |
 | Show the MAC | no | The hardware address to the right of each machine |
 

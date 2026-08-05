@@ -53,7 +53,7 @@ for archivo in metadata.json extension.js prefs.js stylesheet.css; do
     install -m 644 "${ORIGEN}/${archivo}" "${DESTINO}/${archivo}"
 done
 
-for archivo in asyncgio.js wol.js; do
+for archivo in asyncgio.js checker.js wol.js; do
     install -m 644 "${COMUN}/${archivo}" "${DESTINO}/${archivo}"
 done
 

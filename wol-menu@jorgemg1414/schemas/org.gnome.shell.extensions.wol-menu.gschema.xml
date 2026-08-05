@@ -7,10 +7,43 @@
       <default>[]</default>
       <summary>Equipos que se pueden encender</summary>
       <description>
-        Un JSON por equipo, con las claves nombre, mac, destino y puerto.
+        Un JSON por equipo, con las claves nombre, mac, destino, puerto y sonda.
         «destino» es la dirección a la que se manda el paquete mágico: la de
         difusión de la red donde vive el equipo (por ejemplo 192.168.10.255), o
-        vacío para usar 255.255.255.255.
+        vacío para usar 255.255.255.255. «sonda» es la dirección con la que se
+        comprueba si el equipo está encendido, en forma «host» o «host:puerto»
+        (por omisión el puerto 22); vacía, no se comprueba.
+      </description>
+    </key>
+
+    <key name="enable-checks" type="b">
+      <default>true</default>
+      <summary>Comprobar si el equipo ya está encendido</summary>
+      <description>
+        Sondea la dirección de cada equipo al abrir el menú, para pintar el punto
+        verde o rojo, y espera al arranque tras mandar el paquete. Solo afecta a
+        los equipos que tienen sonda configurada.
+      </description>
+    </key>
+
+    <key name="check-timeout" type="i">
+      <default>2</default>
+      <range min="1" max="30"/>
+      <summary>Espera de cada sondeo, en segundos</summary>
+      <description>
+        Tiempo máximo que se espera a que el equipo acepte la conexión antes de
+        darlo por apagado. Incluye la resolución del nombre.
+      </description>
+    </key>
+
+    <key name="boot-timeout" type="i">
+      <default>120</default>
+      <range min="0" max="600"/>
+      <summary>Espera al arranque, en segundos</summary>
+      <description>
+        Tras mandar el paquete mágico se sigue sondeando al equipo hasta este
+        límite, para poder decir si arrancó de verdad en vez de solo que el
+        paquete salió. Con 0 no se espera.
       </description>
     </key>
 
