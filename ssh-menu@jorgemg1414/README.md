@@ -141,7 +141,9 @@ the Wake-on-LAN magic packet goes out without a trip to the other menu. The
 action only shows up when the machine **isn't answering** — if it answers it's
 already on — and when its MAC is known.
 
-The MAC comes from one of two places:
+Usually there is **nothing to configure**: while a machine answers, the menu
+learns its MAC on its own. You can still write it down by hand, and then yours
+wins. The three places it comes from, in order of preference:
 
 **1. A comment in its block**, which is the most direct and travels along with
 the rest of your config:
@@ -163,6 +165,25 @@ network.
 are read from its settings and matched **by name**: the machine's name there has
 to equal the alias of the `Host` block (or its `HostName`). That way the MAC
 isn't written down twice.
+
+**3. The system's ARP table**, which is where it comes from with no effort on
+your part. To paint the green dot the menu opens a socket against each machine;
+that conversation leaves the machine's MAC recorded in `/proc/net/arp`, and it
+is copied from there while the machine is up. It's kept, so the day it shows red
+the packet can already be sent.
+
+Two limits worth knowing:
+
+- **Same network segment only**, and IPv4 only. If reaching a machine means
+  crossing a router, what's in the table is the router's MAC and not the
+  machine's, so those entries are dropped: only a row whose IP is exactly the
+  machine's is accepted. It's the same boundary Wake-on-LAN itself has, since it
+  doesn't cross routers.
+- **It has to have been seen up once.** Nothing can be learned about a machine
+  that was already down the first time you saw it.
+
+Both can be turned off in the settings, and what has been learned is cleared
+with the **Olvidar** button: it fills up again by itself.
 
 > Since the protocol has no reply, the notification says "packet sent", not
 > "machine on": that's the only thing that can honestly be claimed. And it only
@@ -186,6 +207,7 @@ From the menu → **Ajustes**, or with `gnome-extensions prefs ssh-menu@jorgemg1
 | Terminal sftp button | yes | The per-row ⇅; hidden, Shift+click still works |
 | Mounted folders | yes | The list of SFTP mounts at the top of the menu |
 | Power on from the menu | yes | "Encender" on right-click for a down machine with a MAC |
+| Learn the MAC on its own | yes | Copies it from the ARP table while the machine answers |
 | Remote start folder | empty | Empty lands you in your home on the server |
 | Check availability | yes | The green/red dot |
 | Show latency | yes | Response time in milliseconds |

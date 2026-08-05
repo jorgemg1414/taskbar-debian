@@ -27,11 +27,24 @@ import {
 } from './hosts.js';
 import {ComprobadorPuertos, ESTADO} from './checker.js';
 import {listarMontajesSftp, idsMontados, uriDeMontaje, desmontar} from './montajes.js';
-import {ajustesWol, leerEquiposWol, datosWolDe, despertar} from './wol.js';
+import {
+    ajustesWol, leerEquiposWol, datosWolDe, despertar, leerTablaArp, esIPv4,
+} from './wol.js';
 
 // Milisegundos que se espera tras un cambio en la configuración antes de
 // recargar (los editores guardan en varios pasos).
 const RETARDO_RECARGA_MS = 700;
+
+// Milisegundos que se espera antes de mirar la tabla ARP. Al abrir el menú
+// responden varios equipos casi a la vez: así se lee el archivo una sola vez.
+const RETARDO_ARP_MS = 800;
+
+// Segundos que se da por buena una MAC ya aprendida sin volver a guardarla, para
+// no escribir en los ajustes cada vez que se comprueba un equipo.
+const FRESCURA_MAC_S = 3600;
+
+// Cuántas MAC aprendidas se recuerdan. Al pasarse, se olvidan las más viejas.
+const MAX_MACS = 200;
 
 // Terminales alternativas, en orden, por si la configurada no está instalada.
 // %o es el hueco de la orden que se ejecuta dentro (ssh o sftp).
@@ -447,6 +460,8 @@ class IndicadorSsh extends PanelMenu.Button {
         this._idsVolumenes = [];        // señales de Gio.VolumeMonitor
         this._settingsWol = null;       // ajustes de la extensión Wake on LAN
         this._wolConsultado = false;    // si ya se buscó esa extensión
+        this._macs = new Map();         // IP -> {mac, visto}, aprendidas del ARP
+        this._idArp = 0;                // timeout de lectura de la tabla ARP
         this._cabeceras = [];           // {cabecera, items} por grupo, para filtrar
         this._buscador = null;          // ItemBuscador, si procede
         this._itemSinCoincidencias = null;
@@ -484,8 +499,14 @@ class IndicadorSsh extends PanelMenu.Button {
             alCambiar: (id, estado, latencia) => {
                 this._items.get(id)?.fijarEstado(estado, latencia);
                 this._actualizarInsignia();
+                // Un equipo que acaba de responder tiene su MAC recién puesta
+                // en la tabla ARP: es el momento de apuntarla.
+                if (estado === ESTADO.ARRIBA)
+                    this._programarAprendizaje();
             },
         });
+
+        this._cargarMacs();
 
         // El estado se consulta al abrir el menú y se deja de consultar al
         // cerrarlo: así no se toca la red cuando nadie está mirando.
@@ -1218,6 +1239,103 @@ class IndicadorSsh extends PanelMenu.Button {
         this._contexto = contexto;
     }
 
+    /* ------------------------- MAC aprendidas ------------------------ */
+
+    /**
+     * Recupera de los ajustes las MAC aprendidas en sesiones anteriores.
+     */
+    _cargarMacs() {
+        this._macs.clear();
+
+        for (const linea of this._settings.get_strv('macs-aprendidas')) {
+            try {
+                const {ip, mac, visto} = JSON.parse(linea);
+                if (ip && mac)
+                    this._macs.set(ip, {mac, visto: Number(visto) || 0});
+            } catch {
+                // Una entrada ilegible se descarta: es una caché, no hay nada
+                // que salvar.
+            }
+        }
+    }
+
+    /**
+     * Guarda las MAC aprendidas, quedándose con las vistas más recientemente.
+     */
+    _guardarMacs() {
+        const entradas = [...this._macs.entries()]
+            .sort((a, b) => b[1].visto - a[1].visto)
+            .slice(0, MAX_MACS);
+
+        // El recorte también se aplica en memoria, para que ambas cosas digan
+        // lo mismo.
+        this._macs = new Map(entradas);
+
+        this._settings.set_strv('macs-aprendidas', entradas.map(
+            ([ip, {mac, visto}]) => JSON.stringify({ip, mac, visto})));
+    }
+
+    /**
+     * Programa una lectura de la tabla ARP, agrupando las de varios equipos.
+     */
+    _programarAprendizaje() {
+        if (this._destruido || this._idArp)
+            return;
+        if (!this._settings.get_boolean('learn-macs'))
+            return;
+
+        this._idArp = GLib.timeout_add(GLib.PRIORITY_LOW, RETARDO_ARP_MS, () => {
+            this._idArp = 0;
+            this._aprenderMacs();
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
+    /**
+     * Apunta la MAC de los equipos que están respondiendo ahora mismo.
+     *
+     * Solo se aceptan las entradas cuya IP es exactamente la del equipo: eso es
+     * lo que garantiza que la MAC es suya y no la del router por el que se
+     * llega a él.
+     */
+    _aprenderMacs() {
+        leerTablaArp(this._cancellableAcciones)
+            .then(tabla => {
+                if (this._destruido || tabla.size === 0)
+                    return;
+
+                const ahora = Math.floor(Date.now() / 1000);
+                let cambios = false;
+
+                for (const host of this._hosts) {
+                    if (this._comprobador.estadoDe(host.id) !== ESTADO.ARRIBA)
+                        continue;
+                    if (!esIPv4(host.host))
+                        continue;
+
+                    const mac = tabla.get(host.host);
+                    if (!mac)
+                        continue;
+
+                    // Si ya la teníamos y es reciente, no se reescribe: esto
+                    // pasa por cada comprobación de cada equipo.
+                    const previa = this._macs.get(host.host);
+                    if (previa?.mac === mac && ahora - previa.visto < FRESCURA_MAC_S)
+                        continue;
+
+                    this._macs.set(host.host, {mac, visto: ahora});
+                    cambios = true;
+                }
+
+                if (cambios)
+                    this._guardarMacs();
+            })
+            .catch(e => {
+                if (!this._destruido)
+                    console.warn(`[ssh-menu] No se pudieron aprender las MAC: ${e.message}`);
+            });
+    }
+
     /**
      * Con qué datos se puede encender un equipo, si es que se puede.
      *
@@ -1238,7 +1356,10 @@ class IndicadorSsh extends PanelMenu.Button {
             this._settingsWol = ajustesWol(this._extension.path);
         }
 
-        return datosWolDe(host, leerEquiposWol(this._settingsWol));
+        return datosWolDe(
+            host,
+            leerEquiposWol(this._settingsWol),
+            this._macs.get(host.host)?.mac ?? '');
     }
 
     /**
@@ -1557,6 +1678,10 @@ class IndicadorSsh extends PanelMenu.Button {
             GLib.source_remove(this._idFoco);
             this._idFoco = 0;
         }
+        if (this._idArp) {
+            GLib.source_remove(this._idArp);
+            this._idArp = 0;
+        }
 
         // Lecturas, comprobaciones de red y desmontajes pendientes.
         this._cancellable.cancel();
@@ -1575,6 +1700,7 @@ class IndicadorSsh extends PanelMenu.Button {
             this._settings.disconnect(id);
         this._idsSettings = [];
         this._settingsWol = null;
+        this._macs.clear();
 
         if (this._idAbrir) {
             this.menu.disconnect(this._idAbrir);

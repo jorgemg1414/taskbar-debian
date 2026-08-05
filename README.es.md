@@ -95,8 +95,9 @@ menú, de modo que la consola y los archivos de un equipo están en la misma fil
   conexión directa, así que un punto rojo sería mentira. En su lugar muestran
   `⇢ <salto>`.
 - **Al que no responde se le puede encender desde ahí mismo**, con el paquete
-  mágico, si se le conoce la MAC: por un comentario `# MAC:` en su bloque o
-  porque ya esté dado de alta en la extensión Wake on LAN.
+  mágico, y sin configurar nada: la MAC se aprende sola de la tabla ARP mientras
+  el equipo está encendido, porque el menú ya habla con él para pintar el punto
+  verde. También se puede escribir a mano con un comentario `# MAC:`.
 
 Documentación completa (agrupación, comandos, saltos, depuración):
 **[ssh-menu@jorgemg1414/README.es.md](ssh-menu@jorgemg1414/README.es.md)**

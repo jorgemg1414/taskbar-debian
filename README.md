@@ -89,8 +89,9 @@ entry, so shell and files for a machine sit in the same row.
 - **Machines behind a `ProxyJump` aren't checked** — they don't accept a direct
   connection, so a red dot would be a lie. They show `⇢ <jump>` instead.
 - **A machine that isn't answering can be powered on right there**, with the
-  magic packet, when its MAC is known: from a `# MAC:` comment in its block, or
-  because it's already registered in the Wake on LAN extension.
+  magic packet, and with nothing to configure: the MAC is learned from the ARP
+  table while the machine is up, since the menu already talks to it to paint the
+  green dot. It can also be written by hand with a `# MAC:` comment.
 
 Full documentation (grouping, commands, jump hosts, troubleshooting):
 **[ssh-menu@jorgemg1414/README.md](ssh-menu@jorgemg1414/README.md)**

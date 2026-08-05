@@ -142,7 +142,9 @@ manda el paquete mágico de Wake-on-LAN sin tener que irse al otro menú. La
 acción solo aparece si el equipo **no responde** —si contesta ya está
 encendido— y si se le conoce la MAC.
 
-La MAC sale de uno de estos dos sitios:
+Lo normal es que **no tengas que configurar nada**: mientras un equipo responde,
+el menú aprende su MAC solo. Pero se puede escribir a mano, y entonces manda la
+tuya. Los tres sitios de donde sale, por orden de preferencia:
 
 **1. Un comentario en su bloque**, que es lo más directo y viaja con el resto de
 la configuración:
@@ -163,6 +165,25 @@ opcional: sin ella se usa `255.255.255.255`, que solo llega a tu propia red.
 de sus ajustes y se emparejan **por nombre**: el nombre del equipo allí tiene
 que ser igual que el alias del bloque `Host` (o que su `HostName`). Así no hay
 que apuntar la MAC dos veces.
+
+**3. La tabla ARP del sistema**, que es de donde sale sin que hagas nada. Para
+pintar el punto verde, el menú abre un socket contra cada equipo; esa
+conversación deja la MAC del equipo apuntada en `/proc/net/arp`, y de ahí se
+copia mientras está encendido. Queda guardada, así que el día que aparezca en
+rojo ya se le puede mandar el paquete.
+
+Eso sí, tiene dos límites que conviene tener claros:
+
+- **Solo equipos de tu mismo segmento de red**, y solo con direcciones IPv4. Si
+  para llegar a un equipo hay que atravesar un router, lo que hay en la tabla es
+  la MAC del router y no la suya, así que esas entradas se descartan: solo se
+  acepta una fila cuya IP sea exactamente la del equipo. Es la misma frontera
+  que tiene el propio Wake-on-LAN, que no cruza routers.
+- **Hay que haberlo visto encendido una vez.** La primera vez que un equipo
+  aparece ya caído no hay nada que aprender.
+
+Se apagan desde los ajustes, y lo aprendido se puede vaciar con el botón
+**Olvidar**: se vuelve a llenar solo.
 
 > Como el protocolo no tiene respuesta, la notificación dice «paquete enviado»,
 > no «equipo encendido»: es lo único que se puede afirmar. Y para que funcione
@@ -186,6 +207,7 @@ Desde el menú → **Ajustes**, o con `gnome-extensions prefs ssh-menu@jorgemg14
 | Botón de sftp en terminal | sí | El ⇅ de cada fila; oculto, sigue habiendo Mayús+clic |
 | Carpetas montadas | sí | La lista de montajes SFTP al principio del menú |
 | Encender desde el menú | sí | «Encender» en el clic derecho de un equipo caído con MAC |
+| Aprender la MAC sola | sí | La copia de la tabla ARP mientras el equipo responde |
 | Carpeta remota de inicio | vacío | Vacío te deja en tu carpeta personal del servidor |
 | Comprobar disponibilidad | sí | El punto verde/rojo |
 | Mostrar la latencia | sí | Milisegundos de respuesta |

@@ -125,6 +125,37 @@ export default class SshMenuPreferences extends ExtensionPreferences {
         settings.bind('enable-wol', filaWol, 'active', Gio.SettingsBindFlags.DEFAULT);
         grupoWol.add(filaWol);
 
+        const filaAprender = new Adw.SwitchRow({
+            title: _('Aprender la MAC sola'),
+            subtitle: _('Mientras un equipo responde, se apunta su MAC de la tabla ARP ' +
+                'del sistema para poder encenderlo cuando no responda. Solo vale para ' +
+                'equipos del mismo segmento de red.'),
+        });
+        settings.bind('learn-macs', filaAprender, 'active', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('enable-wol', filaAprender, 'sensitive', Gio.SettingsBindFlags.GET);
+        grupoWol.add(filaAprender);
+
+        // Cuántas hay ahora mismo. Se lee al abrir la ventana; el botón la
+        // deja a cero y actualiza el texto sin tener que reabrirla.
+        const filaOlvidar = new Adw.ActionRow({title: _('MAC aprendidas')});
+        const etiqueta = new Gtk.Label({css_classes: ['dim-label']});
+        const contar = () =>
+            (etiqueta.label = String(settings.get_strv('macs-aprendidas').length));
+        contar();
+
+        const botonOlvidar = new Gtk.Button({
+            label: _('Olvidar'),
+            valign: Gtk.Align.CENTER,
+        });
+        botonOlvidar.connect('clicked', () => {
+            settings.set_strv('macs-aprendidas', []);
+            contar();
+        });
+
+        filaOlvidar.add_suffix(etiqueta);
+        filaOlvidar.add_suffix(botonOlvidar);
+        grupoWol.add(filaOlvidar);
+
         /* -------------------------- Comandos --------------------------- */
         const grupoComandos = new Adw.PreferencesGroup({
             title: _('Comandos'),
