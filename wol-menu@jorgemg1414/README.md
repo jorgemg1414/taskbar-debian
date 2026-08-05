@@ -85,7 +85,39 @@ yours. Usually all of this is needed:
 
 ---
 
-## Finding the MAC
+## The MAC learns itself
+
+Usually there is no MAC to look up. While a machine answers, its MAC sits in the
+system's **ARP table**, because the extension already talked to it to paint the
+green dot. It gets recorded from there and kept for the day the machine shows up
+red.
+
+So it is enough to give the machine its check address and leave the MAC blank:
+the row reads "MAC pending" until the first time the machine answers while you
+are on the same network.
+
+It has the two limits the ARP table itself has:
+
+- **IPv4 only**, and only when the check address is an IP, not a name.
+- **Same network segment only**. For a machine on the far side of a router, what
+  the table holds is the router's MAC, not the machine's, so nothing is learned
+  and you have to type it in.
+
+Turn it off with **Learn MACs**. And if you'd rather type it, yours wins: a
+learned MAC is only used when the field is empty.
+
+### Importing from `~/.ssh/config`
+
+The button in the **Machines** header pulls in the machines already described in
+your SSH configuration, using their address and port as the check address.
+Machines behind a `ProxyJump` are skipped — broadcast doesn't reach them and
+they can't be probed — and so are those already on the list, so you can press it
+as often as you like.
+
+The `# MAC:` and `# Difusión:` comments of each block are read too, if you have
+them.
+
+### Working it out by hand
 
 With the machine on, from the machine itself:
 
@@ -141,7 +173,7 @@ Each machine has:
 | Field | Description |
 |---|---|
 | Name | What you see in the menu |
-| MAC | `aa:bb:cc:dd:ee:ff`, `aa-bb-...` or `aabbccddeeff`; validated as you type |
+| MAC | `aa:bb:cc:dd:ee:ff`, `aa-bb-...` or `aabbccddeeff`; validated as you type. Left blank, it learns itself |
 | Broadcast address | See above. Empty = `255.255.255.255` |
 | Port | 9 by default; 7 is also used |
 | Check address | **Its own** address, not the broadcast one: `192.168.10.50` or `192.168.10.50:3389`. Without a port, 22 is used. Empty means no checking |
@@ -153,6 +185,7 @@ And globally:
 | Check whether the machine is on | yes | Status dot when the menu opens, and waiting for the boot |
 | Probe timeout | 2 s | How long to wait for the connection, name resolution included |
 | Boot timeout | 120 s | How long to keep probing after sending the packet. 0 doesn't wait |
+| Learn MACs | yes | Records the MAC from the ARP table while the machine answers |
 | Panel icon | `network-wired-symbolic` | Any symbolic icon from the theme |
 | Show the MAC | no | The hardware address to the right of each machine |
 

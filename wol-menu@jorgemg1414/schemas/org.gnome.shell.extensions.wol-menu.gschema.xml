@@ -36,6 +36,26 @@
       </description>
     </key>
 
+    <key name="learn-macs" type="b">
+      <default>true</default>
+      <summary>Aprender las MAC de la tabla ARP</summary>
+      <description>
+        Mientras un equipo responde, su MAC está en la tabla ARP del sistema:
+        se apunta de ahí para poder encenderlo el día que esté apagado, sin
+        tener que escribirla a mano. Solo funciona con equipos de tu misma red
+        cuya dirección de comprobación sea una IPv4.
+      </description>
+    </key>
+
+    <key name="macs-aprendidas" type="as">
+      <default>[]</default>
+      <summary>MAC aprendidas</summary>
+      <description>
+        Caché interna: un JSON por equipo con la IP, su MAC y cuándo se vio por
+        última vez. Se puede borrar sin perder nada.
+      </description>
+    </key>
+
     <key name="boot-timeout" type="i">
       <default>120</default>
       <range min="0" max="600"/>

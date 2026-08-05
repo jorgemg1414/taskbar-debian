@@ -33,6 +33,17 @@ import {loadContents} from './asyncgio.js';
 // de red: para el resto, lo que hay ahí es la MAC del router, no la suya.
 const RUTA_ARP = '/proc/net/arp';
 
+// Milisegundos que se espera antes de mirar la tabla ARP. Al abrir un menú
+// responden varios equipos casi a la vez: así se lee el archivo una sola vez.
+const RETARDO_ARP_MS = 800;
+
+// Segundos que se da por buena una MAC ya aprendida sin volver a guardarla, para
+// no escribir en los ajustes cada vez que se comprueba un equipo.
+const FRESCURA_MAC_S = 3600;
+
+// Cuántas MAC aprendidas se recuerdan. Al pasarse, se olvidan las más viejas.
+const MAX_MACS = 200;
+
 // Puerto habitual del paquete mágico. El 7 (echo) también se usa.
 export const PUERTO_POR_DEFECTO = 9;
 
@@ -245,14 +256,16 @@ export function leerEquipos(settings) {
             continue;
         }
 
-        if (!crudo || typeof crudo !== 'object' || !crudo.mac)
+        // Sin MAC solo vale la pena guardar el equipo si se le puede aprender:
+        // hace falta su dirección para encontrarlo en la tabla ARP.
+        if (!crudo || typeof crudo !== 'object' || (!crudo.mac && !crudo.sonda))
             continue;
 
         equipos.push({
             // Sin nombre, la MAC es lo único que identifica al equipo, y es
             // mejor eso que una fila en blanco en el menú.
-            nombre: crudo.nombre || formatearMac(crudo.mac) || 'Equipo',
-            mac: crudo.mac,
+            nombre: crudo.nombre || formatearMac(crudo.mac) || crudo.sonda || 'Equipo',
+            mac: crudo.mac ?? '',
             destino: crudo.destino ?? '',
             puerto: Number.isFinite(crudo.puerto) ? crudo.puerto : PUERTO_POR_DEFECTO,
             // Dirección con la que se comprueba si ya está encendido. Es
@@ -342,6 +355,165 @@ export async function leerTablaArp(cancellable = null) {
         if (!e.matches?.(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
             console.warn(`[wol] No se pudo leer ${RUTA_ARP}: ${e.message}`);
         return new Map();
+    }
+}
+
+/* -------------------------------------------------------------------------
+ * MAC aprendidas de la tabla ARP
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Las MAC que se han visto en la tabla ARP, guardadas en los ajustes de la
+ * extensión que la use.
+ *
+ * Es lo que evita tener que apuntar ninguna MAC a mano: para pintar el punto
+ * verde, los menús abren un socket contra cada equipo, y esa conversación deja
+ * su MAC en la tabla ARP del núcleo. Basta con leerla de ahí mientras el equipo
+ * responde, y queda guardada para el día que aparezca en rojo.
+ *
+ * La extensión que la use tiene que declarar en su esquema las claves
+ * «learn-macs» (booleana) y «macs-aprendidas» (lista de cadenas).
+ */
+export class CacheMacs {
+    /**
+     * @param {Gio.Settings} settings ajustes de la extensión
+     * @param {string} etiqueta nombre para los avisos del registro
+     */
+    constructor(settings, etiqueta = 'wol') {
+        this._settings = settings;
+        this._etiqueta = etiqueta;
+        // IP -> {mac, visto}
+        this._macs = new Map();
+        this._idRetardo = 0;
+        this._cancellable = new Gio.Cancellable();
+        this._destruido = false;
+
+        this._cargar();
+    }
+
+    /**
+     * MAC aprendida de una IP, si se sabe.
+     *
+     * @param {string} ip dirección del equipo
+     * @returns {string} MAC canónica, o cadena vacía
+     */
+    macDe(ip) {
+        return this._macs.get(ip)?.mac ?? '';
+    }
+
+    /**
+     * Programa una lectura de la tabla ARP, agrupando las de varios equipos.
+     *
+     * @param {Function} obtenerIps devuelve las IP de los equipos que responden
+     *   ahora mismo; se llama al vencer el retardo, no al programar
+     */
+    programar(obtenerIps) {
+        if (this._destruido || this._idRetardo)
+            return;
+        if (!this._settings.get_boolean('learn-macs'))
+            return;
+
+        this._idRetardo = GLib.timeout_add(GLib.PRIORITY_LOW, RETARDO_ARP_MS, () => {
+            this._idRetardo = 0;
+            this._aprender(obtenerIps());
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
+    /**
+     * Apunta la MAC de los equipos indicados.
+     *
+     * Solo se aceptan las entradas cuya IP es exactamente la del equipo: eso es
+     * lo que garantiza que la MAC es suya y no la del router por el que se
+     * llega a él. Por lo mismo, un nombre de host no vale: hay que dar la IP.
+     *
+     * @param {string[]} ips direcciones de equipos que están respondiendo
+     */
+    _aprender(ips) {
+        const candidatas = [...new Set(ips)].filter(ip => esIPv4(ip));
+        if (candidatas.length === 0)
+            return;
+
+        leerTablaArp(this._cancellable)
+            .then(tabla => {
+                if (this._destruido || tabla.size === 0)
+                    return;
+
+                const ahora = Math.floor(Date.now() / 1000);
+                let cambios = false;
+
+                for (const ip of candidatas) {
+                    const mac = tabla.get(ip);
+                    if (!mac)
+                        continue;
+
+                    // Si ya la teníamos y es reciente, no se reescribe: esto
+                    // pasa por cada comprobación de cada equipo.
+                    const previa = this._macs.get(ip);
+                    if (previa?.mac === mac && ahora - previa.visto < FRESCURA_MAC_S)
+                        continue;
+
+                    this._macs.set(ip, {mac, visto: ahora});
+                    cambios = true;
+                }
+
+                if (cambios)
+                    this._guardar();
+            })
+            .catch(e => {
+                if (!this._destruido)
+                    console.warn(`[${this._etiqueta}] No se pudieron aprender las MAC: ${e.message}`);
+            });
+    }
+
+    /**
+     * Recupera de los ajustes las MAC aprendidas en sesiones anteriores.
+     */
+    _cargar() {
+        this._macs.clear();
+
+        for (const linea of this._settings.get_strv('macs-aprendidas')) {
+            try {
+                const {ip, mac, visto} = JSON.parse(linea);
+                if (ip && mac)
+                    this._macs.set(ip, {mac, visto: Number(visto) || 0});
+            } catch {
+                // Una entrada ilegible se descarta: es una caché, no hay nada
+                // que salvar.
+            }
+        }
+    }
+
+    /**
+     * Guarda las MAC aprendidas, quedándose con las vistas más recientemente.
+     */
+    _guardar() {
+        const entradas = [...this._macs.entries()]
+            .sort((a, b) => b[1].visto - a[1].visto)
+            .slice(0, MAX_MACS);
+
+        // El recorte también se aplica en memoria, para que ambas cosas digan
+        // lo mismo.
+        this._macs = new Map(entradas);
+
+        this._settings.set_strv('macs-aprendidas', entradas.map(
+            ([ip, {mac, visto}]) => JSON.stringify({ip, mac, visto})));
+    }
+
+    /**
+     * Suelta el temporizador y la lectura en vuelo. Se llama desde disable().
+     */
+    destruir() {
+        this._destruido = true;
+
+        if (this._idRetardo) {
+            GLib.source_remove(this._idRetardo);
+            this._idRetardo = 0;
+        }
+
+        this._cancellable.cancel();
+        this._macs.clear();
+        this._settings = null;
     }
 }
 

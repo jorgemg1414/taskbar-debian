@@ -23,7 +23,7 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
-import {despertar, leerEquipos, formatearMac, parsearSonda} from './wol.js';
+import {despertar, leerEquipos, formatearMac, parsearSonda, CacheMacs} from './wol.js';
 import {ComprobadorPuertos, ESTADO, esperarArranque} from './checker.js';
 
 // Segundos entre sondeo y sondeo mientras se espera a que un equipo arranque.
@@ -42,7 +42,7 @@ class ItemEquipo extends PopupMenu.PopupBaseMenuItem {
      * @param {boolean} opciones.mostrarMac si se muestra la dirección física
      * @param {boolean} opciones.comprobable si el equipo tiene sonda y se comprueba
      */
-    _init(equipo, {mostrarMac, comprobable}) {
+    _init(equipo, {mostrarMac, comprobable, mac}) {
         super._init();
 
         this.equipo = equipo;
@@ -73,8 +73,10 @@ class ItemEquipo extends PopupMenu.PopupBaseMenuItem {
         this.label_actor = this._etiqueta;
 
         if (mostrarMac) {
+            // Puede venir de los ajustes o haberse aprendido de la tabla ARP:
+            // desde aquí es lo mismo, la que se va a usar.
             this.add_child(new St.Label({
-                text: formatearMac(equipo.mac) ?? equipo.mac,
+                text: formatearMac(mac) ?? _('sin MAC'),
                 style_class: 'wol-mac',
                 y_align: Clutter.ActorAlign.CENTER,
             }));
@@ -135,9 +137,17 @@ class IndicadorWol extends PanelMenu.Button {
         });
         this.add_child(this._icono);
 
+        this._macs = new CacheMacs(this._settings, 'wol-menu');
+
         this._comprobador = new ComprobadorPuertos({
             timeout: this._settings.get_int('check-timeout'),
-            alCambiar: (id, estado) => this._items.get(id)?.fijarEstado(estado),
+            alCambiar: (id, estado) => {
+                this._items.get(id)?.fijarEstado(estado);
+                // Un equipo que acaba de responder tiene su MAC recién puesta
+                // en la tabla ARP: es el momento de apuntarla.
+                if (estado === ESTADO.ARRIBA)
+                    this._macs.programar(() => this._ipsQueResponden());
+            },
         });
 
         // El estado se consulta al abrir el menú y se abandona al cerrarlo: con
@@ -205,6 +215,33 @@ class IndicadorWol extends PanelMenu.Button {
         this._comprobador.comprobarTodas(this._sondeables());
     }
 
+    /**
+     * Direcciones de los equipos que están respondiendo ahora mismo, que son
+     * los únicos de los que se puede aprender la MAC.
+     *
+     * @returns {string[]} direcciones sondeadas con éxito
+     */
+    _ipsQueResponden() {
+        return this._sondeables()
+            .filter(s => this._comprobador.estadoDe(s.id) === ESTADO.ARRIBA)
+            .map(s => s.host);
+    }
+
+    /**
+     * MAC con la que se enciende un equipo: la que hayas escrito, y si no, la
+     * que se haya aprendido de la tabla ARP mientras respondía.
+     *
+     * @param {object} equipo equipo del menú
+     * @returns {string} MAC, o cadena vacía si todavía no se sabe ninguna
+     */
+    _macDe(equipo) {
+        if (equipo.mac)
+            return equipo.mac;
+
+        const sonda = parsearSonda(equipo.sonda);
+        return sonda ? this._macs.macDe(sonda.host) : '';
+    }
+
     /* ----------------------------- Menú ----------------------------- */
 
     /**
@@ -233,7 +270,11 @@ class IndicadorWol extends PanelMenu.Button {
 
         for (const equipo of this._equipos) {
             const comprobable = this._sondaDe(equipo) !== null;
-            const item = new ItemEquipo(equipo, {mostrarMac, comprobable});
+            const item = new ItemEquipo(equipo, {
+                mostrarMac,
+                comprobable,
+                mac: this._macDe(equipo),
+            });
 
             if (comprobable) {
                 item.fijarEstado(this._esperando.has(equipo.id)
@@ -276,7 +317,15 @@ class IndicadorWol extends PanelMenu.Button {
      * @param {object} equipo equipo a despertar
      */
     _despertar(equipo) {
-        despertar(equipo, this._cancellable)
+        const mac = this._macDe(equipo);
+        if (!mac) {
+            // Pasa con un equipo importado que todavía no se ha visto encendido.
+            Main.notifyError('Wake on LAN',
+                `${_('Todavía no se sabe la MAC de')} «${equipo.nombre}». ${_('Se aprende sola la próxima vez que responda; o escríbela en las preferencias.')}`);
+            return;
+        }
+
+        despertar({...equipo, mac}, this._cancellable)
             .then(error => {
                 if (this._destruido)
                     return;
@@ -356,17 +405,31 @@ class IndicadorWol extends PanelMenu.Button {
      * Manda el paquete a todos los equipos y resume el resultado.
      */
     _despertarTodos() {
-        const equipos = this._equipos;
+        // Los que todavía no tienen MAC no se pueden despertar, pero tampoco
+        // deben hacer fracasar al resto: se cuentan aparte.
+        const total = this._equipos.length;
+        const despertables = this._equipos
+            .map(e => ({equipo: e, mac: this._macDe(e)}))
+            .filter(({mac}) => mac !== '');
+        const equipos = despertables.map(({equipo}) => equipo);
+        const sinMac = total - equipos.length;
 
-        Promise.all(equipos.map(e => despertar(e, this._cancellable)))
+        if (equipos.length === 0) {
+            Main.notifyError('Wake on LAN',
+                _('Ningún equipo tiene MAC conocida todavía'));
+            return;
+        }
+
+        Promise.all(despertables.map(
+            ({equipo, mac}) => despertar({...equipo, mac}, this._cancellable)))
             .then(errores => {
                 if (this._destruido)
                     return;
 
-                const fallidos = errores.filter(e => e !== null).length;
+                const fallidos = errores.filter(e => e !== null).length + sinMac;
                 if (fallidos > 0) {
                     Main.notifyError('Wake on LAN',
-                        `${fallidos} ${_('de')} ${equipos.length} ${_('fallaron')}`);
+                        `${fallidos} ${_('de')} ${total} ${_('fallaron')}`);
                     return;
                 }
 
@@ -418,6 +481,8 @@ class IndicadorWol extends PanelMenu.Button {
 
         this._comprobador.destruir();
         this._comprobador = null;
+        this._macs.destruir();
+        this._macs = null;
 
         if (this._idAbrir) {
             this.menu.disconnect(this._idAbrir);

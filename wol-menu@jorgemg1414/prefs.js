@@ -15,6 +15,10 @@ import {
     leerEquipos, guardarEquipos, formatearMac, parsearSonda,
     PUERTO_POR_DEFECTO, PUERTO_SONDA,
 } from './wol.js';
+import {escanearHosts} from './hosts.js';
+
+// De dónde se importan los equipos. Es el archivo que lee el propio ssh.
+const CONFIG_SSH = '~/.ssh/config';
 
 export default class WolMenuPreferences extends ExtensionPreferences {
     /**
@@ -46,7 +50,18 @@ export default class WolMenuPreferences extends ExtensionPreferences {
             tooltip_text: _('Añadir equipo'),
             css_classes: ['flat'],
         });
-        grupoEquipos.set_header_suffix(botonAnadir);
+
+        const botonImportar = new Gtk.Button({
+            icon_name: 'document-open-symbolic',
+            valign: Gtk.Align.CENTER,
+            tooltip_text: _('Importar los equipos de ~/.ssh/config'),
+            css_classes: ['flat'],
+        });
+
+        const cabecera = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL, spacing: 6});
+        cabecera.append(botonImportar);
+        cabecera.append(botonAnadir);
+        grupoEquipos.set_header_suffix(cabecera);
 
         // Se guarda la lista en memoria y se vuelca a GSettings en cada cambio.
         let equipos = leerEquipos(settings);
@@ -83,6 +98,26 @@ export default class WolMenuPreferences extends ExtensionPreferences {
             });
             guardar();
             repintar();
+        });
+
+        botonImportar.connect('clicked', () => {
+            this._importarDeSsh(equipos)
+                .then(anadidos => {
+                    if (anadidos > 0) {
+                        guardar();
+                        repintar();
+                    }
+                    window.add_toast(new Adw.Toast({
+                        title: anadidos > 0
+                            ? `${anadidos} ${_('equipos importados de ~/.ssh/config')}`
+                            : _('Nada nuevo que importar de ~/.ssh/config'),
+                    }));
+                })
+                .catch(e => {
+                    window.add_toast(new Adw.Toast({
+                        title: `${_('No se pudo leer ~/.ssh/config')}: ${e.message}`,
+                    }));
+                });
         });
 
         repintar();
@@ -123,6 +158,14 @@ export default class WolMenuPreferences extends ExtensionPreferences {
         settings.bind('boot-timeout', filaArranque, 'value', Gio.SettingsBindFlags.DEFAULT);
         grupoComprobar.add(filaArranque);
 
+        const filaAprender = new Adw.SwitchRow({
+            title: _('Aprender las MAC'),
+            subtitle: _('Mientras el equipo responde, su MAC está en la tabla ARP del ' +
+                'sistema: se apunta de ahí y no hace falta escribirla.'),
+        });
+        settings.bind('learn-macs', filaAprender, 'active', Gio.SettingsBindFlags.DEFAULT);
+        grupoComprobar.add(filaAprender);
+
         /* -------------------------- Apariencia ------------------------- */
         const grupoAspecto = new Adw.PreferencesGroup({title: _('Apariencia')});
         pagina.add(grupoAspecto);
@@ -140,6 +183,58 @@ export default class WolMenuPreferences extends ExtensionPreferences {
     }
 
     /**
+     * Añade a la lista los equipos de ~/.ssh/config que todavía no estén.
+     *
+     * Es la forma rápida de llenar el menú: los equipos ya están descritos ahí,
+     * con su dirección y su puerto, y la MAC no hace falta escribirla —se
+     * aprende sola de la tabla ARP la primera vez que el equipo responda—.
+     *
+     * @param {object[]} equipos lista actual, que se amplía en el sitio
+     * @returns {Promise<number>} cuántos equipos se han añadido
+     */
+    async _importarDeSsh(equipos) {
+        const {hosts} = await escanearHosts(CONFIG_SSH, null);
+
+        const normalizar = t => (t ?? '').trim().toLowerCase();
+
+        // Lo que ya está en la lista, por nombre y por dirección, para no
+        // duplicar equipos al importar dos veces.
+        const conocidos = new Set();
+        for (const equipo of equipos) {
+            conocidos.add(normalizar(equipo.nombre));
+            const sonda = parsearSonda(equipo.sonda);
+            if (sonda)
+                conocidos.add(normalizar(sonda.host));
+        }
+
+        let anadidos = 0;
+        for (const host of hosts) {
+            // Un equipo detrás de un salto no acepta conexión directa: ni se le
+            // puede sondear, ni le llegaría un paquete de difusión.
+            if (host.salto || host.host === '')
+                continue;
+            if (conocidos.has(normalizar(host.nombre)) || conocidos.has(normalizar(host.host)))
+                continue;
+
+            equipos.push({
+                nombre: host.nombre,
+                // Del comentario «# MAC:» de su bloque, si lo lleva.
+                mac: formatearMac(host.mac) ?? '',
+                // Del comentario «# Difusión:», si lo lleva.
+                destino: host.difusion ?? '',
+                puerto: PUERTO_POR_DEFECTO,
+                sonda: host.port === PUERTO_SONDA ? host.host : `${host.host}:${host.port}`,
+            });
+
+            conocidos.add(normalizar(host.nombre));
+            conocidos.add(normalizar(host.host));
+            anadidos++;
+        }
+
+        return anadidos;
+    }
+
+    /**
      * Construye la fila desplegable de un equipo.
      *
      * @param {object} equipo equipo a editar (se modifica en el sitio)
@@ -149,14 +244,26 @@ export default class WolMenuPreferences extends ExtensionPreferences {
      * @returns {Adw.ExpanderRow} fila lista para añadir al grupo
      */
     _filaEquipo(equipo, {alCambiar, alBorrar}) {
+        // Una MAC vacía no es un error si el equipo tiene con qué encontrarse:
+        // se aprenderá de la tabla ARP la primera vez que responda.
+        const subtitulo = () => {
+            if (formatearMac(equipo.mac))
+                return formatearMac(equipo.mac);
+            if ((equipo.mac ?? '') !== '')
+                return _('MAC no válida');
+            return parsearSonda(equipo.sonda)
+                ? _('MAC pendiente de aprender')
+                : _('sin MAC');
+        };
+
         const fila = new Adw.ExpanderRow({
             title: equipo.nombre || _('Equipo'),
-            subtitle: formatearMac(equipo.mac) ?? _('sin MAC'),
+            subtitle: subtitulo(),
         });
 
         const refrescarCabecera = () => {
             fila.title = equipo.nombre || _('Equipo');
-            fila.subtitle = formatearMac(equipo.mac) ?? _('MAC no válida');
+            fila.subtitle = subtitulo();
         };
 
         const filaNombre = new Adw.EntryRow({title: _('Nombre'), text: equipo.nombre ?? ''});
@@ -171,7 +278,8 @@ export default class WolMenuPreferences extends ExtensionPreferences {
         filaMac.connect('changed', () => {
             equipo.mac = filaMac.get_text();
             // Se avisa en el sitio si la MAC no cuadra, sin bloquear la edición.
-            if (formatearMac(equipo.mac))
+            // Vacía no es un error: la aprende sola de la tabla ARP.
+            if (formatearMac(equipo.mac) || equipo.mac === '')
                 filaMac.remove_css_class('error');
             else
                 filaMac.add_css_class('error');

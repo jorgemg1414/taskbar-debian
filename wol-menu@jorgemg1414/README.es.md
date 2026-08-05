@@ -86,7 +86,40 @@ tuyo. Suele hacer falta lo siguiente:
 
 ---
 
-## Averiguar la MAC
+## La MAC se aprende sola
+
+Normalmente no hay que averiguar ninguna MAC. Mientras un equipo responde, su
+MAC está en la **tabla ARP** del sistema, porque para pintar el punto verde la
+extensión ya ha hablado con él. Se apunta de ahí y queda guardada para el día
+que aparezca en rojo.
+
+Basta entonces con darle la dirección para comprobarlo y dejar la MAC en blanco:
+la fila dirá «MAC pendiente de aprender» hasta la primera vez que el equipo
+responda estando tú en la misma red.
+
+Tiene dos límites, los de la propia tabla ARP:
+
+- Solo vale para **IPv4**, y solo si la dirección de comprobación es una IP, no
+  un nombre.
+- Solo vale para equipos de **tu mismo segmento de red**. Para uno que esté al
+  otro lado de un router, lo que hay en la tabla es la MAC del router, no la
+  suya, así que no se aprende nada y hay que escribirla.
+
+Se desactiva con **Aprender las MAC**. Y si prefieres escribirla, la tuya manda:
+lo aprendido solo se usa cuando el campo está vacío.
+
+### Importar de `~/.ssh/config`
+
+El botón de la cabecera de **Equipos** trae los equipos que ya tienes descritos
+en tu configuración de SSH, con su dirección y su puerto puestos como dirección
+de comprobación. Se saltan los que van por un `ProxyJump` —a esos ni les llega
+la difusión ni se les puede sondear— y los que ya estén en la lista, así que se
+puede pulsar las veces que haga falta.
+
+De cada bloque también se leen, si los llevas, los comentarios `# MAC:` y
+`# Difusión:`.
+
+### Averiguarla a mano
 
 Con el equipo encendido, desde él mismo:
 
@@ -143,7 +176,7 @@ Cada equipo tiene:
 | Campo | Descripción |
 |---|---|
 | Nombre | Lo que ves en el menú |
-| MAC | `aa:bb:cc:dd:ee:ff`, `aa-bb-...` o `aabbccddeeff`; se valida al escribir |
+| MAC | `aa:bb:cc:dd:ee:ff`, `aa-bb-...` o `aabbccddeeff`; se valida al escribir. En blanco se aprende sola |
 | Dirección de difusión | Ver arriba. Vacío = `255.255.255.255` |
 | Puerto | 9 por omisión; el 7 también se usa |
 | Dirección para comprobarlo | La **suya**, no la de difusión: `192.168.10.50` o `192.168.10.50:3389`. Sin puerto se usa el 22. Vacío, no se comprueba |
@@ -155,6 +188,7 @@ Y a nivel general:
 | Comprobar si el equipo está encendido | sí | Punto de estado al abrir el menú y espera al arranque |
 | Espera de cada sondeo | 2 s | Lo que se espera a que acepte la conexión, resolución del nombre incluida |
 | Espera al arranque | 120 s | Cuánto se sigue sondeando tras mandar el paquete. 0 no espera |
+| Aprender las MAC | sí | Apunta la MAC de la tabla ARP mientras el equipo responde |
 | Icono del panel | `network-wired-symbolic` | Cualquier icono simbólico del tema |
 | Mostrar la MAC | no | La dirección física a la derecha de cada equipo |
 
