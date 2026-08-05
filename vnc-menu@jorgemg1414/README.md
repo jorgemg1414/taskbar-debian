@@ -341,8 +341,8 @@ timeout 2 bash -c 'cat < /dev/null > /dev/tcp/server.example.net/5904' && echo O
 |---|---|
 | `extension.js` | Panel indicator, menu, client launching, teardown in `disable()` |
 | `connections.js` | Async folder scanning and connection file parsing |
-| `checker.js` | Port checks with `Gio.SocketClient`, with cancellation |
-| `asyncgio.js` | `Promise` wrappers around Gio's async calls |
+| `checker.js` | Port checks with `Gio.SocketClient`, with cancellation — from [`comun/`](../comun/) |
+| `asyncgio.js` | `Promise` wrappers around Gio's async calls — from [`comun/`](../comun/) |
 | `prefs.js` | Preferences window (libadwaita) |
 | `schemas/` | GSettings schema |
 | `stylesheet.css` | Styles for the status dots and notices |

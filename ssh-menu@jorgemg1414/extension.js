@@ -28,7 +28,7 @@ import {
 import {ComprobadorPuertos, ESTADO} from './checker.js';
 import {listarMontajesSftp, idsMontados, uriDeMontaje, desmontar} from './montajes.js';
 import {
-    ajustesWol, leerEquiposWol, datosWolDe, despertar, leerTablaArp, esIPv4,
+    ajustesWol, leerEquipos, datosWolDe, despertar, leerTablaArp, esIPv4,
 } from './wol.js';
 
 // Milisegundos que se espera tras un cambio en la configuración antes de
@@ -1358,7 +1358,7 @@ class IndicadorSsh extends PanelMenu.Button {
 
         return datosWolDe(
             host,
-            leerEquiposWol(this._settingsWol),
+            leerEquipos(this._settingsWol),
             this._macs.get(host.host)?.mac ?? '');
     }
 

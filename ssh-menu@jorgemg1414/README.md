@@ -350,13 +350,14 @@ gio mount --list
 ```
 ssh-menu@jorgemg1414/
 ├── extension.js       Indicator, menu, launching and cleanup in disable()
-├── hosts.js           Reads and parses ~/.ssh/config, Include directives and all
-├── checker.js         Port checks, asynchronous and cancellable
 ├── montajes.js        Mounted SFTP folders (Gio.VolumeMonitor)
-├── wol.js             Magic packet and machine MACs, for powering them on
-├── asyncgio.js        Promise wrappers around the Gio calls
 ├── prefs.js           Preferences window (libadwaita)
 ├── stylesheet.css     Menu styles
 ├── schemas/           GSettings schema
 └── install.sh         Installer
 ```
+
+Plus the shared modules `install.sh` copies from [`comun/`](../comun/):
+`hosts.js` (reads `~/.ssh/config`), `checker.js` (port checks), `wol.js` (magic
+packet and machine MACs) and `asyncgio.js` (`Promise` wrappers around the Gio
+calls).

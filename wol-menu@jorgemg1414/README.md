@@ -180,9 +180,12 @@ journalctl -f -o cat /usr/bin/gnome-shell
 ```
 wol-menu@jorgemg1414/
 ├── extension.js       Indicator, menu and teardown in disable()
-├── wol.js             Magic packet, UDP sending and the machine list
 ├── prefs.js           Preferences window (libadwaita)
 ├── stylesheet.css     Menu styles
 ├── schemas/           GSettings schema
 └── install.sh         Installer
 ```
+
+Plus the shared modules `install.sh` copies from [`comun/`](../comun/):
+`wol.js` (magic packet, UDP sending and the machine list) and `asyncgio.js`
+(`Promise` wrappers around the Gio calls).

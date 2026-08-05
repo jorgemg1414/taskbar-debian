@@ -19,6 +19,7 @@ The code is written against the modern extension API (ESM, GNOME 45+):
 | [`ssh-menu@jorgemg1414/`](ssh-menu@jorgemg1414/) | **SSH Menu** — the machines in your `~/.ssh/config`: terminal session or SFTP, from the same row |
 | [`wol-menu@jorgemg1414/`](wol-menu@jorgemg1414/) | **Wake on LAN** — power machines on remotely from the top bar |
 | [`herramientas/`](herramientas/) | Helper scripts: turn `.vnc` files into Remmina profiles and store their password in the GNOME keyring |
+| [`comun/`](comun/) | Modules shared by several extensions. The original lives here; each `install.sh` copies the ones it needs |
 
 ---
 
@@ -227,13 +228,16 @@ If it says it doesn't exist after installing, the session still needs a restart.
 ```
 taskbar-debian/
 ├── herramientas/          Helper scripts (see above)
+├── comun/                 Shared modules (see its own README)
+│   ├── asyncgio.js        Promise wrappers around Gio's async calls
+│   ├── checker.js         Port checks, asynchronous and cancellable
+│   ├── hosts.js           Reads and parses ~/.ssh/config
+│   └── wol.js             Magic packet, machine list, MACs learned from ARP
 ├── ssh-menu@jorgemg1414/  SSH Menu (see its own README)
 ├── wol-menu@jorgemg1414/  Wake on LAN (see its own README)
 └── vnc-menu@jorgemg1414/
     ├── extension.js       Indicator, menu, client launching, teardown in disable()
     ├── connections.js     Async folder scanning and connection file parsing
-    ├── checker.js         Port checks, asynchronous and cancellable
-    ├── asyncgio.js        Promise wrappers around Gio's async calls
     ├── ventanas.js        Finds the windows of open VNC sessions
     ├── prefs.js           Preferences window (libadwaita)
     ├── stylesheet.css     Menu styles
@@ -244,4 +248,7 @@ taskbar-debian/
 ```
 
 Any extension added later follows the same pattern: a folder named after its
-UUID, with its own `install.sh` and README.
+UUID, with its own `install.sh` and README. Anything used by more than one
+extension moves up into `comun/`, and each `install.sh` copies it from there at
+install time: one file per thing in the repository, and what gets installed is
+still self-contained.

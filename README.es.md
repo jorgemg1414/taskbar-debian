@@ -20,6 +20,7 @@ extensiones (ESM, GNOME 45+): `import ... from 'gi://…'`, clase que extiende
 | [`ssh-menu@jorgemg1414/`](ssh-menu@jorgemg1414/) | **SSH Menu** — los equipos de tu `~/.ssh/config`: sesión en terminal o SFTP, desde la misma fila |
 | [`wol-menu@jorgemg1414/`](wol-menu@jorgemg1414/) | **Wake on LAN** — encender equipos a distancia desde la barra superior |
 | [`herramientas/`](herramientas/) | Scripts para convertir archivos `.vnc` en perfiles de Remmina y guardar su contraseña en el llavero de GNOME |
+| [`comun/`](comun/) | Los módulos que comparten varias extensiones. El original está aquí; cada `install.sh` copia los que necesita |
 
 ---
 
@@ -233,13 +234,16 @@ Si dice «no existe» después de instalarla, es que falta reiniciar la sesión.
 ```
 taskbar-debian/
 ├── herramientas/          Scripts auxiliares (ver arriba)
+├── comun/                 Módulos compartidos (ver su propio README)
+│   ├── asyncgio.js        Envoltorios de Promise sobre las llamadas de Gio
+│   ├── checker.js         Comprobación de puertos, asíncrona y cancelable
+│   ├── hosts.js           Lectura y parseo de ~/.ssh/config
+│   └── wol.js             Paquete mágico, equipos y MAC aprendidas del ARP
 ├── ssh-menu@jorgemg1414/  SSH Menu (ver su propio README)
 ├── wol-menu@jorgemg1414/  Wake on LAN (ver su propio README)
 └── vnc-menu@jorgemg1414/
     ├── extension.js       Indicador, menú, lanzamiento y limpieza en disable()
     ├── connections.js     Escaneo asíncrono de la carpeta y parser de conexiones
-    ├── checker.js         Comprobación de puertos, asíncrona y cancelable
-    ├── asyncgio.js        Envoltorios de Promise sobre las llamadas de Gio
     ├── ventanas.js        Localiza las ventanas de sesiones VNC abiertas
     ├── prefs.js           Ventana de preferencias (libadwaita)
     ├── stylesheet.css     Estilos del menú
@@ -250,4 +254,7 @@ taskbar-debian/
 ```
 
 Cada extensión que se añada al repositorio sigue el mismo patrón: una carpeta
-con el UUID como nombre, su `install.sh` y su README.
+con el UUID como nombre, su `install.sh` y su README. Lo que use más de una
+extensión se sube a `comun/`, y su `install.sh` lo copia de ahí al instalar: en
+el repositorio hay un solo archivo de cada cosa, y lo instalado sigue siendo
+autocontenido.

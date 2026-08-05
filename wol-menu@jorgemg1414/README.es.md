@@ -181,9 +181,12 @@ journalctl -f -o cat /usr/bin/gnome-shell
 ```
 wol-menu@jorgemg1414/
 ├── extension.js       Indicador, menú y limpieza en disable()
-├── wol.js             Paquete mágico, envío por UDP y lista de equipos
 ├── prefs.js           Ventana de preferencias (libadwaita)
 ├── stylesheet.css     Estilos del menú
 ├── schemas/           Esquema de GSettings
 └── install.sh         Instalador
 ```
+
+Más los módulos compartidos que `install.sh` copia de [`comun/`](../comun/):
+`wol.js` (paquete mágico, envío por UDP y lista de equipos) y `asyncgio.js`
+(envoltorios de `Promise` sobre las llamadas de Gio).

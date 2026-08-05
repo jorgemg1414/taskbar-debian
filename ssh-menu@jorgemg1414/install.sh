@@ -44,10 +44,24 @@ if ! dpkg -s gvfs-backends >/dev/null 2>&1; then
 fi
 
 # ---------------------------- Copia -------------------------------
+# Los módulos compartidos con las demás extensiones viven en «comun/», en la
+# raíz del repositorio. Se copian junto a los propios para que lo instalado sea
+# autocontenido, que es como GNOME carga las extensiones.
+COMUN="$(cd "${ORIGEN}/.." && pwd)/comun"
+if [[ ! -d "$COMUN" ]]; then
+    error "Falta la carpeta «comun/» del repositorio: ${COMUN}"
+    error "Clona el repositorio entero, no solo la carpeta de la extensión."
+    exit 1
+fi
+
 mkdir -p "$DESTINO/schemas"
 
-for archivo in metadata.json extension.js prefs.js hosts.js checker.js asyncgio.js montajes.js wol.js stylesheet.css; do
+for archivo in metadata.json extension.js prefs.js montajes.js stylesheet.css; do
     install -m 644 "${ORIGEN}/${archivo}" "${DESTINO}/${archivo}"
+done
+
+for archivo in asyncgio.js checker.js hosts.js wol.js; do
+    install -m 644 "${COMUN}/${archivo}" "${DESTINO}/${archivo}"
 done
 
 install -m 644 "${ORIGEN}/schemas/org.gnome.shell.extensions.ssh-menu.gschema.xml" \

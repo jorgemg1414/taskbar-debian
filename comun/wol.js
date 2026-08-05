@@ -1,13 +1,17 @@
 /*
- * wol.js — Encender un equipo caído sin salir del menú.
+ * wol.js — Wake-on-LAN: paquete mágico, lista de equipos y MAC aprendidas.
+ *
+ * Módulo compartido: lo usan la extensión «Wake on LAN», que es la dueña de la
+ * lista de equipos, y los menús de SSH y de VNC, que ofrecen encender el equipo
+ * que no responde sin salir de su propio menú.
  *
  * El paquete mágico son 102 bytes: seis 0xFF seguidos de la MAC repetida
  * dieciséis veces, mandados por UDP a la dirección de difusión de la red donde
- * vive el equipo. Es el mismo que manda la extensión «Wake on LAN» de este
- * repositorio, y está repetido a propósito: así el menú SSH funciona aunque no
- * la tengas instalada, igual que checker.js está repetido en el menú de VNC.
+ * vive el equipo. La tarjeta lo reconoce con el ordenador apagado —sigue
+ * alimentada— y lo enciende.
  *
- * La MAC sale de uno de estos tres sitios, en este orden:
+ * Cuando quien pregunta es un menú que no lleva MAC escrita (SSH, VNC), sale de
+ * uno de estos tres sitios, en este orden:
  *
  *   1. Un comentario «# MAC: aa:bb:cc:dd:ee:ff» en el bloque del ~/.ssh/config.
  *   2. Los equipos que ya tengas dados de alta en la extensión Wake on LAN,
@@ -174,7 +178,7 @@ export function ajustesWol(rutaPropia) {
             return null;
         return new Gio.Settings({settings_schema: esquema});
     } catch (e) {
-        console.warn(`[ssh-menu] No se pudieron leer los equipos de Wake on LAN: ${e.message}`);
+        console.warn(`[wol] No se pudieron leer los equipos de Wake on LAN: ${e.message}`);
         return null;
     }
 }
@@ -183,10 +187,13 @@ export function ajustesWol(rutaPropia) {
  * Lee la lista de equipos de los ajustes de Wake on LAN. Cada entrada es un
  * JSON, tal como los guarda esa extensión.
  *
+ * Admite un settings nulo —la extensión puede no estar instalada— y devuelve
+ * entonces una lista vacía.
+ *
  * @param {Gio.Settings|null} settings ajustes de Wake on LAN
  * @returns {object[]} equipos con nombre, mac, destino y puerto
  */
-export function leerEquiposWol(settings) {
+export function leerEquipos(settings) {
     if (!settings)
         return [];
 
@@ -196,6 +203,7 @@ export function leerEquiposWol(settings) {
         try {
             crudo = JSON.parse(linea);
         } catch {
+            console.warn(`[wol] Entrada ilegible en los ajustes: ${linea}`);
             continue;
         }
 
@@ -203,7 +211,9 @@ export function leerEquiposWol(settings) {
             continue;
 
         equipos.push({
-            nombre: crudo.nombre ?? '',
+            // Sin nombre, la MAC es lo único que identifica al equipo, y es
+            // mejor eso que una fila en blanco en el menú.
+            nombre: crudo.nombre || formatearMac(crudo.mac) || 'Equipo',
             mac: crudo.mac,
             destino: crudo.destino ?? '',
             puerto: Number.isFinite(crudo.puerto) ? crudo.puerto : PUERTO_POR_DEFECTO,
@@ -211,6 +221,21 @@ export function leerEquiposWol(settings) {
     }
 
     return equipos;
+}
+
+/**
+ * Guarda la lista de equipos en los ajustes de Wake on LAN.
+ *
+ * @param {Gio.Settings} settings ajustes de Wake on LAN
+ * @param {object[]} equipos equipos a guardar
+ */
+export function guardarEquipos(settings, equipos) {
+    settings.set_strv('equipos', equipos.map(e => JSON.stringify({
+        nombre: e.nombre ?? '',
+        mac: e.mac ?? '',
+        destino: e.destino ?? '',
+        puerto: Number.isFinite(e.puerto) ? e.puerto : PUERTO_POR_DEFECTO,
+    })));
 }
 
 /**
@@ -272,7 +297,7 @@ export async function leerTablaArp(cancellable = null) {
         return parsearTablaArp(new TextDecoder('utf-8', {fatal: false}).decode(bytes));
     } catch (e) {
         if (!e.matches?.(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-            console.warn(`[ssh-menu] No se pudo leer ${RUTA_ARP}: ${e.message}`);
+            console.warn(`[wol] No se pudo leer ${RUTA_ARP}: ${e.message}`);
         return new Map();
     }
 }

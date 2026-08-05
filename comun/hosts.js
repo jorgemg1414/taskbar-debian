@@ -172,7 +172,7 @@ async function listarArchivos(ruta, cancellable) {
             cancellable);
     } catch (e) {
         if (!e.matches?.(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-            console.warn(`[ssh-menu] No se pudo leer ${ruta}: ${e.message}`);
+            console.warn(`[hosts] No se pudo leer ${ruta}: ${e.message}`);
         return nombres;
     }
 
@@ -182,7 +182,7 @@ async function listarArchivos(ruta, cancellable) {
             lote = await nextFiles(enumerador, 50, cancellable);
         } catch (e) {
             if (!e.matches?.(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                console.warn(`[ssh-menu] Error enumerando ${ruta}: ${e.message}`);
+                console.warn(`[hosts] Error enumerando ${ruta}: ${e.message}`);
             break;
         }
 
@@ -305,7 +305,7 @@ async function leerConfig(ruta, grupoBase, profundidad, cancellable, acc) {
         texto = new TextDecoder('utf-8', {fatal: false}).decode(bytes);
     } catch (e) {
         if (!e.matches?.(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-            console.warn(`[ssh-menu] No se pudo leer ${canonica}: ${e.message}`);
+            console.warn(`[hosts] No se pudo leer ${canonica}: ${e.message}`);
         return;
     }
 
