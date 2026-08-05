@@ -176,6 +176,9 @@ icacls.exe \$archivo /inheritance:r /grant (\"*{0}:F\" -f \$sid) /grant '*S-1-5-
 
     cat <<FIN
 \$ErrorActionPreference = 'Stop'
+# Sin esto, PowerShell escupe sus barras de progreso como un mamotreto en
+# CLIXML por la salida de error, y acaba en medio de la del script.
+\$ProgressPreference = 'SilentlyContinue'
 \$clave = '$TEXTO_CLAVE'
 $destino_archivo
 \$carpeta = Split-Path -Parent \$archivo
@@ -321,11 +324,18 @@ autorizar() {
     ssh -O exit -o ControlPath="$ctl" "$destino" 2>/dev/null || true
     rm -rf "$dir_control"
 
-    if ssh -o ControlPath=none -o BatchMode=yes -o PreferredAuthentications=publickey \
-           -o ConnectTimeout=10 "$destino" true 2>/dev/null; then
-        verde "  ✔ Entra con la clave, sin contraseña."
-        return 0
-    fi
+    # Se reintenta un par de veces: en Windows, entre que se escribe el archivo
+    # y se le arreglan los permisos con icacls, el primer intento puede llegar
+    # demasiado pronto y dar un «no» que dos segundos después es un «sí».
+    local intento
+    for intento in 1 2 3; do
+        if ssh -o ControlPath=none -o BatchMode=yes -o PreferredAuthentications=publickey \
+               -o ConnectTimeout=10 "$destino" true 2>/dev/null; then
+            verde "  ✔ Entra con la clave, sin contraseña."
+            return 0
+        fi
+        [[ $intento -lt 3 ]] && sleep 2
+    done
 
     aviso "  La clave está puesta, pero entrar con ella todavía falla."
     echo  "  Para ver por qué:"

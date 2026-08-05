@@ -81,6 +81,9 @@ function scriptPosix(conActualizaciones) {
 function scriptWindows(conActualizaciones) {
     const partes = [
         '$ErrorActionPreference = "SilentlyContinue"',
+        // Sin esto, PowerShell escribe sus barras de progreso en la salida de
+        // error como un mamotreto en CLIXML («Preparando módulos…»).
+        '$ProgressPreference = "SilentlyContinue"',
         '$so = Get-CimInstance Win32_OperatingSystem',
         '"so=windows"',
         '"nombre=" + $env:COMPUTERNAME',
@@ -94,13 +97,19 @@ function scriptWindows(conActualizaciones) {
     ];
 
     // Las actualizaciones pendientes salen del agente de Windows Update, que
-    // en un equipo con directivas puede tardar; por eso es opcional.
+    // en un equipo con directivas puede tardar o negarse. Va dentro de un
+    // try/catch porque es lo accesorio: que falle no puede tirar el resto.
     if (conActualizaciones) {
         partes.push(
-            '$b = (New-Object -ComObject Microsoft.Update.Session).CreateUpdateSearcher().' +
-            'Search("IsInstalled=0 and IsHidden=0").Updates.Count',
-            'if ($b -ne $null) { "actualizaciones=" + $b }');
+            'try { $b = (New-Object -ComObject Microsoft.Update.Session).CreateUpdateSearcher().' +
+            'Search("IsInstalled=0 and IsHidden=0").Updates.Count; ' +
+            'if ($b -ne $null) { "actualizaciones=" + $b } } catch { }');
     }
+
+    // El código de salida de PowerShell no dice nada útil aquí: lo pone la
+    // última orden que se ejecutó, así que un dato que no se pudo leer haría
+    // parecer que falló la consulta entera. Lo que vale es lo que contestó.
+    partes.push('exit 0');
 
     return partes.join('; ');
 }
@@ -517,13 +526,21 @@ export class MonitorVitales {
             ? scriptWindows(this._actualizaciones)
             : scriptPosix(this._actualizaciones);
 
-        const salida = await this.ejecutar(host, ordenDe(sistema, script), cancellable);
+        const {salida, error, codigo} = await this.ejecutarCrudo(
+            host, ordenDe(sistema, script), cancellable);
+
+        // Lo que vale es lo que contestó, no con qué código terminó: un dato
+        // suelto que no se pudo leer —el recuento de actualizaciones de un
+        // Windows con directivas, por ejemplo— deja el código de salida a 1
+        // aunque el resto haya llegado perfectamente.
         const datos = parsearVitales(salida);
+        if (Object.keys(datos).length > 0)
+            return datos;
 
-        if (Object.keys(datos).length === 0)
-            throw new Error('contestó, pero sin datos que entender');
+        if (codigo !== 0)
+            throw new Error(explicarError(error));
 
-        return datos;
+        throw new Error('contestó, pero sin datos que entender');
     }
 
     /**
@@ -546,17 +563,26 @@ export class MonitorVitales {
 
         // Se pregunta con el mismo intérprete que luego ejecutará las vitales,
         // así que si esto sale bien, aquello también conecta.
-        const sistema = interpretarSistema(
-            await this.ejecutar(host, ordenSistema(), cancellable));
+        //
+        // La pregunta es «uname -s || ver»: una de las dos falla siempre, así
+        // que el código de salida no significa nada. Manda la respuesta.
+        const {salida, error, codigo} = await this.ejecutarCrudo(
+            host, ordenSistema(), cancellable);
 
-        if (sistema === SISTEMA.DESCONOCIDO) {
-            throw new Error(
-                'no se reconoce su sistema; ponle un comentario ' +
-                '«# Sistema: windows» o «# Sistema: linux» en el bloque del config');
+        const sistema = interpretarSistema(salida);
+        if (sistema !== SISTEMA.DESCONOCIDO) {
+            this._sistemas.set(host.id, sistema);
+            return sistema;
         }
 
-        this._sistemas.set(host.id, sistema);
-        return sistema;
+        // Sin respuesta reconocible: si además ssh falló, el motivo de ssh es
+        // el que hay que contar (la clave sin autorizar, el puerto cerrado…).
+        if (codigo !== 0)
+            throw new Error(explicarError(error));
+
+        throw new Error(
+            'no se reconoce su sistema; ponle un comentario ' +
+            '«# Sistema: windows» o «# Sistema: linux» en el bloque del config');
     }
 
     /**
