@@ -187,6 +187,17 @@ El script la arregla con `icacls`, dando los permisos **por SID** y no por
 nombre de grupo, porque en un Windows en español el grupo se llama
 «Administradores» y `icacls` fallaría.
 
+Para saber a cuál de los tres archivos va, primero pregunta qué sistema hay al
+otro lado: `uname -s`, y si no existe, `cmd /c ver` y, en último término,
+PowerShell —hacen falta las tres porque el intérprete por omisión de un Windows
+puede ser `cmd` o PowerShell, y no entienden lo mismo—. Si aun así no lo
+reconoce, no toca nada y **enseña lo que contestó el equipo**, que es lo que
+hace falta para saber por qué. Se puede saltar la pregunta:
+
+```bash
+./autorizar-clave.sh --sistema windows <destino>
+```
+
 La contraseña la pide `ssh`: el script no la lee, no la guarda y no la pasa por
 la línea de comandos. Abre una sola conexión multiplexada por equipo, así que
 solo hay que teclearla una vez. Y solo viaja la mitad pública de la clave —

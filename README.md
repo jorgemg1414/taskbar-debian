@@ -180,6 +180,17 @@ beyond SYSTEM and Administrators, and when it doesn't match it ignores the key
 by group name, because on a Spanish Windows the group is called
 «Administradores» and `icacls` would fail.
 
+To work out which of the three files to use, it first asks what system is on the
+other side: `uname -s`, then `cmd /c ver` if that doesn't exist, and PowerShell
+as a last resort — all three are needed because a Windows machine's default
+shell may be `cmd` or PowerShell, and they don't understand the same things. If
+it still can't tell, it touches nothing and **shows what the machine answered**,
+which is what you need to work out why. The question can be skipped:
+
+```bash
+./autorizar-clave.sh --sistema windows <target>
+```
+
 The password is asked for by `ssh`: the script never reads it, stores it or puts
 it on a command line. It opens a single multiplexed connection per machine, so
 it only has to be typed once. And only the public half of the key travels — hand

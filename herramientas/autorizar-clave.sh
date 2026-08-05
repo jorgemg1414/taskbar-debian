@@ -36,21 +36,25 @@ paso()   { printf '\033[1m%s\033[0m\n' "$*"; }
 
 uso() {
     cat <<'FIN'
-Uso: ./autorizar-clave.sh [-i CLAVE.pub] <destino> [más destinos...]
+Uso: ./autorizar-clave.sh [-i CLAVE.pub] [-s SISTEMA] <destino> [más destinos...]
 
   -i, --identidad CLAVE.pub   Clave pública a autorizar.
                               Por omisión, la primera que haya en ~/.ssh.
+  -s, --sistema SISTEMA       «windows» o «linux», para cuando el equipo no
+                              contesta a la pregunta de qué sistema tiene.
   -h, --ayuda                 Esta ayuda.
 
 Ejemplos:
   ./autorizar-clave.sh servidor
   ./autorizar-clave.sh oficina-norte oficina-sur
+  ./autorizar-clave.sh -s windows sucursal
   ./autorizar-clave.sh -i ~/.ssh/trabajo.pub usuario@192.168.1.10
 FIN
 }
 
 # ----------------------------- Argumentos -----------------------------
 CLAVE=""
+SISTEMA=""
 DESTINOS=()
 
 while [[ $# -gt 0 ]]; do
@@ -58,6 +62,14 @@ while [[ $# -gt 0 ]]; do
         -i|--identidad)
             [[ $# -ge 2 ]] || { error "Falta la ruta después de $1"; exit 1; }
             CLAVE="$2"; shift 2 ;;
+        -s|--sistema)
+            [[ $# -ge 2 ]] || { error "Falta el sistema después de $1"; exit 1; }
+            case "${2,,}" in
+                windows|win) SISTEMA="Windows" ;;
+                linux|posix|unix) SISTEMA="Linux" ;;
+                *) error "Sistema no reconocido: «$2». Usa «windows» o «linux»."; exit 1 ;;
+            esac
+            shift 2 ;;
         -h|--ayuda|--help)
             uso; exit 0 ;;
         -*)
@@ -188,10 +200,64 @@ codificar_ps() {
     iconv -f UTF-8 -t UTF-16LE | base64 -w0
 }
 
+# ---------------------------- Qué hay al otro lado ----------------------
+#
+# «uname» no existe en Windows y «ver» no existe en POSIX, así que la pregunta
+# que falla ya dice algo. En Windows hay que preguntar de dos maneras: el
+# intérprete por omisión del equipo puede ser cmd.exe (lo que trae OpenSSH de
+# fábrica) o PowerShell, y no entienden lo mismo.
+#
+# El resultado se deja en estas dos variables en vez de imprimirlo: una
+# sustitución de órdenes correría en una subshell y las respuestas —que son lo
+# que hace falta ver cuando no se reconoce el sistema— se perderían al salir.
+SO_DETECTADO=""
+RESPUESTAS=""
+
+detectar_sistema() {
+    local respuesta
+
+    SO_DETECTADO=""
+    RESPUESTAS=""
+
+    apuntar() {
+        RESPUESTAS="${RESPUESTAS:+$RESPUESTAS
+}  $1 → ${2:-(sin respuesta)}"
+    }
+
+    respuesta=$(remoto 'uname -s' 2>&1 | tr -d '\r' | head -n1 || true)
+    apuntar 'uname -s' "$respuesta"
+    case "$respuesta" in
+        Linux|Darwin|SunOS|*BSD*)
+            SO_DETECTADO="$respuesta"
+            return 0 ;;
+    esac
+
+    respuesta=$(remoto 'cmd /c ver' 2>&1 | tr -d '\r' | grep -v '^$' | head -n2 || true)
+    apuntar 'cmd /c ver' "$respuesta"
+    case "$respuesta" in
+        *Windows*|*Microsoft*)
+            SO_DETECTADO="Windows"
+            return 0 ;;
+    esac
+
+    # Última oportunidad: preguntárselo a PowerShell, que es lo que contesta
+    # cuando el equipo tiene cmd desactivado o restringido por directiva.
+    respuesta=$(remoto 'powershell -NoProfile -NonInteractive -Command "[Environment]::OSVersion.VersionString"' \
+                2>&1 | tr -d '\r' | grep -v '^$' | head -n2 || true)
+    apuntar 'PowerShell' "$respuesta"
+    case "$respuesta" in
+        *Windows*|*Microsoft*)
+            SO_DETECTADO="Windows"
+            return 0 ;;
+    esac
+
+    return 1
+}
+
 # ------------------------------ Por equipo -----------------------------
 autorizar() {
     local destino="$1"
-    local dir_control ctl salida so ver admin resultado estado ruta
+    local dir_control ctl salida so admin resultado estado ruta
 
     paso "── $destino"
 
@@ -208,9 +274,19 @@ autorizar() {
 
     remoto() { ssh -o ControlPath="$ctl" "$destino" "$@"; }
 
-    # ¿Qué sistema hay al otro lado? En Windows «uname» no existe, así que se
-    # pregunta después por la versión con cmd.
-    so=$(remoto 'uname -s' 2>/dev/null | tr -d '\r' | head -n1 || true)
+    if [[ -n "$SISTEMA" ]]; then
+        so="$SISTEMA"
+    elif detectar_sistema; then
+        so="$SO_DETECTADO"
+    else
+        error "  No se reconoce el sistema del equipo; no se toca nada."
+        error "  Esto es lo que contestó:"
+        printf '%s\n' "$RESPUESTAS" >&2
+        error "  Si sabes cuál es, fuérzalo con:  --sistema windows"
+        ssh -O exit -o ControlPath="$ctl" "$destino" 2>/dev/null || true
+        rm -rf "$dir_control"
+        return 1
+    fi
 
     case "$so" in
         Linux|Darwin|SunOS|*BSD*)
@@ -218,14 +294,6 @@ autorizar() {
             resultado=$(remoto "$(script_posix)")
             ;;
         *)
-            ver=$(remoto 'cmd /c ver' 2>/dev/null | tr -d '\r' || true)
-            if [[ "$ver" != *Windows* ]]; then
-                error "  No se reconoce el sistema del equipo; no se toca nada."
-                ssh -O exit -o ControlPath="$ctl" "$destino" 2>/dev/null || true
-                rm -rf "$dir_control"
-                return 1
-            fi
-
             # El grupo se comprueba por SID, que no cambia con el idioma.
             if remoto 'whoami /groups | findstr /i S-1-5-32-544' >/dev/null 2>&1; then
                 admin="si"
