@@ -324,13 +324,18 @@ autorizar() {
     ssh -O exit -o ControlPath="$ctl" "$destino" 2>/dev/null || true
     rm -rf "$dir_control"
 
-    # Se reintenta un par de veces: en Windows, entre que se escribe el archivo
-    # y se le arreglan los permisos con icacls, el primer intento puede llegar
-    # demasiado pronto y dar un «no» que dos segundos después es un «sí».
+    # La orden de prueba es «exit», que existe en cualquier intérprete: es
+    # interna en cmd, en PowerShell y en los de POSIX. Con «true» —el no-op de
+    # toda la vida en Unix— la autenticación funcionaba y aun así ssh devolvía
+    # 1, porque en Windows esa orden no existe y el fallo era del intérprete
+    # remoto, no de la clave.
+    #
+    # Se reintenta un par de veces por si en Windows el arreglo de permisos con
+    # icacls tarda un instante en surtir efecto.
     local intento
     for intento in 1 2 3; do
         if ssh -o ControlPath=none -o BatchMode=yes -o PreferredAuthentications=publickey \
-               -o ConnectTimeout=10 "$destino" true 2>/dev/null; then
+               -o ConnectTimeout=10 "$destino" exit 2>/dev/null; then
             verde "  ✔ Entra con la clave, sin contraseña."
             return 0
         fi
