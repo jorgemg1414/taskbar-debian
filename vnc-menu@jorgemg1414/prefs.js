@@ -97,6 +97,54 @@ export default class VncMenuPreferences extends ExtensionPreferences {
         settings.bind('file-manager-command', filaGestor, 'text', Gio.SettingsBindFlags.DEFAULT);
         grupoComandos.add(filaGestor);
 
+        /* ------------------------- Encendido --------------------------- */
+        const grupoWol = new Adw.PreferencesGroup({
+            title: _('Encendido'),
+            description: _('Cuando una conexión no responde, el clic derecho ofrece ' +
+                '«Encender» si se le conoce la MAC. Un archivo .vnc no la lleva, así ' +
+                'que sale de los equipos que tengas en la extensión Wake on LAN ' +
+                '—emparejando por nombre o por host— o de la tabla ARP.'),
+        });
+        pagina.add(grupoWol);
+
+        const filaWol = new Adw.SwitchRow({
+            title: _('Encender desde el menú'),
+            subtitle: _('El paquete mágico se manda igual que en la extensión Wake on LAN.'),
+        });
+        settings.bind('enable-wol', filaWol, 'active', Gio.SettingsBindFlags.DEFAULT);
+        grupoWol.add(filaWol);
+
+        const filaAprender = new Adw.SwitchRow({
+            title: _('Aprender la MAC sola'),
+            subtitle: _('Mientras una conexión responde, se apunta la MAC de su equipo ' +
+                'de la tabla ARP del sistema para poder encenderlo cuando no responda. ' +
+                'Solo vale para equipos del mismo segmento de red.'),
+        });
+        settings.bind('learn-macs', filaAprender, 'active', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('enable-wol', filaAprender, 'sensitive', Gio.SettingsBindFlags.GET);
+        grupoWol.add(filaAprender);
+
+        // Cuántas hay ahora mismo. Se lee al abrir la ventana; el botón la
+        // deja a cero y actualiza el texto sin tener que reabrirla.
+        const filaOlvidar = new Adw.ActionRow({title: _('MAC aprendidas')});
+        const etiquetaMacs = new Gtk.Label({css_classes: ['dim-label']});
+        const contarMacs = () =>
+            (etiquetaMacs.label = String(settings.get_strv('macs-aprendidas').length));
+        contarMacs();
+
+        const botonOlvidar = new Gtk.Button({
+            label: _('Olvidar'),
+            valign: Gtk.Align.CENTER,
+        });
+        botonOlvidar.connect('clicked', () => {
+            settings.set_strv('macs-aprendidas', []);
+            contarMacs();
+        });
+
+        filaOlvidar.add_suffix(etiquetaMacs);
+        filaOlvidar.add_suffix(botonOlvidar);
+        grupoWol.add(filaOlvidar);
+
         /* ---------------------- Disponibilidad ------------------------ */
         const grupoChecks = new Adw.PreferencesGroup({
             title: _('Disponibilidad'),

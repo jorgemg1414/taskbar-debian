@@ -40,6 +40,38 @@
       </description>
     </key>
 
+    <key name="enable-wol" type="b">
+      <default>true</default>
+      <summary>Encender equipos desde el menú</summary>
+      <description>
+        Añade «Encender» a las acciones del clic derecho cuando la conexión no
+        responde y se le conoce la MAC, ya sea porque el equipo esté dado de
+        alta en la extensión Wake on LAN o porque se le haya aprendido de la
+        tabla ARP.
+      </description>
+    </key>
+
+    <key name="learn-macs" type="b">
+      <default>true</default>
+      <summary>Aprender la MAC de los equipos</summary>
+      <description>
+        Mientras un equipo responde, apunta su MAC de la tabla ARP del sistema
+        (/proc/net/arp) para poder encenderlo el día que no responda, sin tener
+        que configurar nada. Solo funciona con equipos del mismo segmento de red
+        y con direcciones IPv4: para los demás, la tabla tiene la MAC del router
+        y no la suya, y esas entradas se descartan.
+      </description>
+    </key>
+
+    <key name="macs-aprendidas" type="as">
+      <default>[]</default>
+      <summary>MAC aprendidas</summary>
+      <description>
+        Caché de lo aprendido de la tabla ARP, un JSON por equipo con las claves
+        ip, mac y visto. Se puede vaciar sin miedo: se vuelve a llenar sola.
+      </description>
+    </key>
+
     <key name="enable-checks" type="b">
       <default>true</default>
       <summary>Comprobar disponibilidad</summary>

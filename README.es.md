@@ -50,7 +50,9 @@ los presenta como menú. Al pulsar una entrada se abre el cliente VNC.
   menú: escribe parte del nombre o del host, ↓/↑ recorren los resultados e Intro
   conecta.
 - **Clic derecho en una conexión** para sus propias acciones: copiar el host,
-  comprobarla ahora o abrir el archivo en el gestor de archivos.
+  comprobarla ahora o abrir el archivo en el gestor de archivos. Y **encender el
+  equipo** si no responde: la MAC, que un archivo `.vnc` no lleva, sale de los
+  equipos de la extensión Wake on LAN o se aprende sola de la tabla ARP.
 - **Se actualiza sola.** La carpeta se escanea con `Gio` y se vigila con
   `Gio.FileMonitor`: al añadir, borrar o editar una conexión el menú cambia al
   momento, sin recargar el shell.

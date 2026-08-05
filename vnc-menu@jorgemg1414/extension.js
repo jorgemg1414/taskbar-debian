@@ -23,6 +23,7 @@ import * as BoxPointer from 'resource:///org/gnome/shell/ui/boxpointer.js';
 import {escanearConexiones, agruparConexiones, expandirRuta, GRUPO_SIN_NOMBRE} from './connections.js';
 import {ComprobadorPuertos, ESTADO} from './checker.js';
 import {listarSesiones} from './ventanas.js';
+import {ajustesWol, leerEquipos, datosWolDe, despertar, CacheMacs} from './wol.js';
 
 // Milisegundos que se espera tras un cambio en la carpeta antes de recargar
 // (los gestores de archivos generan varios eventos seguidos).
@@ -279,12 +280,17 @@ class IndicadorVnc extends PanelMenu.Button {
         this._seccionLista = null;      // sección donde viven las conexiones
         this._contexto = null;          // fila de acciones del clic derecho
         this._seccionSesiones = null;   // sesiones VNC ya abiertas
+        this._settingsWol = null;       // ajustes de la extensión Wake on LAN
+        this._wolConsultado = false;    // si ya se buscó esa extensión
         this._textoFiltro = '';
         this._idRecarga = 0;            // timeout de rebote del FileMonitor
         this._idIntervaloMenu = 0;      // refresco mientras el menú está abierto
         this._idIntervaloFondo = 0;     // comprobación con el menú cerrado
         this._idFoco = 0;               // idle para enfocar el buscador
         this._cancellable = new Gio.Cancellable();
+        // El encendido tiene su propio cancelable: recargar la carpeta de
+        // conexiones no debe abortar un paquete a medio mandar.
+        this._cancellableAcciones = new Gio.Cancellable();
         this._destruido = false;
 
         this._icono = new St.Icon({
@@ -301,11 +307,17 @@ class IndicadorVnc extends PanelMenu.Button {
         });
         this.add_child(this._insignia);
 
+        this._macs = new CacheMacs(this._settings, 'vnc-menu');
+
         this._comprobador = new ComprobadorPuertos({
             timeout: this._settings.get_int('check-timeout'),
             alCambiar: (id, estado, latencia) => {
                 this._items.get(id)?.fijarEstado(estado, latencia);
                 this._actualizarInsignia();
+                // Un equipo que acaba de responder tiene su MAC recién puesta
+                // en la tabla ARP: es el momento de apuntarla.
+                if (estado === ESTADO.ARRIBA)
+                    this._macs.programar(() => this._ipsQueResponden());
             },
         });
 
@@ -909,7 +921,23 @@ class IndicadorVnc extends PanelMenu.Button {
             return;
 
         const conexion = item.conexion;
-        const contexto = new ItemAcciones([
+        const acciones = [];
+
+        // Encender solo se ofrece si la conexión no responde: si contesta, el
+        // equipo ya está encendido y el botón sobraría.
+        const wol = this._wolDe(conexion);
+        if (wol && this._comprobador.estadoDe(conexion.id) !== ESTADO.ARRIBA) {
+            acciones.push({
+                icono: 'system-shutdown-symbolic',
+                texto: _('Encender'),
+                alPulsar: () => {
+                    this._cerrarContexto();
+                    this._despertar(conexion, wol);
+                },
+            });
+        }
+
+        acciones.push(
             {
                 icono: 'edit-copy-symbolic',
                 texto: _('Copiar'),
@@ -935,13 +963,82 @@ class IndicadorVnc extends PanelMenu.Button {
                     this.menu.close();
                     this._abrirCarpeta(GLib.path_get_dirname(conexion.ruta));
                 },
-            },
-        ]);
+            });
+
+        const contexto = new ItemAcciones(acciones);
         contexto._idConexion = conexion.id;
 
         const posicion = this._seccionLista._getMenuItems().indexOf(item);
         this._seccionLista.addMenuItem(contexto, posicion + 1);
         this._contexto = contexto;
+    }
+
+    /* ------------------------- Encendido ----------------------------- */
+
+    /**
+     * Direcciones de los equipos que están respondiendo ahora mismo, que son
+     * los únicos de los que se puede aprender la MAC.
+     *
+     * @returns {string[]} direcciones de las conexiones que contestan
+     */
+    _ipsQueResponden() {
+        return this._conexiones
+            .filter(c => this._comprobador.estadoDe(c.id) === ESTADO.ARRIBA)
+            .map(c => c.host);
+    }
+
+    /**
+     * Con qué datos se puede encender el equipo de una conexión, si se puede.
+     *
+     * Un archivo .vnc no lleva la MAC por ningún sitio, así que sale de los
+     * equipos que ya tengas dados de alta en la extensión Wake on LAN
+     * —emparejando por nombre o por host— o de lo aprendido de la tabla ARP
+     * mientras la conexión respondía.
+     *
+     * @param {object} conexion conexión del menú
+     * @returns {object|null} datos del paquete mágico, o null
+     */
+    _wolDe(conexion) {
+        if (!this._settings.get_boolean('enable-wol'))
+            return null;
+
+        // La extensión hermana se busca una sola vez por sesión.
+        if (!this._wolConsultado) {
+            this._wolConsultado = true;
+            this._settingsWol = ajustesWol(this._extension.path);
+        }
+
+        return datosWolDe(
+            conexion,
+            leerEquipos(this._settingsWol),
+            this._macs.macDe(conexion.host));
+    }
+
+    /**
+     * Manda el paquete mágico al equipo de una conexión caída.
+     *
+     * @param {object} conexion conexión del menú
+     * @param {object} datos mac, destino y puerto con los que despertarlo
+     */
+    _despertar(conexion, datos) {
+        despertar(datos, this._cancellableAcciones)
+            .then(error => {
+                if (this._destruido)
+                    return;
+                if (error) {
+                    Main.notifyError('VNC Menu',
+                        `${_('No se pudo encender')} «${conexion.nombre}»: ${error}`);
+                } else {
+                    // El protocolo no tiene respuesta: que el paquete salga no
+                    // garantiza que el equipo arranque, así que se dice eso.
+                    Main.notify('VNC Menu',
+                        `${_('Paquete de encendido enviado a')} «${conexion.nombre}»`);
+                }
+            })
+            .catch(e => {
+                if (!this._destruido)
+                    console.error(`[vnc-menu] Fallo al encender: ${e.message}`);
+            });
     }
 
     /**
@@ -1105,8 +1202,13 @@ class IndicadorVnc extends PanelMenu.Button {
             this._idFoco = 0;
         }
 
-        // Escaneos y comprobaciones de red pendientes.
+        // La caché de MAC lleva dentro su propio temporizador y su cancelable.
+        this._macs.destruir();
+        this._macs = null;
+
+        // Escaneos, comprobaciones de red y encendidos pendientes.
         this._cancellable.cancel();
+        this._cancellableAcciones.cancel();
         this._comprobador.destruir();
         this._comprobador = null;
 
@@ -1135,6 +1237,7 @@ class IndicadorVnc extends PanelMenu.Button {
         this._seccionSesiones = null;
         this._insignia = null;
         this._conexiones = [];
+        this._settingsWol = null;
         this._settings = null;
         this._extension = null;
 

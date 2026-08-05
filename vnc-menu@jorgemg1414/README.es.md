@@ -85,7 +85,7 @@ niveles de profundidad.
 |---|---|
 | **Sesiones abiertas** | Arriba del menú, las ventanas VNC que ya tienes abiertas; al pulsar una se trae su ventana al frente en vez de abrir otra sesión |
 | Entrada de conexión | Lanza el cliente VNC con `Gio.Subprocess` (nunca bloquea el shell) |
-| Clic derecho en una entrada | Abre debajo una fila de acciones: **Copiar** el host, **Comprobar** ahora y **Ver archivo** en el gestor de archivos |
+| Clic derecho en una entrada | Abre debajo una fila de acciones: **Encender** el equipo si no responde, **Copiar** el host, **Comprobar** ahora y **Ver archivo** en el gestor de archivos |
 | Punto verde | El puerto acepta conexiones |
 | Punto rojo | Puerto cerrado, host inalcanzable o se agotó el tiempo de espera |
 | Punto amarillo | Comprobación en curso (o esperando turno) |
@@ -259,6 +259,8 @@ Desde el menú → **Preferencias**, o con `gnome-extensions prefs vnc-menu@jorg
 | Mostrar host y puerto | sí | `host:puerto` a la derecha del nombre |
 | Buscador en el menú | sí | Filtrar escribiendo |
 | Mostrarlo a partir de | 8 | Conexiones necesarias para que aparezca el buscador |
+| Encender desde el menú | sí | Añade **Encender** al clic derecho de las conexiones que no responden |
+| Aprender la MAC sola | sí | Apunta la MAC de la tabla ARP mientras la conexión responde |
 | Comprobar disponibilidad | sí | Punto verde/rojo |
 | Mostrar la latencia | sí | Milisegundos que tarda cada host en responder |
 | Refresco con el menú abierto | 60 s | Entre comprobaciones mientras miras el menú |

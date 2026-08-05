@@ -85,7 +85,7 @@ take precedence over labels). Up to 4 levels deep are scanned.
 |---|---|
 | **Open sessions** | At the top of the menu, the VNC windows you already have open; clicking one brings its window to the front instead of opening a second session |
 | Connection entry | Launches the VNC client through `Gio.Subprocess` (never blocks the shell) |
-| Right click on an entry | Opens a row of actions below it: **Copy** the host, **Check** it now, **View file** in the file manager |
+| Right click on an entry | Opens a row of actions below it: **Wake** the machine if it isn't answering, **Copy** the host, **Check** it now, **View file** in the file manager |
 | Green dot | The port accepts connections |
 | Red dot | Port closed, host unreachable, or the timeout expired |
 | Yellow dot | Check in progress (or waiting its turn) |
@@ -258,6 +258,8 @@ Menu → **Preferences**, or `gnome-extensions prefs vnc-menu@jorgemg1414`.
 | Show host and port | yes | `host:port` to the right of the name |
 | Search field | yes | Filter as you type |
 | Show it from | 8 | Connections needed for the search field to appear |
+| Wake from the menu | yes | Adds **Wake** to the right-click actions of connections that aren't answering |
+| Learn the MAC | yes | Records the MAC from the ARP table while the connection answers |
 | Check availability | yes | Green/red dot |
 | Show latency | yes | Milliseconds each host takes to answer |
 | Refresh while menu is open | 60 s | Between checks while you're looking at the menu |

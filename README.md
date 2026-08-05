@@ -48,7 +48,9 @@ menu. Clicking an entry opens your VNC client.
 - **Search.** With many connections a filter field appears at the top of the
   menu: type part of a name or host, ↓/↑ to walk the results, Enter to connect.
 - **Right click on a connection** for its own actions: copy the host, check it
-  now, or open the file in the file manager.
+  now, or open the file in the file manager. And **wake the machine** if it
+  isn't answering: the MAC, which a `.vnc` file doesn't carry, comes from the
+  machines in the Wake on LAN extension or is learned from the ARP table.
 - **Refreshes itself.** The folder is scanned with `Gio` and watched with
   `Gio.FileMonitor`, so adding, removing or editing a connection updates the
   menu right away — no shell reload.
