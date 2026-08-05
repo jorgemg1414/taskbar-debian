@@ -234,6 +234,7 @@ function emitirBloque(bloque, ruta, acc) {
             linea: bloque.linea,
             mac: bloque.mac ?? '',
             difusion: bloque.difusion ?? '',
+            sistema: bloque.sistema ?? '',
         });
     }
 }
@@ -314,7 +315,7 @@ async function leerConfig(ruta, grupoBase, profundidad, cancellable, acc) {
     let grupo = grupoBase;
     let bloque = null;
     // Comentarios que se han visto antes de abrir el bloque al que se refieren.
-    let pendiente = {mac: '', difusion: ''};
+    let pendiente = {mac: '', difusion: '', sistema: ''};
 
     const cerrarBloque = () => {
         if (bloque)
@@ -353,8 +354,17 @@ async function leerConfig(ruta, grupoBase, profundidad, cancellable, acc) {
             }
 
             const difusion = linea.match(/^#+\s*(?:difusi[oó]n|broadcast)\s*[:=]\s*(.+)$/i);
-            if (difusion)
+            if (difusion) {
                 anotar('difusion', difusion[1].trim());
+                continue;
+            }
+
+            // «# Sistema: windows» evita tener que averiguarlo, y es la única
+            // salida cuando el equipo no contesta a la pregunta (un Windows
+            // cuyo intérprete por omisión es PowerShell, por ejemplo).
+            const sistema = linea.match(/^#+\s*(?:sistema|system|os)\s*[:=]\s*(.+)$/i);
+            if (sistema)
+                anotar('sistema', sistema[1].trim().toLowerCase());
 
             continue;
         }
@@ -374,11 +384,12 @@ async function leerConfig(ruta, grupoBase, profundidad, cancellable, acc) {
                     grupo,
                     linea: i + 1,
                     mac: pendiente.mac,
+                    sistema: pendiente.sistema,
                     difusion: pendiente.difusion,
                 };
             }
             // Los comentarios de arriba ya están consumidos por este bloque.
-            pendiente = {mac: '', difusion: ''};
+            pendiente = {mac: '', difusion: '', sistema: ''};
         } else if (clave === 'match') {
             // Los bloques Match son condicionales: no describen un equipo.
             cerrarBloque();
@@ -425,6 +436,8 @@ function construirHost(bruto, globales) {
         // De los comentarios «# MAC:» y «# Difusión:», para encenderlo.
         mac: bruto.mac ?? '',
         difusion: bruto.difusion ?? '',
+        // Del comentario «# Sistema:», para no tener que preguntarlo.
+        sistema: bruto.sistema ?? '',
         ruta: bruto.ruta,
         linea: bruto.linea,
         grupo: bruto.grupo || GRUPO_SIN_NOMBRE,

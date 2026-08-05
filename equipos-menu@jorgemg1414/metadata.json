@@ -1,0 +1,9 @@
+{
+  "uuid": "equipos-menu@jorgemg1414",
+  "name": "Equipos",
+  "description": "Indicador en la barra superior con el estado de los equipos de tu ~/.ssh/config: desde cuándo están encendidos, cuánta memoria y cuánto disco les queda y cuántas actualizaciones tienen pendientes. Desde el clic derecho se pueden apagar, reiniciar o suspender.",
+  "shell-version": ["48"],
+  "settings-schema": "org.gnome.shell.extensions.equipos-menu",
+  "gettext-domain": "equipos-menu",
+  "version": 1
+}

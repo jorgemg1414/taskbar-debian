@@ -136,6 +136,32 @@ export function connectToHost(cliente, destino, puertoPorDefecto, cancellable) {
 }
 
 /**
+ * Espera a que termine un subproceso y recoge lo que haya escrito.
+ *
+ * @param {Gio.Subprocess} proceso proceso lanzado con las tuberías abiertas
+ * @param {Gio.Cancellable} cancellable cancelable
+ * @returns {Promise<{salida: string, error: string, codigo: number}>} resultado
+ */
+export function comunicar(proceso, cancellable) {
+    return new Promise((resolve, reject) => {
+        proceso.communicate_utf8_async(null, cancellable, (obj, res) => {
+            try {
+                const [, salida, error] = obj.communicate_utf8_finish(res);
+                resolve({
+                    salida: salida ?? '',
+                    error: error ?? '',
+                    // El código de salida solo es válido si terminó por su
+                    // cuenta; si lo mató una señal, se cuenta como fallo.
+                    codigo: obj.get_if_exited() ? obj.get_exit_status() : -1,
+                });
+            } catch (e) {
+                reject(e);
+            }
+        });
+    });
+}
+
+/**
  * Cierra una conexión de socket sin esperar el resultado.
  *
  * @param {Gio.IOStream} conexion conexión a cerrar

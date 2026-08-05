@@ -18,6 +18,7 @@ The code is written against the modern extension API (ESM, GNOME 45+):
 | [`vnc-menu@jorgemg1414/`](vnc-menu@jorgemg1414/) | **VNC Menu** — top bar menu listing your saved VNC connections, grouped, with a reachability indicator |
 | [`ssh-menu@jorgemg1414/`](ssh-menu@jorgemg1414/) | **SSH Menu** — the machines in your `~/.ssh/config`: terminal session or SFTP, from the same row |
 | [`wol-menu@jorgemg1414/`](wol-menu@jorgemg1414/) | **Wake on LAN** — power machines on remotely from the top bar |
+| [`equipos-menu@jorgemg1414/`](equipos-menu@jorgemg1414/) | **Machines** — how each machine is doing inside, and powering it off, rebooting or suspending it remotely |
 | [`herramientas/`](herramientas/) | Helper scripts: turn `.vnc` files into Remmina profiles and store their password in the GNOME keyring |
 | [`comun/`](comun/) | Modules shared by several extensions. The original lives here; each `install.sh` copies the ones it needs |
 
@@ -101,6 +102,35 @@ Full documentation (grouping, commands, jump hosts, troubleshooting):
 
 ---
 
+## Machines
+
+The same machines from `~/.ssh/config`, but reporting **how they are doing
+inside**. The green dot in the other menus says port 22 accepts connections;
+this one goes in and asks.
+
+- **A summary per machine**: how long it's been up, how much memory and disk it
+  has left, how many updates are pending. A nearly full disk is painted red.
+- **It asks with `ssh <alias>`** and `BatchMode` on, so no password dialog ever
+  appears: if the key isn't authorised it says so, and that's what
+  `herramientas/autorizar-clave.sh` fixes.
+- **One connection per machine.** With `ControlMaster` the first query pays for
+  the full SSH handshake and the rest travel through the same tunnel. Nothing is
+  asked while the menu is closed.
+- **Works the same for Windows**, which answers the same things through
+  PowerShell. Each machine's system is worked out once.
+- **Power off, reboot and suspend** from the right-click row, confirmed inside
+  the menu. They are the only actions in the repository that can't be undone
+  from the taskbar, so they aren't on the plain click.
+
+> Linux won't let an SSH session power it off unless you allow it first. The
+> extension's README carries the polkit rule and the sudoers line that do, and
+> spells out what each one means.
+
+Full documentation (remote querying, power, permissions, debugging):
+**[equipos-menu@jorgemg1414/README.md](equipos-menu@jorgemg1414/README.md)**
+
+---
+
 ## Helper scripts
 
 `.vnc` files carry their password encrypted with RealVNC's own key, which
@@ -169,6 +199,8 @@ gsettings --schemadir ~/.local/share/gnome-shell/extensions/vnc-menu@jorgemg1414
 - `glib-compile-schemas` — package `libglib2.0-dev-bin`
 - For the VNC menu: `remmina` + `remmina-plugin-vnc`, or `tigervnc-viewer`
 - For the SSH menu: `openssh-client`, and `gvfs-backends` for SFTP
+- For the Machines menu: `openssh-client`, and your key authorised on each
+  remote machine (`herramientas/autorizar-clave.sh`)
 
 ```bash
 sudo apt install libglib2.0-dev-bin remmina remmina-plugin-vnc openssh-client gvfs-backends
@@ -237,6 +269,7 @@ taskbar-debian/
 │   └── wol.js             Magic packet, machine list, MACs learned from ARP
 ├── ssh-menu@jorgemg1414/  SSH Menu (see its own README)
 ├── wol-menu@jorgemg1414/  Wake on LAN (see its own README)
+├── equipos-menu@jorgemg1414/  Machines (see its own README)
 └── vnc-menu@jorgemg1414/
     ├── extension.js       Indicator, menu, client launching, teardown in disable()
     ├── connections.js     Async folder scanning and connection file parsing

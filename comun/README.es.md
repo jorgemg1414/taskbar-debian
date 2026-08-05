@@ -19,7 +19,7 @@ hay un solo archivo de cada cosa.
 |---|---|---|
 | `asyncgio.js` | Envoltorios de `Promise` sobre las llamadas asíncronas de `Gio` | los cuatro menús |
 | `checker.js` | Comprobación de puertos TCP, asíncrona, cancelable y con cola | VNC, SSH, WoL, Equipos |
-| `hosts.js` | Lectura y parseo de `~/.ssh/config`, con `Include` y agrupación | SSH, Equipos |
+| `hosts.js` | Lectura y parseo de `~/.ssh/config`, con `Include` y agrupación | SSH, WoL, Equipos |
 | `wol.js` | Paquete mágico, lista de equipos y MAC aprendidas de la tabla ARP | WoL, SSH, VNC |
 
 ---

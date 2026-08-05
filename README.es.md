@@ -19,6 +19,7 @@ extensiones (ESM, GNOME 45+): `import ... from 'gi://…'`, clase que extiende
 | [`vnc-menu@jorgemg1414/`](vnc-menu@jorgemg1414/) | **VNC Menu** — menú en la barra superior con tus conexiones VNC guardadas, agrupadas y con indicador de disponibilidad |
 | [`ssh-menu@jorgemg1414/`](ssh-menu@jorgemg1414/) | **SSH Menu** — los equipos de tu `~/.ssh/config`: sesión en terminal o SFTP, desde la misma fila |
 | [`wol-menu@jorgemg1414/`](wol-menu@jorgemg1414/) | **Wake on LAN** — encender equipos a distancia desde la barra superior |
+| [`equipos-menu@jorgemg1414/`](equipos-menu@jorgemg1414/) | **Equipos** — cómo está cada equipo por dentro, y apagarlo, reiniciarlo o suspenderlo a distancia |
 | [`herramientas/`](herramientas/) | Scripts para convertir archivos `.vnc` en perfiles de Remmina y guardar su contraseña en el llavero de GNOME |
 | [`comun/`](comun/) | Los módulos que comparten varias extensiones. El original está aquí; cada `install.sh` copia los que necesita |
 
@@ -107,6 +108,36 @@ Documentación completa (agrupación, comandos, saltos, depuración):
 
 ---
 
+## Equipos
+
+Los mismos equipos del `~/.ssh/config`, pero contando **cómo están por dentro**.
+El punto verde de los otros menús dice que el puerto 22 acepta conexiones; este
+entra y pregunta.
+
+- **Un resumen por equipo**: desde cuándo está encendido, cuánta memoria y
+  cuánto disco le quedan y cuántas actualizaciones tiene pendientes. El disco
+  casi lleno se pinta en rojo.
+- **Pregunta con `ssh <alias>`** y `BatchMode` activado, así que nunca sale un
+  diálogo de contraseña: si la clave no está autorizada, lo dice, y eso se
+  arregla con `herramientas/autorizar-clave.sh`.
+- **Una sola conexión por equipo.** Con `ControlMaster`, la primera consulta
+  paga el saludo completo de SSH y las siguientes viajan por el mismo túnel.
+  Con el menú cerrado no se pregunta nada.
+- **Sirve igual para Windows**, que contesta lo mismo por PowerShell. El sistema
+  se averigua solo la primera vez.
+- **Apagar, reiniciar y suspender** desde el clic derecho, con confirmación en
+  el propio menú. Son las únicas acciones del repositorio que no se pueden
+  deshacer desde la barra, así que no están en el clic normal.
+
+> Un Linux no deja que una sesión SSH lo apague sin autorizarlo antes. El README
+> de la extensión trae la regla de polkit y la línea de sudoers que lo permiten,
+> y explica lo que cada una implica.
+
+Documentación completa (consulta remota, energía, permisos, depuración):
+**[equipos-menu@jorgemg1414/README.es.md](equipos-menu@jorgemg1414/README.es.md)**
+
+---
+
 ## Herramientas
 
 Los archivos `.vnc` llevan la contraseña cifrada con la clave propia de RealVNC,
@@ -175,6 +206,8 @@ gsettings --schemadir ~/.local/share/gnome-shell/extensions/vnc-menu@jorgemg1414
 - `glib-compile-schemas` — paquete `libglib2.0-dev-bin`
 - Para el menú de VNC: `remmina` + `remmina-plugin-vnc`, o `tigervnc-viewer`
 - Para el menú de SSH: `openssh-client`, y `gvfs-backends` para el SFTP
+- Para el menú de Equipos: `openssh-client`, y tu clave autorizada en cada
+  equipo remoto (`herramientas/autorizar-clave.sh`)
 
 ```bash
 sudo apt install libglib2.0-dev-bin remmina remmina-plugin-vnc openssh-client gvfs-backends
@@ -243,6 +276,7 @@ taskbar-debian/
 │   └── wol.js             Paquete mágico, equipos y MAC aprendidas del ARP
 ├── ssh-menu@jorgemg1414/  SSH Menu (ver su propio README)
 ├── wol-menu@jorgemg1414/  Wake on LAN (ver su propio README)
+├── equipos-menu@jorgemg1414/  Equipos (ver su propio README)
 └── vnc-menu@jorgemg1414/
     ├── extension.js       Indicador, menú, lanzamiento y limpieza en disable()
     ├── connections.js     Escaneo asíncrono de la carpeta y parser de conexiones

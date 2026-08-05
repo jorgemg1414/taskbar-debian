@@ -1,0 +1,1010 @@
+/*
+ * extension.js — Equipos para GNOME Shell 48 (ESM).
+ *
+ * Indicador en la barra superior que dice cómo está cada equipo de tu
+ * ~/.ssh/config —encendido desde cuándo, cuánta memoria y cuánto disco le
+ * queda, cuántas actualizaciones tiene pendientes— y permite apagarlo,
+ * reiniciarlo o suspenderlo sin abrir una terminal.
+ *
+ * Es el paso siguiente al punto verde de los otros menús: aquel dice que el
+ * puerto 22 acepta conexiones; este entra y pregunta.
+ *
+ * Las acciones de energía no se pueden deshacer desde aquí, así que viven en el
+ * clic derecho y piden confirmación antes de salir.
+ *
+ * Todo lo que se crea aquí (indicador, monitores de archivo, temporizadores y
+ * cancelables) se destruye en disable(), como exige GNOME.
+ */
+
+import GObject from 'gi://GObject';
+import St from 'gi://St';
+import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
+import Clutter from 'gi://Clutter';
+
+import {Extension, gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
+import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
+import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+
+import {
+    escanearHosts, agruparHosts, expandirRuta, GRUPO_SIN_NOMBRE,
+} from './hosts.js';
+import {ComprobadorPuertos, ESTADO} from './checker.js';
+import {
+    MonitorVitales, VITALES, SISTEMA, resumen, detalle, porcentaje,
+} from './vitales.js';
+
+// Milisegundos que se espera tras un cambio en la configuración antes de
+// recargar (los editores guardan en varios pasos).
+const RETARDO_RECARGA_MS = 700;
+
+// Segundos que se espera antes de volver a mirar un equipo al que se le acaba
+// de mandar apagarse o reiniciarse. Lo justo para que le dé tiempo a irse.
+const RETARDO_TRAS_ENERGIA_S = 15;
+
+// Parte del alto de la pantalla que puede ocupar la lista de equipos.
+const PROPORCION_ALTO_LISTA = 0.6;
+
+// Acciones de energía, en el orden en que salen en el clic derecho. La clave es
+// el prefijo de los ajustes: «poweroff-command-linux» y compañía.
+const ACCIONES_ENERGIA = [
+    {
+        clave: 'poweroff',
+        icono: 'system-shutdown-symbolic',
+        etiqueta: () => _('Apagar'),
+        peligrosa: true,
+    },
+    {
+        clave: 'reboot',
+        icono: 'system-reboot-symbolic',
+        etiqueta: () => _('Reiniciar'),
+        peligrosa: true,
+    },
+    {
+        clave: 'suspend',
+        icono: 'weather-clear-night-symbolic',
+        etiqueta: () => _('Suspender'),
+        peligrosa: false,
+    },
+];
+
+/* -------------------------------------------------------------------------
+ * Elemento de menú de un equipo: punto + alias + resumen de sus vitales
+ * ------------------------------------------------------------------------- */
+const ItemEquipo = GObject.registerClass({
+    // El clic derecho no refresca: pide las acciones de ese equipo.
+    Signals: {'contexto': {}},
+}, class ItemEquipo extends PopupMenu.PopupBaseMenuItem {
+    /**
+     * @param {object} host equipo a representar
+     * @param {number} avisoDisco porcentaje de disco a partir del cual se avisa
+     */
+    _init(host, avisoDisco) {
+        super._init();
+
+        this.host = host;
+        this._avisoDisco = avisoDisco;
+
+        // Punto de disponibilidad (verde/rojo/gris). El color va en la hoja de
+        // estilos. Un equipo detrás de un salto no se sondea.
+        this._punto = new St.Widget({
+            style_class: 'equipos-punto equipos-punto-desconocido',
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+        this.add_child(this._punto);
+
+        this._etiqueta = new St.Label({
+            text: host.nombre,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+        this.add_child(this._etiqueta);
+        // Necesario para que el lector de pantalla anuncie el elemento.
+        this.label_actor = this._etiqueta;
+
+        // El resumen se pega a la derecha; el hueco que sobra queda en medio.
+        this._resumen = new St.Label({
+            text: '',
+            style_class: 'equipos-resumen',
+            x_expand: true,
+            x_align: Clutter.ActorAlign.END,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+        this.add_child(this._resumen);
+    }
+
+    /**
+     * Pinta el estado del sondeo del puerto.
+     *
+     * @param {string} estado valor de ESTADO
+     */
+    fijarEstado(estado) {
+        const clases = {
+            [ESTADO.ARRIBA]: 'equipos-punto equipos-punto-arriba',
+            [ESTADO.ABAJO]: 'equipos-punto equipos-punto-abajo',
+            [ESTADO.COMPROBANDO]: 'equipos-punto equipos-punto-comprobando',
+            [ESTADO.DESCONOCIDO]: 'equipos-punto equipos-punto-desconocido',
+        };
+        this._punto.style_class = clases[estado] ?? clases[ESTADO.DESCONOCIDO];
+    }
+
+    /**
+     * Pinta lo que el equipo ha contado de sí mismo.
+     *
+     * @param {string} estadoVitales valor de VITALES
+     * @param {object|null} datos vitales, si las hay
+     * @param {string} error motivo del fallo, si lo hubo
+     */
+    fijarVitales(estadoVitales, datos, error) {
+        this._resumen.remove_style_class_name('equipos-aviso');
+
+        if (estadoVitales === VITALES.OK && datos) {
+            this._resumen.text = resumen(datos);
+
+            // El disco casi lleno es lo único que hay que ver sin leer.
+            const usado = porcentaje(datos.disco);
+            if (usado !== null && usado >= this._avisoDisco)
+                this._resumen.add_style_class_name('equipos-aviso');
+
+            // Al lector de pantalla se le da el detalle entero: no tiene por
+            // qué conformarse con lo que cabe en la fila.
+            this.accessible_name =
+                `${this.host.nombre}. ${detalle(datos).replace(/\n/g, '. ')}`;
+        } else if (estadoVitales === VITALES.CONSULTANDO) {
+            this._resumen.text = _('consultando…');
+            this.accessible_name = `${this.host.nombre} — ${_('consultando…')}`;
+        } else if (estadoVitales === VITALES.ERROR) {
+            this._resumen.text = error;
+            this._resumen.add_style_class_name('equipos-aviso');
+            this.accessible_name = `${this.host.nombre} — ${error}`;
+        } else {
+            this._resumen.text = '';
+            this.accessible_name = this.host.nombre;
+        }
+    }
+
+    /**
+     * Con el botón derecho no se refresca: se piden sus acciones.
+     *
+     * @param {Clutter.Event} evento evento de soltar el botón
+     * @returns {boolean} si el evento queda consumido
+     */
+    vfunc_button_release_event(evento) {
+        if (evento.get_button() === Clutter.BUTTON_SECONDARY) {
+            this.emit('contexto');
+            return Clutter.EVENT_STOP;
+        }
+        return super.vfunc_button_release_event(evento);
+    }
+});
+
+/* -------------------------------------------------------------------------
+ * Fila de acciones: varios botones icono+texto repartidos en una sola línea
+ * ------------------------------------------------------------------------- */
+const ItemAcciones = GObject.registerClass(
+class ItemAcciones extends PopupMenu.PopupBaseMenuItem {
+    /**
+     * @param {{icono: string, texto: string, peligrosa: boolean, alPulsar: Function}[]} acciones botones a pintar
+     */
+    _init(acciones) {
+        // No es activable: quien recibe los clics es cada botón.
+        super._init({
+            reactive: false,
+            activate: false,
+            hover: false,
+            can_focus: false,
+            style_class: 'equipos-acciones',
+        });
+
+        for (const {icono, texto, peligrosa, alPulsar} of acciones) {
+            const boton = new St.Button({
+                style_class: peligrosa ? 'equipos-accion equipos-accion-peligrosa' : 'equipos-accion',
+                can_focus: true,
+                x_expand: true,
+                accessible_name: texto,
+            });
+
+            const caja = new St.BoxLayout({
+                orientation: Clutter.Orientation.HORIZONTAL,
+                x_align: Clutter.ActorAlign.CENTER,
+                x_expand: true,
+            });
+            if (icono) {
+                caja.add_child(new St.Icon({
+                    icon_name: icono,
+                    style_class: 'equipos-accion-icono',
+                    y_align: Clutter.ActorAlign.CENTER,
+                }));
+            }
+            caja.add_child(new St.Label({
+                text: texto,
+                y_align: Clutter.ActorAlign.CENTER,
+            }));
+            boton.set_child(caja);
+
+            boton.connect('clicked', () => alPulsar());
+            this.add_child(boton);
+        }
+    }
+});
+
+/* -------------------------------------------------------------------------
+ * Fila de confirmación: la pregunta y los dos botones
+ * ------------------------------------------------------------------------- */
+const ItemConfirmacion = GObject.registerClass(
+class ItemConfirmacion extends PopupMenu.PopupBaseMenuItem {
+    /**
+     * @param {string} pregunta texto de la pregunta
+     * @param {Function} alConfirmar acción al aceptar
+     * @param {Function} alCancelar acción al rechazar
+     */
+    _init(pregunta, alConfirmar, alCancelar) {
+        super._init({
+            reactive: false,
+            activate: false,
+            hover: false,
+            can_focus: false,
+            style_class: 'equipos-acciones',
+        });
+
+        this.add_child(new St.Label({
+            text: pregunta,
+            style_class: 'equipos-pregunta',
+            x_expand: true,
+            y_align: Clutter.ActorAlign.CENTER,
+        }));
+
+        const boton = (texto, clase, accion) => {
+            const b = new St.Button({
+                style_class: clase,
+                can_focus: true,
+                accessible_name: texto,
+                label: texto,
+            });
+            b.connect('clicked', () => accion());
+            this.add_child(b);
+            return b;
+        };
+
+        // El «no» va primero, que es el que se pulsa sin mirar.
+        boton(_('No'), 'equipos-accion', alCancelar);
+        boton(_('Sí'), 'equipos-accion equipos-accion-peligrosa', alConfirmar);
+    }
+});
+
+/* -------------------------------------------------------------------------
+ * Indicador del panel
+ * ------------------------------------------------------------------------- */
+const IndicadorEquipos = GObject.registerClass(
+class IndicadorEquipos extends PanelMenu.Button {
+    /**
+     * @param {Extension} extension instancia de la extensión (settings, openPreferences)
+     */
+    _init(extension) {
+        super._init(0.5, 'Equipos');
+
+        this._extension = extension;
+        this._settings = extension.getSettings();
+
+        this._hosts = [];
+        this._items = new Map();      // id de equipo -> ItemEquipo
+        this._archivos = [];          // archivos de configuración leídos
+        this._motivoVacio = null;     // 'inexistente' | 'vacia' | null
+        this._monitores = [];         // {monitor, handlerId}
+        this._idsSettings = [];
+        this._scroll = null;
+        this._seccionLista = null;
+        this._contexto = null;        // fila de acciones o de confirmación
+        this._idRecarga = 0;
+        this._idIntervalo = 0;
+        this._idsEspera = [];         // recomprobaciones tras apagar o reiniciar
+        this._cancellable = new Gio.Cancellable();
+        // Las acciones de energía tienen su propio cancelable: recargar la
+        // configuración no debe abortar un apagado a medias.
+        this._cancellableAcciones = new Gio.Cancellable();
+        this._destruido = false;
+
+        this._icono = new St.Icon({
+            icon_name: this._settings.get_string('panel-icon'),
+            style_class: 'system-status-icon',
+        });
+        this.add_child(this._icono);
+
+        // Contador de equipos sin respuesta, para enterarte sin abrir el menú.
+        this._insignia = new St.Label({
+            style_class: 'equipos-insignia',
+            y_align: Clutter.ActorAlign.CENTER,
+            visible: false,
+        });
+        this.add_child(this._insignia);
+
+        this._comprobador = new ComprobadorPuertos({
+            timeout: this._settings.get_int('check-timeout'),
+            alCambiar: (id, estado) => {
+                this._items.get(id)?.fijarEstado(estado);
+                this._actualizarInsignia();
+                // Preguntarle las vitales a un equipo que no acepta conexiones
+                // es esperar a que ssh agote su propio plazo para nada.
+                const host = this._hostDe(id);
+                if (estado === ESTADO.ARRIBA && host && this.menu.isOpen)
+                    this._monitor.pedir(host);
+
+                // Y las de hace un minuto ya no dicen nada de un equipo que
+                // acaba de dejar de responder.
+                if (estado === ESTADO.ABAJO)
+                    this._monitor.olvidar(id);
+            },
+        });
+
+        this._monitor = new MonitorVitales({
+            conexion: this._opcionesConexion(),
+            actualizaciones: this._settings.get_boolean('show-updates'),
+            alCambiar: id => this._actualizarVitales(id),
+        });
+
+        this._idAbrir = this.menu.connect('open-state-changed', (_menu, abierto) => {
+            if (abierto)
+                this._alAbrirMenu();
+            else
+                this._alCerrarMenu();
+        });
+
+        this._conectarSettings();
+        this._reconstruirMenu();   // pinta el estado «cargando»
+        this.recargar();
+    }
+
+    /**
+     * Ruta absoluta del archivo de configuración según los ajustes.
+     *
+     * @returns {string} ruta expandida
+     */
+    get _rutaConfig() {
+        return expandirRuta(this._settings.get_string('config-path'));
+    }
+
+    /**
+     * Opciones de conexión de ssh según los ajustes.
+     *
+     * @returns {object} opciones para argvSsh()
+     */
+    _opcionesConexion() {
+        return {
+            timeout: this._settings.get_int('connect-timeout'),
+            reutilizar: this._settings.get_boolean('reuse-connection'),
+            persistir: this._settings.get_int('persist-seconds'),
+        };
+    }
+
+    /**
+     * Equipos cuyo puerto tiene sentido sondear. Los que se alcanzan a través
+     * de un salto no aceptan conexión directa: el punto sería mentira, aunque
+     * ssh sí sepa llegar a ellos.
+     *
+     * @returns {object[]} equipos alcanzables directamente
+     */
+    get _comprobables() {
+        return this._hosts.filter(h => !h.salto);
+    }
+
+    /**
+     * Equipo por su identificador.
+     *
+     * @param {string} id identificador
+     * @returns {object|null} equipo, o null si ya no está
+     */
+    _hostDe(id) {
+        return this._hosts.find(h => h.id === id) ?? null;
+    }
+
+    /* --------------------------- Ajustes ---------------------------- */
+
+    /**
+     * Reacciona a los cambios de configuración sin recargar el shell.
+     */
+    _conectarSettings() {
+        const conectar = (clave, cb) =>
+            this._idsSettings.push(this._settings.connect(`changed::${clave}`, cb));
+
+        conectar('config-path', () => this.recargar());
+        conectar('disk-warning', () => this._reconstruirMenu());
+        conectar('panel-icon', () =>
+            (this._icono.icon_name = this._settings.get_string('panel-icon')));
+        conectar('panel-badge', () => this._actualizarInsignia());
+        conectar('check-timeout', () =>
+            (this._comprobador.timeout = this._settings.get_int('check-timeout')));
+        conectar('show-updates', () =>
+            (this._monitor.actualizaciones = this._settings.get_boolean('show-updates')));
+        conectar('refresh-interval', () => {
+            if (this.menu.isOpen)
+                this._programarIntervalo();
+        });
+        conectar('enable-checks', () => {
+            if (this.menu.isOpen)
+                this._alAbrirMenu();
+            else
+                this._comprobador.cancelarPendientes();
+            this._actualizarInsignia();
+        });
+
+        for (const clave of ['connect-timeout', 'reuse-connection', 'persist-seconds'])
+            conectar(clave, () => (this._monitor.conexion = this._opcionesConexion()));
+    }
+
+    /* ------------------------ Carga de datos ------------------------ */
+
+    /**
+     * Vuelve a leer la configuración de SSH y reconstruye el menú.
+     */
+    recargar() {
+        if (this._destruido)
+            return;
+
+        this._cancellable.cancel();
+        this._cancellable = new Gio.Cancellable();
+        const cancellable = this._cancellable;
+
+        escanearHosts(this._rutaConfig, cancellable)
+            .then(resultado => {
+                if (this._destruido || cancellable.is_cancelled() || resultado.motivo === 'cancelado')
+                    return;
+
+                this._hosts = resultado.hosts;
+                this._archivos = resultado.archivos;
+                this._motivoVacio = resultado.ok
+                    ? (resultado.motivo === 'vacia' ? 'vacia' : null)
+                    : 'inexistente';
+
+                const vivos = new Set(this._hosts.map(h => h.id));
+                this._comprobador.podar(vivos);
+                this._monitor.podar(vivos);
+
+                this._reconstruirMenu();
+                this._actualizarInsignia();
+                this._vigilarConfig();
+
+                if (this.menu.isOpen)
+                    this._preguntar();
+            })
+            .catch(e => {
+                if (this._destruido)
+                    return;
+                console.error(`[equipos-menu] Error al leer la configuración: ${e.message}`);
+                this._motivoVacio = 'inexistente';
+                this._reconstruirMenu();
+            });
+    }
+
+    /**
+     * Vigila los archivos de configuración leídos, para que el menú cambie en
+     * cuanto edites un bloque.
+     *
+     * Mientras no exista ninguno se vigila la carpeta, que es la única forma de
+     * enterarse de que se crea.
+     */
+    _vigilarConfig() {
+        this._pararMonitores();
+
+        const objetivos = new Map();   // ruta -> si es carpeta
+        for (const ruta of this._archivos)
+            objetivos.set(ruta, false);
+
+        if (objetivos.size === 0)
+            objetivos.set(GLib.path_get_dirname(this._rutaConfig), true);
+
+        for (const [ruta, esCarpeta] of objetivos) {
+            const file = Gio.File.new_for_path(ruta);
+            try {
+                const monitor = esCarpeta
+                    ? file.monitor_directory(Gio.FileMonitorFlags.WATCH_MOVES, null)
+                    : file.monitor_file(Gio.FileMonitorFlags.WATCH_MOVES, null);
+                const handlerId = monitor.connect('changed', () => this._recargaDiferida());
+                this._monitores.push({monitor, handlerId});
+            } catch (e) {
+                console.warn(`[equipos-menu] No se pudo vigilar ${ruta}: ${e.message}`);
+            }
+        }
+    }
+
+    /**
+     * Recarga con un pequeño retardo para agrupar ráfagas de eventos.
+     */
+    _recargaDiferida() {
+        if (this._idRecarga)
+            GLib.source_remove(this._idRecarga);
+
+        this._idRecarga = GLib.timeout_add(GLib.PRIORITY_DEFAULT, RETARDO_RECARGA_MS, () => {
+            this._idRecarga = 0;
+            this.recargar();
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
+    /**
+     * Desconecta y suelta todos los FileMonitor.
+     */
+    _pararMonitores() {
+        for (const {monitor, handlerId} of this._monitores) {
+            monitor.disconnect(handlerId);
+            monitor.cancel();
+        }
+        this._monitores = [];
+    }
+
+    /* ------------------------- Consultas ---------------------------- */
+
+    /**
+     * Al abrir el menú: sondea los puertos y pide las vitales.
+     */
+    _alAbrirMenu() {
+        this._ajustarAltoLista();
+        this._preguntar();
+        this._programarIntervalo();
+    }
+
+    /**
+     * Al cerrar el menú: se para el refresco y se abandona lo que hubiera en
+     * vuelo. Con el menú cerrado no se toca la red.
+     */
+    _alCerrarMenu() {
+        this._pararIntervalo();
+        this._comprobador.cancelarPendientes();
+        this._monitor.cancelarPendientes();
+        this._cerrarContexto();
+    }
+
+    /**
+     * Pide el estado de todos los equipos.
+     *
+     * El sondeo del puerto tarda milisegundos y la consulta por SSH, segundos:
+     * por eso van los dos. El punto se pinta enseguida y el resumen llega
+     * después. A los equipos que van por un salto no se les puede sondear, así
+     * que a esos se les pregunta directamente.
+     */
+    _preguntar() {
+        if (this._settings.get_boolean('enable-checks')) {
+            this._comprobador.comprobarTodas(this._comprobables);
+            this._monitor.pedirTodos(this._hosts.filter(h =>
+                h.salto || this._comprobador.estadoDe(h.id) === ESTADO.ARRIBA));
+        } else {
+            this._monitor.pedirTodos(this._hosts);
+        }
+    }
+
+    /**
+     * (Re)programa el refresco periódico mientras el menú está abierto.
+     */
+    _programarIntervalo() {
+        this._pararIntervalo();
+
+        const segundos = this._settings.get_int('refresh-interval');
+        this._idIntervalo = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, segundos, () => {
+            this._preguntar();
+            return GLib.SOURCE_CONTINUE;
+        });
+    }
+
+    /**
+     * Detiene el refresco periódico.
+     */
+    _pararIntervalo() {
+        if (this._idIntervalo) {
+            GLib.source_remove(this._idIntervalo);
+            this._idIntervalo = 0;
+        }
+    }
+
+    /**
+     * Vuelca en la fila de un equipo lo último que se sabe de él.
+     *
+     * @param {string} id identificador del equipo
+     */
+    _actualizarVitales(id) {
+        this._items.get(id)?.fijarVitales(
+            this._monitor.estadoDe(id),
+            this._monitor.datosDe(id),
+            this._monitor.errorDe(id));
+    }
+
+    /* ----------------------------- Menú ----------------------------- */
+
+    /**
+     * Rehace el menú completo a partir del estado actual.
+     */
+    _reconstruirMenu() {
+        this.menu.removeAll();
+        this._items.clear();
+        this._scroll = null;
+        this._contexto = null;   // removeAll() ya lo ha destruido
+
+        this._pintarLista();
+
+        this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+        this.menu.addMenuItem(new ItemAcciones([
+            {
+                icono: 'view-refresh-symbolic',
+                texto: _('Actualizar'),
+                alPulsar: () => this._preguntar(),
+            },
+            {
+                icono: 'preferences-system-symbolic',
+                texto: _('Ajustes'),
+                alPulsar: () => {
+                    this.menu.close();
+                    this._extension.openPreferences();
+                },
+            },
+        ]));
+    }
+
+    /**
+     * Pinta la lista de equipos dentro de una zona con desplazamiento, para que
+     * el menú nunca crezca más que la pantalla y el pie quede siempre visible.
+     */
+    _pintarLista() {
+        this._scroll = new St.ScrollView({
+            style_class: 'equipos-lista',
+            hscrollbar_policy: St.PolicyType.NEVER,
+            vscrollbar_policy: St.PolicyType.AUTOMATIC,
+            x_expand: true,
+        });
+
+        this._seccionLista = new PopupMenu.PopupMenuSection();
+        this._scroll.set_child(this._seccionLista.actor);
+
+        // El scroll va dentro de una sección para que removeAll() lo destruya.
+        const contenedor = new PopupMenu.PopupMenuSection();
+        contenedor.actor.add_child(this._scroll);
+        this.menu.addMenuItem(contenedor);
+
+        if (this._motivoVacio === 'inexistente') {
+            this._itemInformativo(_('No se encontró la configuración de SSH:'));
+            this._itemInformativo(this._rutaConfig);
+        } else if (this._motivoVacio === 'vacia') {
+            this._itemInformativo(_('No hay ningún bloque «Host» en la configuración'));
+        } else if (this._hosts.length === 0) {
+            this._itemInformativo(_('Cargando equipos…'));
+        } else {
+            this._pintarGrupos();
+        }
+
+        this._ajustarAltoLista();
+    }
+
+    /**
+     * Añade los equipos agrupados, con un separador por grupo.
+     */
+    _pintarGrupos() {
+        const grupos = agruparHosts(this._hosts);
+        const avisoDisco = this._settings.get_int('disk-warning');
+        const hayVariosGrupos = grupos.length > 1 || grupos[0]?.nombre !== GRUPO_SIN_NOMBRE;
+
+        let primero = true;
+        for (const grupo of grupos) {
+            if (hayVariosGrupos) {
+                const cabecera = new PopupMenu.PopupSeparatorMenuItem(grupo.nombre);
+                if (primero)
+                    cabecera.add_style_class_name('equipos-primera-cabecera');
+                this._seccionLista.addMenuItem(cabecera);
+            }
+            primero = false;
+
+            for (const host of grupo.hosts) {
+                const item = new ItemEquipo(host, avisoDisco);
+                item.fijarEstado(host.salto
+                    ? ESTADO.DESCONOCIDO
+                    : this._comprobador.estadoDe(host.id));
+                item.fijarVitales(
+                    this._monitor.estadoDe(host.id),
+                    this._monitor.datosDe(host.id),
+                    this._monitor.errorDe(host.id));
+
+                // El clic normal no hace nada irreversible: vuelve a preguntar.
+                item.connect('activate', () => {
+                    this._comprobador.comprobar(host);
+                    this._monitor.pedir(host);
+                });
+                item.connect('contexto', () => this._alternarContexto(item));
+
+                this._seccionLista.addMenuItem(item);
+                this._items.set(host.id, item);
+            }
+        }
+    }
+
+    /**
+     * Actualiza el contador del panel con los equipos que no responden.
+     */
+    _actualizarInsignia() {
+        if (this._destruido || !this._insignia)
+            return;
+
+        const activa = this._settings.get_boolean('panel-badge') &&
+                       this._settings.get_boolean('enable-checks');
+
+        let caidos = 0;
+        if (activa) {
+            for (const host of this._comprobables) {
+                if (this._comprobador.estadoDe(host.id) === ESTADO.ABAJO)
+                    caidos++;
+            }
+        }
+
+        this._insignia.text = String(caidos);
+        this._insignia.visible = caidos > 0;
+        this.accessible_name = caidos > 0
+            ? `${_('Equipos')} — ${caidos} ${_('sin respuesta')}`
+            : _('Equipos');
+    }
+
+    /**
+     * Limita el alto de la lista a una parte del área de trabajo. El valor va
+     * en píxeles lógicos, de ahí la división por el factor de escala.
+     */
+    _ajustarAltoLista() {
+        if (!this._scroll)
+            return;
+
+        const area = Main.layoutManager.getWorkAreaForMonitor(Main.layoutManager.primaryIndex);
+        const escala = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+        const alto = Math.max(200, Math.round(area.height * PROPORCION_ALTO_LISTA / escala));
+
+        this._scroll.style = `max-height: ${alto}px;`;
+    }
+
+    /**
+     * Añade una línea de texto no pulsable (avisos, errores).
+     *
+     * @param {string} texto texto a mostrar
+     */
+    _itemInformativo(texto) {
+        this._seccionLista.addMenuItem(
+            new PopupMenu.PopupMenuItem(texto, {reactive: false, style_class: 'equipos-aviso-fila'}));
+    }
+
+    /* -------------------------- Menú contextual ---------------------- */
+
+    /**
+     * Abre (o cierra) la fila de acciones de un equipo, justo debajo de él.
+     *
+     * @param {ItemEquipo} item elemento sobre el que se pulsó
+     */
+    _alternarContexto(item) {
+        const yaAbierto = this._contexto?._idHost === item.host.id;
+        this._cerrarContexto();
+        if (yaAbierto)
+            return;
+
+        const host = item.host;
+        const acciones = ACCIONES_ENERGIA.map(accion => ({
+            icono: accion.icono,
+            texto: accion.etiqueta(),
+            peligrosa: accion.peligrosa,
+            alPulsar: () => this._pedirEnergia(item, accion),
+        }));
+
+        acciones.push({
+            icono: 'edit-copy-symbolic',
+            texto: _('Copiar'),
+            alPulsar: () => {
+                St.Clipboard.get_default().set_text(
+                    St.ClipboardType.CLIPBOARD, `ssh ${host.nombre}`);
+                this._cerrarContexto();
+            },
+        });
+
+        this._abrirContexto(item, new ItemAcciones(acciones));
+    }
+
+    /**
+     * Pone una fila debajo de un equipo, sustituyendo a la que hubiera.
+     *
+     * @param {ItemEquipo} item equipo bajo el que va la fila
+     * @param {PopupMenu.PopupBaseMenuItem} fila fila a insertar
+     */
+    _abrirContexto(item, fila) {
+        this._cerrarContexto();
+        fila._idHost = item.host.id;
+
+        const posicion = this._seccionLista._getMenuItems().indexOf(item);
+        this._seccionLista.addMenuItem(fila, posicion + 1);
+        this._contexto = fila;
+    }
+
+    /**
+     * Quita la fila de acciones, si hay alguna abierta.
+     */
+    _cerrarContexto() {
+        this._contexto?.destroy();
+        this._contexto = null;
+    }
+
+    /* ------------------------- Energía ------------------------------ */
+
+    /**
+     * Pide confirmación antes de apagar, reiniciar o suspender.
+     *
+     * Se pregunta en el propio menú, no en un diálogo: el diálogo robaría el
+     * foco y cerraría el menú, y aquí lo que hace falta es que el sí esté al
+     * lado del equipo al que se refiere.
+     *
+     * @param {ItemEquipo} item equipo sobre el que se actúa
+     * @param {object} accion acción de ACCIONES_ENERGIA
+     */
+    _pedirEnergia(item, accion) {
+        if (!this._settings.get_boolean('confirm-power')) {
+            this._cerrarContexto();
+            this._ejecutarEnergia(item.host, accion);
+            return;
+        }
+
+        this._abrirContexto(item, new ItemConfirmacion(
+            `¿${accion.etiqueta()} «${item.host.nombre}»?`,
+            () => {
+                this._cerrarContexto();
+                this._ejecutarEnergia(item.host, accion);
+            },
+            () => this._cerrarContexto()));
+    }
+
+    /**
+     * Manda la orden de energía al equipo y cuenta lo que pasó.
+     *
+     * @param {object} host equipo destino
+     * @param {object} accion acción de ACCIONES_ENERGIA
+     */
+    async _ejecutarEnergia(host, accion) {
+        const etiqueta = accion.etiqueta();
+
+        try {
+            const sistema = await this._monitor.sistema(host, this._cancellableAcciones);
+            const familia = sistema === SISTEMA.WINDOWS ? 'windows' : 'linux';
+            const orden = this._settings.get_string(`${accion.clave}-command-${familia}`).trim();
+
+            if (orden === '') {
+                Main.notifyError('Equipos',
+                    `${_('No hay orden configurada para')} «${etiqueta}» ${_('en')} ${familia}`);
+                return;
+            }
+
+            const {error, codigo} = await this._monitor.ejecutarCrudo(
+                host, orden, this._cancellableAcciones);
+
+            if (this._destruido)
+                return;
+
+            // Que la conexión se corte a mitad no es un fallo: es el equipo
+            // haciendo exactamente lo que se le pidió.
+            const seFue = /closed by remote host|connection reset|broken pipe/i.test(error);
+
+            if (codigo === 0 || seFue) {
+                Main.notify('Equipos', `«${host.nombre}»: ${etiqueta.toLowerCase()}`);
+                this._trasEnergia(host);
+                return;
+            }
+
+            Main.notifyError('Equipos',
+                `${_('No se pudo')} ${etiqueta.toLowerCase()} «${host.nombre}»: ${this._explicarEnergia(error)}`);
+        } catch (e) {
+            if (!this._destruido && !e.matches?.(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
+                Main.notifyError('Equipos',
+                    `${_('No se pudo')} ${etiqueta.toLowerCase()} «${host.nombre}»: ${e.message}`);
+            }
+        }
+    }
+
+    /**
+     * Traduce el fallo más típico de estas órdenes: logind no deja apagar a una
+     * sesión que no está delante del equipo, y lo dice de una forma que no
+     * ayuda nada.
+     *
+     * @param {string} error salida de error de la orden
+     * @returns {string} explicación de una línea
+     */
+    _explicarEnergia(error) {
+        const texto = (error ?? '').trim();
+
+        if (/interactive authentication required/i.test(texto)) {
+            return _('el equipo exige autenticación para apagarse desde una sesión ' +
+                     'remota; hace falta una regla de polkit o sudo (mira el README)');
+        }
+        if (/access is denied|acceso denegado/i.test(texto))
+            return _('el usuario remoto no tiene permiso para apagar el equipo');
+
+        const primera = texto.split('\n').find(l => l.trim() !== '');
+        return primera ? primera.trim() : _('falló sin decir por qué');
+    }
+
+    /**
+     * Tras una orden de energía, el equipo tarda un poco en irse: se le deja
+     * ese rato y se vuelve a mirar, para que el punto diga la verdad.
+     *
+     * @param {object} host equipo al que se le mandó la orden
+     */
+    _trasEnergia(host) {
+        this._items.get(host.id)?.fijarEstado(ESTADO.COMPROBANDO);
+        this._items.get(host.id)?.fijarVitales(VITALES.DESCONOCIDO, null, '');
+
+        const id = GLib.timeout_add_seconds(
+            GLib.PRIORITY_DEFAULT, RETARDO_TRAS_ENERGIA_S, () => {
+                this._idsEspera = this._idsEspera.filter(otro => otro !== id);
+                if (!this._destruido) {
+                    this._comprobador.comprobar(host);
+                    if (this.menu.isOpen)
+                        this._monitor.pedir(host);
+                }
+                return GLib.SOURCE_REMOVE;
+            });
+        this._idsEspera.push(id);
+    }
+
+    /* --------------------------- Limpieza ---------------------------- */
+
+    /**
+     * Libera absolutamente todo. Se llama desde disable().
+     */
+    destroy() {
+        this._destruido = true;
+
+        if (this._idRecarga) {
+            GLib.source_remove(this._idRecarga);
+            this._idRecarga = 0;
+        }
+        this._pararIntervalo();
+        for (const id of this._idsEspera)
+            GLib.source_remove(id);
+        this._idsEspera = [];
+
+        this._cancellable.cancel();
+        this._cancellableAcciones.cancel();
+        this._comprobador.destruir();
+        this._comprobador = null;
+        this._monitor.destruir();
+        this._monitor = null;
+
+        this._pararMonitores();
+
+        for (const id of this._idsSettings)
+            this._settings.disconnect(id);
+        this._idsSettings = [];
+
+        if (this._idAbrir) {
+            this.menu.disconnect(this._idAbrir);
+            this._idAbrir = 0;
+        }
+
+        this._items.clear();
+        this._scroll = null;
+        this._seccionLista = null;
+        this._contexto = null;
+        this._insignia = null;
+        this._hosts = [];
+        this._archivos = [];
+        this._settings = null;
+        this._extension = null;
+
+        super.destroy();
+    }
+});
+
+/* -------------------------------------------------------------------------
+ * Punto de entrada de la extensión (API moderna de GNOME 45+)
+ * ------------------------------------------------------------------------- */
+export default class EquiposMenuExtension extends Extension {
+    /**
+     * Crea el indicador y lo añade al panel.
+     */
+    enable() {
+        this._indicador = new IndicadorEquipos(this);
+        Main.panel.addToStatusArea(this.uuid, this._indicador, 3, 'right');
+    }
+
+    /**
+     * Destruye el indicador y, con él, todos sus recursos.
+     */
+    disable() {
+        this._indicador?.destroy();
+        this._indicador = null;
+    }
+}

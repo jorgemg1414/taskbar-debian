@@ -18,7 +18,7 @@ repository holds exactly one copy of each file.
 |---|---|---|
 | `asyncgio.js` | `Promise` wrappers around the async `Gio` calls | all four menus |
 | `checker.js` | TCP port checks: async, cancellable, queued | VNC, SSH, WoL, Machines |
-| `hosts.js` | Reads and parses `~/.ssh/config`, including `Include` and grouping | SSH, Machines |
+| `hosts.js` | Reads and parses `~/.ssh/config`, including `Include` and grouping | SSH, WoL, Machines |
 | `wol.js` | Magic packet, machine list, and MACs learned from the ARP table | WoL, SSH, VNC |
 
 ---

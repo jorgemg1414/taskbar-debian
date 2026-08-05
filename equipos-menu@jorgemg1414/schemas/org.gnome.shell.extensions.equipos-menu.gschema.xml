@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.equipos-menu"
+          path="/org/gnome/shell/extensions/equipos-menu/">
+
+    <key name="config-path" type="s">
+      <default>'~/.ssh/config'</default>
+      <summary>Archivo de configuración de SSH</summary>
+      <description>
+        De donde salen los equipos del menú. Se siguen sus directivas Include,
+        igual que hace el propio ssh.
+      </description>
+    </key>
+
+    <key name="refresh-interval" type="i">
+      <default>60</default>
+      <range min="10" max="3600"/>
+      <summary>Refresco con el menú abierto, en segundos</summary>
+      <description>
+        Cada cuánto se vuelven a pedir las vitales mientras miras el menú. Con
+        el menú cerrado no se pregunta nada.
+      </description>
+    </key>
+
+    <key name="connect-timeout" type="i">
+      <default>5</default>
+      <range min="1" max="60"/>
+      <summary>Espera al conectar, en segundos</summary>
+      <description>
+        Lo que espera ssh a que el equipo acepte la conexión (ConnectTimeout).
+      </description>
+    </key>
+
+    <key name="reuse-connection" type="b">
+      <default>true</default>
+      <summary>Reaprovechar la conexión</summary>
+      <description>
+        Usa ControlMaster para que todas las consultas de un mismo equipo vayan
+        por una sola conexión SSH. La primera paga el saludo completo; las
+        demás son casi instantáneas.
+      </description>
+    </key>
+
+    <key name="persist-seconds" type="i">
+      <default>120</default>
+      <range min="10" max="3600"/>
+      <summary>Vida de la conexión compartida, en segundos</summary>
+      <description>
+        Cuánto sigue viva la conexión de ControlMaster después de la última
+        consulta (ControlPersist).
+      </description>
+    </key>
+
+    <key name="show-updates" type="b">
+      <default>true</default>
+      <summary>Contar las actualizaciones pendientes</summary>
+      <description>
+        Añade a la consulta el recuento de paquetes por actualizar. En Debian y
+        derivados es una simulación de apt-get, que no necesita permisos ni toca
+        la red, pero tarda su segundo; en Windows lo pregunta al agente de
+        Windows Update.
+      </description>
+    </key>
+
+    <key name="disk-warning" type="i">
+      <default>90</default>
+      <range min="50" max="100"/>
+      <summary>Aviso de disco lleno, en porcentaje</summary>
+      <description>
+        A partir de este porcentaje de disco usado, la cifra se pinta en rojo.
+      </description>
+    </key>
+
+    <key name="confirm-power" type="b">
+      <default>true</default>
+      <summary>Confirmar antes de apagar</summary>
+      <description>
+        Apagar, reiniciar o suspender pide confirmación en el propio menú. Es lo
+        prudente: son acciones que no se pueden deshacer desde aquí.
+      </description>
+    </key>
+
+    <key name="poweroff-command-linux" type="s">
+      <default>'systemctl poweroff'</default>
+      <summary>Apagar (Linux)</summary>
+      <description>
+        Orden que se ejecuta en el equipo. Si logind pide autenticación, ponle
+        «sudo -n» delante y autoriza esa orden en sudoers, o añade una regla de
+        polkit (ver el README).
+      </description>
+    </key>
+
+    <key name="reboot-command-linux" type="s">
+      <default>'systemctl reboot'</default>
+      <summary>Reiniciar (Linux)</summary>
+      <description>Orden que se ejecuta en el equipo.</description>
+    </key>
+
+    <key name="suspend-command-linux" type="s">
+      <default>'systemctl suspend'</default>
+      <summary>Suspender (Linux)</summary>
+      <description>Orden que se ejecuta en el equipo.</description>
+    </key>
+
+    <key name="poweroff-command-windows" type="s">
+      <default>'shutdown /s /t 0'</default>
+      <summary>Apagar (Windows)</summary>
+      <description>Orden que se ejecuta en el equipo.</description>
+    </key>
+
+    <key name="reboot-command-windows" type="s">
+      <default>'shutdown /r /t 0'</default>
+      <summary>Reiniciar (Windows)</summary>
+      <description>Orden que se ejecuta en el equipo.</description>
+    </key>
+
+    <key name="suspend-command-windows" type="s">
+      <default>'rundll32.exe powrprof.dll,SetSuspendState 0,1,0'</default>
+      <summary>Suspender (Windows)</summary>
+      <description>
+        Orden que se ejecuta en el equipo. Con la hibernación activada, esta
+        orden hiberna en vez de suspender: es cosa de Windows, no de aquí.
+      </description>
+    </key>
+
+    <key name="enable-checks" type="b">
+      <default>true</default>
+      <summary>Comprobar la disponibilidad</summary>
+      <description>
+        Sondea el puerto de SSH de cada equipo al abrir el menú para pintar el
+        punto verde o rojo. Es mucho más rápido que la consulta de vitales, así
+        que se ve enseguida quién está y quién no.
+      </description>
+    </key>
+
+    <key name="check-timeout" type="i">
+      <default>2</default>
+      <range min="1" max="30"/>
+      <summary>Espera del sondeo, en segundos</summary>
+      <description>Antes de dar un equipo por caído.</description>
+    </key>
+
+    <key name="panel-badge" type="b">
+      <default>true</default>
+      <summary>Contador en el panel</summary>
+      <description>
+        Cuántos equipos no responden, junto al icono de la barra superior.
+      </description>
+    </key>
+
+    <key name="panel-icon" type="s">
+      <default>'utilities-system-monitor-symbolic'</default>
+      <summary>Icono del panel</summary>
+      <description>Nombre del icono simbólico que se muestra en la barra superior.</description>
+    </key>
+
+  </schema>
+</schemalist>
