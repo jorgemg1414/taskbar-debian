@@ -240,7 +240,6 @@ Empty means the download didn't go through; the shell log says why.
 ```
 spotify-menu@jorgemg1414/
 ├── extension.js       Indicator, menu, controls and teardown in disable()
-├── mpris.js           D-Bus client: who to follow, what's playing and control
 ├── caratula.js        Cover art download and cache
 ├── prefs.js           Preferences window (libadwaita)
 ├── stylesheet.css     Menu styles
@@ -248,8 +247,10 @@ spotify-menu@jorgemg1414/
 └── install.sh         Installer
 ```
 
-Plus the shared module `install.sh` copies from [`comun/`](../comun/):
-`asyncgio.js` (`Promise` wrappers over Gio calls).
+Plus the shared modules `install.sh` copies from [`comun/`](../comun/):
+`mpris.js` (the D-Bus client: who to follow, what's playing and control),
+`barra.js` and `barraprefs.js` (the place in the top bar) and `asyncgio.js`
+(`Promise` wrappers over Gio calls).
 
 ### Teardown in `disable()`
 

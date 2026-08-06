@@ -56,11 +56,11 @@ fi
 
 mkdir -p "$DESTINO/schemas"
 
-for archivo in metadata.json extension.js prefs.js mpris.js caratula.js stylesheet.css; do
+for archivo in metadata.json extension.js prefs.js caratula.js stylesheet.css; do
     install -m 644 "${ORIGEN}/${archivo}" "${DESTINO}/${archivo}"
 done
 
-for archivo in asyncgio.js barra.js barraprefs.js; do
+for archivo in asyncgio.js barra.js barraprefs.js mpris.js; do
     install -m 644 "${COMUN}/${archivo}" "${DESTINO}/${archivo}"
 done
 

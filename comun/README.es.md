@@ -22,6 +22,7 @@ hay un solo archivo de cada cosa.
 | `barraprefs.js` | Las dos filas de preferencias con las que se elige ese sitio | los cinco menús |
 | `checker.js` | Comprobación de puertos TCP, asíncrona, cancelable y con cola | VNC, SSH, WoL, Equipos |
 | `hosts.js` | Lectura y parseo de `~/.ssh/config`, con `Include` y agrupación | SSH, WoL, Equipos |
+| `mpris.js` | Qué está sonando y control del reproductor, por D-Bus; y pausar todo de golpe | Spotify, Concentración |
 | `wol.js` | Paquete mágico, lista de equipos y MAC aprendidas de la tabla ARP | WoL, SSH, VNC |
 
 ---

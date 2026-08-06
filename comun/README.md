@@ -21,6 +21,7 @@ repository holds exactly one copy of each file.
 | `barraprefs.js` | The two preference rows that pick that place | all five menus |
 | `checker.js` | TCP port checks: async, cancellable, queued | VNC, SSH, WoL, Machines |
 | `hosts.js` | Reads and parses `~/.ssh/config`, including `Include` and grouping | SSH, WoL, Machines |
+| `mpris.js` | What is playing and player control over D-Bus; and pausing everything at once | Spotify, Focus |
 | `wol.js` | Magic packet, machine list, and MACs learned from the ARP table | WoL, SSH, VNC |
 
 ---

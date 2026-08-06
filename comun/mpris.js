@@ -1,5 +1,5 @@
 /*
- * mpris.js — Qué está sonando, preguntado por D-Bus.
+ * mpris.js — Qué está sonando, preguntado por D-Bus, y cómo callarlo.
  *
  * Spotify —como casi todos los reproductores del escritorio— publica lo que
  * está reproduciendo en el bus de sesión con la interfaz estándar MPRIS
@@ -447,6 +447,125 @@ export class ClienteMpris {
         this._nombres.clear();
         this._alCambiar = null;
     }
+}
+
+/* -------------------------------------------------------------------------
+ * Callar y devolver el sonido a todo lo que esté reproduciendo
+ *
+ * Esto no sigue a nadie ni mantiene proxies: son cuatro llamadas sueltas al
+ * bus. Lo usa el modo de concentración, al que no le interesa qué suena sino
+ * que deje de sonar.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Llama a un método de un reproductor y espera a que conteste.
+ *
+ * @param {string} destino nombre de bus del reproductor
+ * @param {string} metodo método de org.mpris.MediaPlayer2.Player
+ * @param {Gio.Cancellable} cancellable cancelable
+ * @returns {Promise<boolean>} si la llamada salió bien
+ */
+function llamarA(destino, metodo, cancellable) {
+    return new Promise(resolve => {
+        Gio.DBus.session.call(
+            destino, RUTA, 'org.mpris.MediaPlayer2.Player', metodo,
+            null, null, Gio.DBusCallFlags.NONE, TIEMPO_LIMITE_MS, cancellable,
+            (objeto, res) => {
+                try {
+                    objeto.call_finish(res);
+                    resolve(true);
+                } catch {
+                    // Un reproductor que no implementa el método, o que se ha
+                    // cerrado mientras tanto: no es motivo para nada.
+                    resolve(false);
+                }
+            });
+    });
+}
+
+/**
+ * Estado de reproducción de un reproductor concreto.
+ *
+ * @param {string} destino nombre de bus del reproductor
+ * @param {Gio.Cancellable} cancellable cancelable
+ * @returns {Promise<string>} valor de ESTADO, o cadena vacía si no contestó
+ */
+function estadoDe(destino, cancellable) {
+    return new Promise(resolve => {
+        Gio.DBus.session.call(
+            destino, RUTA, 'org.freedesktop.DBus.Properties', 'Get',
+            new GLib.Variant('(ss)', ['org.mpris.MediaPlayer2.Player', 'PlaybackStatus']),
+            new GLib.VariantType('(v)'),
+            Gio.DBusCallFlags.NONE, TIEMPO_LIMITE_MS, cancellable,
+            (objeto, res) => {
+                try {
+                    const [valor] = objeto.call_finish(res).deepUnpack();
+                    resolve(valor.deepUnpack());
+                } catch {
+                    resolve('');
+                }
+            });
+    });
+}
+
+/**
+ * Nombres de bus de todos los reproductores que hay ahora mismo.
+ *
+ * @param {Gio.Cancellable} cancellable cancelable
+ * @returns {Promise<string[]>} nombres, vacío si no se pudo preguntar
+ */
+function listarReproductores(cancellable) {
+    return new Promise(resolve => {
+        Gio.DBus.session.call(
+            'org.freedesktop.DBus', '/org/freedesktop/DBus', 'org.freedesktop.DBus',
+            'ListNames', null, new GLib.VariantType('(as)'),
+            Gio.DBusCallFlags.NONE, TIEMPO_LIMITE_MS, cancellable,
+            (objeto, res) => {
+                try {
+                    const [nombres] = objeto.call_finish(res).deepUnpack();
+                    resolve(nombres.filter(n => n.startsWith(`${PREFIJO}.`)));
+                } catch {
+                    resolve([]);
+                }
+            });
+    });
+}
+
+/**
+ * Pausa todo lo que esté sonando.
+ *
+ * Se apunta a quién se pausó para poder devolvérselo después: lo que ya estaba
+ * en pausa no se toca, y al reanudar no se le da a reproducir sin motivo.
+ *
+ * @param {Gio.Cancellable} cancellable cancelable
+ * @returns {Promise<string[]>} reproductores que estaban sonando y se pausaron
+ */
+export async function pausarReproductores(cancellable) {
+    const nombres = await listarReproductores(cancellable);
+    const sonando = [];
+
+    for (const nombre of nombres) {
+        if (await estadoDe(nombre, cancellable) === ESTADO.SONANDO)
+            sonando.push(nombre);
+    }
+
+    // Pause en vez de PlayPause: si algo cambia entre la consulta y la orden,
+    // pausar dos veces sigue dejándolo en pausa.
+    await Promise.all(sonando.map(nombre => llamarA(nombre, 'Pause', cancellable)));
+
+    return sonando;
+}
+
+/**
+ * Vuelve a poner en marcha los reproductores que se pausaron.
+ *
+ * @param {string[]} nombres los que devolvió pausarReproductores()
+ * @param {Gio.Cancellable} cancellable cancelable
+ * @returns {Promise<void>} promesa resuelta al terminar
+ */
+export async function reanudarReproductores(nombres, cancellable) {
+    // Los que ya no están en el bus fallan solos y no molestan a los demás.
+    await Promise.all(nombres.map(nombre => llamarA(nombre, 'Play', cancellable)));
 }
 
 /**

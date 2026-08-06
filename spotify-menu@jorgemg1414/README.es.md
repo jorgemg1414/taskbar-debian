@@ -246,7 +246,6 @@ Vacío significa que la descarga no salió; el registro del shell dice por qué.
 ```
 spotify-menu@jorgemg1414/
 ├── extension.js       Indicador, menú, controles y limpieza en disable()
-├── mpris.js           Cliente de D-Bus: a quién seguir, qué suena y control
 ├── caratula.js        Descarga y caché de las portadas
 ├── prefs.js           Ventana de preferencias (libadwaita)
 ├── stylesheet.css     Estilos del menú
@@ -254,8 +253,10 @@ spotify-menu@jorgemg1414/
 └── install.sh         Instalador
 ```
 
-Más el módulo compartido que `install.sh` copia de [`comun/`](../comun/):
-`asyncgio.js` (envoltorios de `Promise` sobre las llamadas de Gio).
+Más los módulos compartidos que `install.sh` copia de [`comun/`](../comun/):
+`mpris.js` (el cliente de D-Bus: a quién seguir, qué suena y control),
+`barra.js` y `barraprefs.js` (el sitio en la barra) y `asyncgio.js`
+(envoltorios de `Promise` sobre las llamadas de Gio).
 
 ### Limpieza en `disable()`
 
