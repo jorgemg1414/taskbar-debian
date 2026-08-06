@@ -46,6 +46,59 @@ const PASO_RUEDA = 1.0;
 // Programa que se abre desde el menú cuando Spotify no está en marcha.
 const ESCRITORIO_SPOTIFY = 'spotify.desktop';
 
+/**
+ * Crea un botón con un icono dentro.
+ *
+ * @param {object} opciones cómo es el botón
+ * @param {string} opciones.icono nombre del icono simbólico
+ * @param {string} opciones.descripcion nombre accesible del botón
+ * @param {string} opciones.clase clase de estilo del botón
+ * @param {string} opciones.claseIcono clase de estilo del icono
+ * @param {Function} opciones.accion qué hacer al pulsarlo
+ * @returns {St.Button} botón listo para añadir
+ */
+function botonIcono({icono, descripcion, clase, claseIcono, accion}) {
+    const boton = new St.Button({
+        style_class: clase,
+        can_focus: true,
+        accessible_name: descripcion,
+        child: new St.Icon({icon_name: icono, style_class: claseIcono}),
+    });
+    boton.connect('clicked', () => accion());
+    return boton;
+}
+
+/**
+ * Enciende o apaga un botón según lo que el reproductor deje hacer.
+ *
+ * Un botón que el reproductor no atendería se queda apagado en vez de fingir
+ * que hace algo.
+ *
+ * @param {St.Button} boton botón a ajustar
+ * @param {boolean} puede si la acción está disponible
+ */
+function habilitarBoton(boton, puede) {
+    boton.reactive = puede;
+    boton.can_focus = puede;
+    if (puede)
+        boton.remove_style_class_name('spotify-boton-apagado');
+    else
+        boton.add_style_class_name('spotify-boton-apagado');
+}
+
+/**
+ * Pone el icono de reproducir o el de pausa, según el estado.
+ *
+ * @param {St.Button} boton botón de reproducción
+ * @param {boolean} sonando si está sonando ahora mismo
+ */
+function pintarBotonReproducir(boton, sonando) {
+    boton.child.icon_name = sonando
+        ? 'media-playback-pause-symbolic'
+        : 'media-playback-start-symbolic';
+    boton.accessible_name = sonando ? _('Pausar') : _('Reproducir');
+}
+
 /* -------------------------------------------------------------------------
  * Barra de progreso: por dónde va la canción, y saltar a otro punto
  * ------------------------------------------------------------------------- */
@@ -149,31 +202,20 @@ class ItemControles extends PopupMenu.PopupBaseMenuItem {
         });
         this.add_child(fila);
 
-        this._anterior = this._boton('media-skip-backward-symbolic', _('Anterior'), anterior);
-        this._reproducir = this._boton('media-playback-start-symbolic', _('Reproducir'), reproducirPausar);
-        this._siguiente = this._boton('media-skip-forward-symbolic', _('Siguiente'), siguiente);
-
-        for (const boton of [this._anterior, this._reproducir, this._siguiente])
-            fila.add_child(boton);
-    }
-
-    /**
-     * Construye uno de los botones.
-     *
-     * @param {string} icono nombre del icono simbólico
-     * @param {string} descripcion nombre accesible del botón
-     * @param {Function} accion qué hacer al pulsarlo
-     * @returns {St.Button} botón listo para añadir
-     */
-    _boton(icono, descripcion, accion) {
-        const boton = new St.Button({
-            style_class: 'spotify-boton',
-            can_focus: true,
-            accessible_name: descripcion,
-            child: new St.Icon({icon_name: icono, style_class: 'popup-menu-icon'}),
+        const boton = (icono, descripcion, accion) => botonIcono({
+            icono,
+            descripcion,
+            clase: 'spotify-boton',
+            claseIcono: 'popup-menu-icon',
+            accion,
         });
-        boton.connect('clicked', () => accion());
-        return boton;
+
+        this._anterior = boton('media-skip-backward-symbolic', _('Anterior'), anterior);
+        this._reproducir = boton('media-playback-start-symbolic', _('Reproducir'), reproducirPausar);
+        this._siguiente = boton('media-skip-forward-symbolic', _('Siguiente'), siguiente);
+
+        for (const control of [this._anterior, this._reproducir, this._siguiente])
+            fila.add_child(control);
     }
 
     /**
@@ -186,25 +228,10 @@ class ItemControles extends PopupMenu.PopupBaseMenuItem {
      * @param {boolean} estado.puedeSiguiente si admite pasar a la siguiente
      */
     fijar({sonando, puedeAnterior, puedeReproducir, puedeSiguiente}) {
-        this._reproducir.child.icon_name = sonando
-            ? 'media-playback-pause-symbolic'
-            : 'media-playback-start-symbolic';
-        this._reproducir.accessible_name = sonando ? _('Pausar') : _('Reproducir');
-
-        // Un botón que el reproductor no atendería se queda apagado en vez de
-        // fingir que hace algo.
-        const habilitar = (boton, puede) => {
-            boton.reactive = puede;
-            boton.can_focus = puede;
-            if (puede)
-                boton.remove_style_class_name('spotify-boton-apagado');
-            else
-                boton.add_style_class_name('spotify-boton-apagado');
-        };
-
-        habilitar(this._anterior, puedeAnterior);
-        habilitar(this._reproducir, puedeReproducir);
-        habilitar(this._siguiente, puedeSiguiente);
+        pintarBotonReproducir(this._reproducir, sonando);
+        habilitarBoton(this._anterior, puedeAnterior);
+        habilitarBoton(this._reproducir, puedeReproducir);
+        habilitarBoton(this._siguiente, puedeSiguiente);
     }
 });
 
@@ -245,6 +272,30 @@ class IndicadorSpotify extends PanelMenu.Button {
         });
         caja.add_child(this._icono);
         caja.add_child(this._etiquetaPanel);
+
+        // Los tres controles, en la barra misma: pulsarlos no abre el menú,
+        // porque el botón se queda el clic antes de que llegue al indicador.
+        this._controlesPanel = new St.BoxLayout({
+            orientation: Clutter.Orientation.HORIZONTAL,
+            style_class: 'spotify-panel-controles',
+        });
+        const boton = (icono, descripcion, accion) => botonIcono({
+            icono,
+            descripcion,
+            clase: 'spotify-panel-boton',
+            claseIcono: 'system-status-icon',
+            accion,
+        });
+        this._panelAnterior = boton('media-skip-backward-symbolic', _('Anterior'),
+            () => this._cliente.anterior());
+        this._panelReproducir = boton('media-playback-start-symbolic', _('Reproducir'),
+            () => this._cliente.reproducirPausar());
+        this._panelSiguiente = boton('media-skip-forward-symbolic', _('Siguiente'),
+            () => this._cliente.siguiente());
+        for (const control of [this._panelAnterior, this._panelReproducir, this._panelSiguiente])
+            this._controlesPanel.add_child(control);
+        caja.add_child(this._controlesPanel);
+
         this.add_child(caja);
 
         this._construirMenu();
@@ -283,7 +334,8 @@ class IndicadorSpotify extends PanelMenu.Button {
             (this._icono.icon_name = this._settings.get_string('panel-icon')));
 
         for (const clave of ['panel-format', 'panel-max-chars', 'show-panel-text',
-            'hide-when-stopped', 'icon-shows-state', 'show-art', 'show-position'])
+            'show-panel-controls', 'hide-when-stopped', 'icon-shows-state',
+            'show-art', 'show-position'])
             conectar(clave, () => this._refrescar());
     }
 
@@ -398,12 +450,16 @@ class IndicadorSpotify extends PanelMenu.Button {
      */
     _pintarPanel(pista, hayPista) {
         const parado = !hayPista || this._cliente.estado === ESTADO.PARADO;
+        const controles = hayPista && this._settings.get_boolean('show-panel-controls');
 
         // Sin nada sonando el indicador estorba: por omisión se quita de la
         // barra y vuelve solo cuando hay música.
         this.visible = !parado || !this._settings.get_boolean('hide-when-stopped');
 
-        if (this._settings.get_boolean('icon-shows-state') && hayPista) {
+        // Con el botón de reproducir al lado, el icono de estado sobra y encima
+        // se contradice con él: uno dice lo que está pasando y el otro lo que
+        // pasaría si lo pulsas.
+        if (this._settings.get_boolean('icon-shows-state') && hayPista && !controles) {
             this._icono.icon_name = this._cliente.sonando
                 ? 'media-playback-start-symbolic'
                 : 'media-playback-pause-symbolic';
@@ -416,6 +472,15 @@ class IndicadorSpotify extends PanelMenu.Button {
             : '';
         this._etiquetaPanel.text = texto;
         this._etiquetaPanel.visible = texto !== '';
+
+        // Sin canción cargada no hay nada que saltar ni que pausar.
+        this._controlesPanel.visible = controles;
+        if (controles) {
+            pintarBotonReproducir(this._panelReproducir, this._cliente.sonando);
+            habilitarBoton(this._panelAnterior, this._cliente.puedeAnterior);
+            habilitarBoton(this._panelReproducir, this._cliente.puedeReproducir);
+            habilitarBoton(this._panelSiguiente, this._cliente.puedeSiguiente);
+        }
 
         this.accessible_name = hayPista
             ? `${this._cliente.reproductor}: ${pista.artista} — ${pista.titulo}`
@@ -651,7 +716,16 @@ class IndicadorSpotify extends PanelMenu.Button {
      * @returns {boolean} si el evento se da por atendido
      */
     vfunc_event(evento) {
-        if (evento.type() === Clutter.EventType.BUTTON_PRESS &&
+        const tipo = evento.type();
+        const pulsacion = tipo === Clutter.EventType.BUTTON_PRESS ||
+            tipo === Clutter.EventType.TOUCH_BEGIN;
+
+        // Un clic sobre los botones de la barra es para el botón: quien lo
+        // recibe es él, y el menú no tiene por qué abrirse debajo.
+        if (pulsacion && this._sobreControles(evento))
+            return Clutter.EVENT_PROPAGATE;
+
+        if (tipo === Clutter.EventType.BUTTON_PRESS &&
             evento.get_button() === Clutter.BUTTON_MIDDLE &&
             this._settings.get_boolean('middle-click-plays')) {
             this._cliente.reproducirPausar();
@@ -659,6 +733,24 @@ class IndicadorSpotify extends PanelMenu.Button {
         }
 
         return super.vfunc_event(evento);
+    }
+
+    /**
+     * Dice si una pulsación cayó dentro de los controles de la barra.
+     *
+     * @param {Clutter.Event} evento evento de pulsación
+     * @returns {boolean} si el punto está sobre los botones
+     */
+    _sobreControles(evento) {
+        if (!this._controlesPanel.visible)
+            return false;
+
+        const [x, y] = evento.get_coords();
+        const [izquierda, arriba] = this._controlesPanel.get_transformed_position();
+        const [ancho, alto] = this._controlesPanel.get_transformed_size();
+
+        return x >= izquierda && x <= izquierda + ancho &&
+               y >= arriba && y <= arriba + alto;
     }
 
     /**

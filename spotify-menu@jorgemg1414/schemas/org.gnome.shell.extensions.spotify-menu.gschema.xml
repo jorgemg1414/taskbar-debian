@@ -41,6 +41,15 @@
       </description>
     </key>
 
+    <key name="show-panel-controls" type="b">
+      <default>true</default>
+      <summary>Mostrar los controles en la barra</summary>
+      <description>
+        Añade a la barra superior los botones de anterior, reproducir/pausar y
+        siguiente, para no tener que abrir el menú. Pulsarlos no abre el menú.
+      </description>
+    </key>
+
     <key name="hide-when-stopped" type="b">
       <default>true</default>
       <summary>Ocultar el indicador cuando no suena nada</summary>
@@ -55,7 +64,9 @@
       <summary>El icono dice si está sonando</summary>
       <description>
         Cambia el icono de la barra entre reproducir y pausa según el estado del
-        reproductor, en vez de dejar siempre el mismo.
+        reproductor, en vez de dejar siempre el mismo. No se aplica cuando los
+        controles están en la barra: el botón de reproducir ya dice el estado, y
+        dos iconos parecidos al lado se contradicen.
       </description>
     </key>
 

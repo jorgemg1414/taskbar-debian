@@ -33,10 +33,18 @@ la dirección que publica el reproductor —ver [más abajo](#la-portada)—.
 
 ### En la barra
 
-El artista y el título, cortados a treinta caracteres, junto a un icono que dice
-si está sonando o en pausa. Todo eso se cambia en las preferencias: el formato
-—`{titulo}`, `{artista}` y `{album}`—, la longitud, si se ve el texto o solo el
-icono, y si el icono sigue al estado o se queda fijo.
+El artista y el título, cortados a treinta caracteres, y los tres controles —
+**anterior, reproducir/pausar y siguiente**— para no tener que abrir nada.
+Pulsarlos no abre el menú: el clic se queda en el botón.
+
+Todo eso se cambia en las preferencias: el formato —`{titulo}`, `{artista}` y
+`{album}`—, la longitud, si se ve el texto o solo el icono, y si están los
+controles.
+
+Con los controles puestos, el icono de la izquierda se queda fijo: el botón de
+reproducir ya dice si está sonando, y dos iconos parecidos uno al lado del otro
+acaban contradiciéndose. Quitando los controles, el icono vuelve a seguir al
+estado (se puede desactivar con **El icono dice si está sonando**).
 
 ### En el menú
 
@@ -127,8 +135,9 @@ busctl --user list | grep mpris
 | Mostrar el texto | Sí | Con esto quitado, en la barra queda solo el icono |
 | Formato del texto | `{artista} — {titulo}` | Plantilla del texto de la barra |
 | Longitud máxima | 30 | Caracteres antes de cortar con puntos suspensivos |
+| Mostrar los controles | Sí | Anterior, reproducir/pausar y siguiente en la barra misma |
 | Ocultar cuando no suena nada | Sí | Quita el indicador de la barra mientras no hay música |
-| El icono dice si está sonando | Sí | Alterna entre el icono de reproducir y el de pausa |
+| El icono dice si está sonando | Sí | Alterna entre reproducir y pausa; no se aplica con los controles puestos |
 | Icono del panel | `audio-x-generic-symbolic` | El que se usa cuando no lo sustituye el estado |
 | Mostrar la portada | Sí | Baja la portada del disco y la enseña en el menú |
 | Mostrar por dónde va | Sí | Barra de progreso con los tiempos |

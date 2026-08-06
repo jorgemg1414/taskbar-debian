@@ -5,6 +5,23 @@
     margin-left: 6px;
 }
 
+/* Controles en la barra superior. Van pegados entre sí y separados del texto,
+   con menos relleno que los del menú: en la barra el sitio es caro. */
+.spotify-panel-controles {
+    spacing: 2px;
+    margin-left: 8px;
+}
+
+.spotify-panel-boton {
+    border-radius: 99px;
+    padding: 0 3px;
+}
+
+.spotify-panel-boton:hover,
+.spotify-panel-boton:focus {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
 /* Cabecera del menú: portada, título, artista y álbum. El ancho se fija aquí
    para que los títulos largos se corten en vez de estirar el menú. */
 .spotify-pista {

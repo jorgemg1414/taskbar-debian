@@ -140,8 +140,10 @@ and in the menu the cover art, the album, how far in it is, and the buttons.
 - **It asks the player itself** over D-Bus, through the standard MPRIS interface
   GNOME already uses for its media controls. No account to link, no web API key,
   and nothing leaving the machine.
+- **The controls in the bar itself**: previous, play/pause and next, without
+  opening the menu. Clicking them doesn't open it: the click stays on the button.
 - **You write the bar**: `{artista} — {titulo}` by default, as long as you like,
-  or just the icon. The icon says whether it's playing or paused.
+  or just the icon.
 - **The cover art is downloaded once** and kept in `~/.cache`; coming back to a
   song doesn't touch the network again. It can be turned off entirely.
 - **Dragging the progress bar seeks** to another point in the song, and buttons

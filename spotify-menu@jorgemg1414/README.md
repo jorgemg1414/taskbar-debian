@@ -32,10 +32,18 @@ publishes — see [below](#cover-art).
 
 ### In the bar
 
-Artist and title, cut to thirty characters, next to an icon that says whether
-it's playing or paused. All of that is configurable: the format — `{titulo}`,
-`{artista}` and `{album}` —, the length, whether the text shows at all or just
-the icon, and whether the icon follows the playback state or stays put.
+Artist and title, cut to thirty characters, and the three controls —
+**previous, play/pause and next** — so you don't have to open anything.
+Clicking them doesn't open the menu: the click stays on the button.
+
+All of that is configurable: the format — `{titulo}`, `{artista}` and
+`{album}` —, the length, whether the text shows at all or just the icon, and
+whether the controls are there.
+
+With the controls on, the icon on the left stays put: the play button already
+says whether it's playing, and two similar icons side by side end up
+contradicting each other. Without the controls, the icon follows the playback
+state again (and can be turned off with **The icon shows the state**).
 
 ### In the menu
 
@@ -123,8 +131,9 @@ busctl --user list | grep mpris
 | Show the text | Yes | With this off, only the icon stays in the bar |
 | Text format | `{artista} — {titulo}` | Template for the bar text |
 | Maximum length | 30 | Characters before cutting with an ellipsis |
+| Show the controls | Yes | Previous, play/pause and next in the bar itself |
 | Hide when nothing is playing | Yes | Takes the indicator out of the bar while there's no music |
-| The icon shows the state | Yes | Alternates between the play and pause icons |
+| The icon shows the state | Yes | Alternates between play and pause; not applied with the controls on |
 | Panel icon | `audio-x-generic-symbolic` | Used when the state isn't replacing it |
 | Show the cover art | Yes | Downloads the album cover and shows it in the menu |
 | Show the position | Yes | Progress bar with elapsed and total time |

@@ -147,8 +147,10 @@ en el menú la portada, el álbum, por dónde va y los botones.
 - **Se lo pregunta al propio reproductor** por D-Bus, con la interfaz estándar
   MPRIS que ya usa GNOME para sus controles de música. Sin cuenta que enlazar,
   sin clave de la API web y sin nada que salga del equipo.
+- **Los controles en la barra misma**: anterior, reproducir/pausar y siguiente,
+  sin abrir el menú. Pulsarlos no lo abre: el clic se queda en el botón.
 - **La barra la escribes tú**: `{artista} — {titulo}` por omisión, con el largo
-  que quieras, o solo el icono. El icono dice si está sonando o en pausa.
+  que quieras, o solo el icono.
 - **La portada se baja una vez** y se guarda en `~/.cache`; volver a una canción
   ya no toca la red. Se puede apagar del todo.
 - **Arrastrando la barra de progreso se salta** a otro punto de la canción, y

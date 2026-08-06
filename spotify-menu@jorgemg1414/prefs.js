@@ -72,6 +72,14 @@ export default class SpotifyMenuPreferences extends ExtensionPreferences {
         settings.bind('panel-max-chars', filaLargo, 'value', Gio.SettingsBindFlags.DEFAULT);
         grupoBarra.add(filaLargo);
 
+        const filaControles = new Adw.SwitchRow({
+            title: _('Mostrar los controles'),
+            subtitle: _('Anterior, reproducir/pausar y siguiente en la barra misma. ' +
+                'Pulsarlos no abre el menú.'),
+        });
+        settings.bind('show-panel-controls', filaControles, 'active', Gio.SettingsBindFlags.DEFAULT);
+        grupoBarra.add(filaControles);
+
         const filaOcultar = new Adw.SwitchRow({
             title: _('Ocultar cuando no suena nada'),
             subtitle: _('El indicador vuelve solo en cuanto hay música.'),
@@ -81,7 +89,8 @@ export default class SpotifyMenuPreferences extends ExtensionPreferences {
 
         const filaEstado = new Adw.SwitchRow({
             title: _('El icono dice si está sonando'),
-            subtitle: _('Alterna entre el icono de reproducir y el de pausa.'),
+            subtitle: _('Alterna entre el icono de reproducir y el de pausa. No se ' +
+                'aplica con los controles puestos: el botón ya dice el estado.'),
         });
         settings.bind('icon-shows-state', filaEstado, 'active', Gio.SettingsBindFlags.DEFAULT);
         grupoBarra.add(filaEstado);
