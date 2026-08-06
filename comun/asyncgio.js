@@ -10,6 +10,7 @@
  * Ninguna de estas funciones bloquea el hilo principal.
  */
 
+import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 
 /**
@@ -132,6 +133,64 @@ export function connectToHost(cliente, destino, puertoPorDefecto, cancellable) {
                 reject(e);
             }
         });
+    });
+}
+
+/**
+ * Lee un archivo y devuelve también su etag.
+ *
+ * El etag es la huella que GIO le pone al contenido: guardándolo al leer y
+ * devolviéndolo al escribir, el sistema rechaza la escritura si el archivo
+ * cambió por debajo mientras tanto. Es lo que evita pisar una edición que
+ * hayas hecho tú en un editor.
+ *
+ * @param {Gio.File} file archivo a leer
+ * @param {Gio.Cancellable} cancellable cancelable
+ * @returns {Promise<{contenido: Uint8Array, etag: string}>} contenido y huella
+ */
+export function loadContentsWithEtag(file, cancellable) {
+    return new Promise((resolve, reject) => {
+        file.load_contents_async(cancellable, (obj, res) => {
+            try {
+                const [, contenido, etag] = obj.load_contents_finish(res);
+                resolve({contenido, etag});
+            } catch (e) {
+                reject(e);
+            }
+        });
+    });
+}
+
+/**
+ * Escribe un archivo entero, solo si nadie lo ha tocado desde que se leyó.
+ *
+ * Con un etag por delante, GIO falla con WRONG_ETAG en vez de sobrescribir lo
+ * que hubiera cambiado. Sin etag (cadena vacía) escribe sin preguntar.
+ *
+ * @param {Gio.File} file archivo a escribir
+ * @param {Uint8Array} bytes contenido nuevo
+ * @param {string} etag huella de lo que se leyó, o '' para escribir sin más
+ * @param {Gio.Cancellable} cancellable cancelable
+ * @returns {Promise<string>} etag nuevo
+ */
+export function replaceContents(file, bytes, etag, cancellable) {
+    return new Promise((resolve, reject) => {
+        // La variante «_bytes_» es la que se comporta bien en GJS: el búfer
+        // queda en manos de GLib y no se libera a mitad de la escritura.
+        file.replace_contents_bytes_async(
+            new GLib.Bytes(bytes),
+            etag || null,
+            false,                       // sin copia de seguridad: es el archivo del usuario
+            Gio.FileCreateFlags.NONE,
+            cancellable,
+            (obj, res) => {
+                try {
+                    const [, nuevo] = obj.replace_contents_finish(res);
+                    resolve(nuevo);
+                } catch (e) {
+                    reject(e);
+                }
+            });
     });
 }
 
