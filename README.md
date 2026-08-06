@@ -23,6 +23,7 @@ The code is written against the modern extension API (ESM, GNOME 45+):
 | [`concentracion@jorgemg1414/`](concentracion@jorgemg1414/) | **Focus** — turning off everything that interrupts at once, on a timer |
 | [`herramientas/`](herramientas/) | Helper scripts: turn `.vnc` files into Remmina profiles and store their password in the GNOME keyring |
 | [`comun/`](comun/) | Modules shared by several extensions. The original lives here; each `install.sh` copies the ones it needs |
+| [`comprobar.sh`](comprobar.sh) | Checks the repository: syntax, imports, installers, schemas and styles |
 
 ---
 

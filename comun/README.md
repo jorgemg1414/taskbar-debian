@@ -96,3 +96,18 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../comun/instalar.sh"
 ```
 
 Before, any fix to the installer had to be made six times.
+
+---
+
+## About `gettext`
+
+The modules here don't import `gettext`: the translation function is passed in
+by whoever uses them, because each extension has its own, tied to its
+`gettext-domain`.
+
+Worth knowing: **`_()` doesn't translate anything today**. All six extensions
+declare their domain in `metadata.json`, but there isn't a single `.po` file in
+the repository, so the call returns the string as it is. The strings are already
+in Spanish, which is the language all of this is written in. The `_()` stays
+because the day translations exist no code has to change, and because stripping
+it from two hundred strings only to put it back would be silly work.

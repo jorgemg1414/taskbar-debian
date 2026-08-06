@@ -24,6 +24,7 @@ extensiones (ESM, GNOME 45+): `import ... from 'gi://…'`, clase que extiende
 | [`concentracion@jorgemg1414/`](concentracion@jorgemg1414/) | **Concentración** — apagar de golpe lo que interrumpe, con temporizador |
 | [`herramientas/`](herramientas/) | Scripts para convertir archivos `.vnc` en perfiles de Remmina y guardar su contraseña en el llavero de GNOME |
 | [`comun/`](comun/) | Los módulos que comparten varias extensiones. El original está aquí; cada `install.sh` copia los que necesita |
+| [`comprobar.sh`](comprobar.sh) | Repasa el repositorio: sintaxis, imports, instaladores, esquemas y estilos |
 
 ---
 

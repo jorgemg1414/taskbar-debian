@@ -14,7 +14,7 @@ set -euo pipefail
 
 UUID="concentracion@jorgemg1414"
 PROPIOS=(metadata.json extension.js prefs.js)
-COMUNES=()
+COMUNES=(barra.js barraprefs.js mpris.js)
 
 
 # No necesita ningún programa externo: lo que apaga son ajustes de GNOME y

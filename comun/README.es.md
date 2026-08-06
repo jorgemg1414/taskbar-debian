@@ -97,3 +97,18 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../comun/instalar.sh"
 ```
 
 Antes, cualquier arreglo en el instalador había que hacerlo seis veces.
+
+---
+
+## Sobre `gettext`
+
+Los módulos de aquí no importan `gettext`: la función de traducción se la pasa
+quien los usa, porque cada extensión tiene la suya, atada a su
+`gettext-domain`.
+
+Conviene saber que **hoy `_()` no traduce nada**: las seis extensiones declaran
+su dominio en el `metadata.json`, pero en el repositorio no hay ningún archivo
+`.po`, así que la llamada devuelve la cadena tal cual. Las cadenas ya están en
+español, que es el idioma en el que está escrito todo esto. Se mantiene el `_()`
+porque el día que haya traducciones no hay que tocar el código, y porque quitarlo
+de doscientas cadenas para volver a ponerlo sería un trabajo tonto.
