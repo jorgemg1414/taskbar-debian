@@ -32,7 +32,7 @@ import {
 import {SitioEnLaBarra} from './barra.js';
 import {
     ItemAcciones, ItemBuscador, ItemConfirmacion, crearInsignia, pintarInsignia,
-    crearListaConScroll, ajustarAltoLista, moverFoco, normalizar,
+    crearListaConScroll, ajustarAltoLista, asegurarVisible, moverFoco, normalizar,
 } from './menu.js';
 
 // Milisegundos que se espera tras un cambio en los archivos antes de recargar
@@ -169,6 +169,12 @@ class ItemEntrada extends PopupMenu.PopupBaseMenuItem {
                 alCancelar();
                 return Clutter.EVENT_STOP;
             }
+
+            // Las flechas se quedan aquí. El menú las usa para recorrer la
+            // lista, y si se dejan subir te sacan del campo a media frase; en
+            // un campo de una línea no hacen otra cosa útil.
+            if (tecla === Clutter.KEY_Down || tecla === Clutter.KEY_Up)
+                return Clutter.EVENT_STOP;
 
             return Clutter.EVENT_PROPAGATE;
         });
@@ -741,8 +747,12 @@ class IndicadorPendientes extends PanelMenu.Button {
         if (fila.enfocar && !this._idFoco) {
             this._idFoco = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 this._idFoco = 0;
-                if (!this._destruido && this._contexto === fila)
+                if (!this._destruido && this._contexto === fila) {
                     fila.enfocar();
+                    // Con la lista larga, la fila puede haber quedado fuera de
+                    // la parte visible: se sube hasta ella.
+                    asegurarVisible(this._scroll, fila);
+                }
                 return GLib.SOURCE_REMOVE;
             });
         }
@@ -856,8 +866,12 @@ class IndicadorPendientes extends PanelMenu.Button {
         if (!this._idFoco) {
             this._idFoco = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 this._idFoco = 0;
-                if (!this._destruido && this._contexto === entrada)
+                if (!this._destruido && this._contexto === entrada) {
                     entrada.enfocar();
+                    // El campo está al final de la lista, que es justo lo que
+                    // se sale de la parte visible cuando hay muchas tareas.
+                    asegurarVisible(this._scroll, entrada);
+                }
                 return GLib.SOURCE_REMOVE;
             });
         }
