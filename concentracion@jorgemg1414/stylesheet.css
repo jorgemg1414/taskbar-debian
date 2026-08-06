@@ -1,0 +1,36 @@
+/* stylesheet.css — estilos del menú de Concentración */
+
+/* Con una sesión en marcha el icono se enciende, para que se note de reojo que
+   los avisos están callados y no sea una sorpresa. */
+.concentracion-activa .system-status-icon {
+    color: #62a0ea;
+}
+
+/* Minutos que quedan, junto al icono. */
+.concentracion-restante {
+    margin-left: 6px;
+    color: #62a0ea;
+    font-feature-settings: "tnum";
+}
+
+/* Cabecera del menú: en qué estamos. */
+.concentracion-estado {
+    font-weight: bold;
+}
+
+/* Fila de duraciones. */
+.concentracion-duraciones {
+    spacing: 6px;
+    padding: 4px 0;
+}
+
+.concentracion-duracion {
+    border-radius: 99px;
+    padding: 4px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.concentracion-duracion:hover,
+.concentracion-duracion:focus {
+    background-color: rgba(255, 255, 255, 0.15);
+}

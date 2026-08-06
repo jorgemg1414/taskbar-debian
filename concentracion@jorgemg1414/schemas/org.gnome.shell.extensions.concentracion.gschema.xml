@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.concentracion"
+          path="/org/gnome/shell/extensions/concentracion/">
+
+    <key name="do-not-disturb" type="b">
+      <default>true</default>
+      <summary>Activar No molestar</summary>
+      <description>
+        Silencia los avisos mientras dure la sesión, con el mismo interruptor
+        que usa GNOME. Las notificaciones no se pierden: se quedan esperando en
+        la bandeja del calendario.
+      </description>
+    </key>
+
+    <key name="pause-music" type="b">
+      <default>true</default>
+      <summary>Pausar lo que esté sonando</summary>
+      <description>
+        Pausa cualquier reproductor que hable MPRIS —Spotify, el navegador, un
+        reproductor de vídeo— al empezar la sesión. Lo que ya estaba en pausa no
+        se toca.
+      </description>
+    </key>
+
+    <key name="resume-music" type="b">
+      <default>true</default>
+      <summary>Devolver la música al terminar</summary>
+      <description>
+        Vuelve a poner en marcha, y solo, lo que se pausó al empezar. Con esto
+        desactivado la sesión termina en silencio.
+      </description>
+    </key>
+
+    <key name="hide-dock" type="b">
+      <default>true</default>
+      <summary>Esconder la dock</summary>
+      <description>
+        Esconde del todo la dock de Dash to Dock mientras dure la sesión, para
+        que no asome al llevar el ratón al borde. Si no tienes esa extensión, no
+        hace nada.
+      </description>
+    </key>
+
+    <key name="notify-when-done" type="b">
+      <default>true</default>
+      <summary>Avisar al terminar</summary>
+      <description>
+        Manda una notificación cuando se cumple el tiempo. Terminar la sesión a
+        mano no avisa: ya estabas mirando.
+      </description>
+    </key>
+
+    <key name="show-countdown" type="b">
+      <default>true</default>
+      <summary>Mostrar el tiempo que queda</summary>
+      <description>
+        Enseña en la barra los minutos que faltan. Sin esto el indicador solo
+        cambia de color, y no se consulta la hora cada segundo.
+      </description>
+    </key>
+
+    <key name="default-minutes" type="i">
+      <default>50</default>
+      <range min="1" max="480"/>
+      <summary>Duración por omisión</summary>
+      <description>
+        Minutos que dura una sesión empezada desde el botón central del ratón,
+        sin pasar por el menú.
+      </description>
+    </key>
+
+    <key name="panel-icon" type="s">
+      <default>'focus-windows-symbolic'</default>
+      <summary>Icono del panel</summary>
+      <description>Nombre del icono simbólico que se muestra en la barra superior.</description>
+    </key>
+
+    <key name="saved-state" type="s">
+      <default>''</default>
+      <summary>Sesión en curso</summary>
+      <description>
+        Uso interno: un JSON con la hora a la que termina la sesión y lo que
+        había antes de empezarla (No molestar, la dock y qué se pausó). Está
+        guardado aquí, y no en memoria, para poder deshacerlo aunque el shell se
+        reinicie en mitad de una sesión. Se puede borrar sin perder nada.
+      </description>
+    </key>
+
+    <key name="panel-box" type="s">
+      <choices>
+        <choice value="left"/>
+        <choice value="center"/>
+        <choice value="right"/>
+      </choices>
+      <default>'right'</default>
+      <summary>Sitio en la barra superior</summary>
+      <description>
+        En qué parte de la barra se pone el indicador: a la izquierda, en el
+        centro o a la derecha. GNOME no deja reordenarla desde fuera, así que el
+        sitio lo pide la extensión al ponerse.
+      </description>
+    </key>
+
+    <key name="panel-position" type="i">
+      <default>5</default>
+      <range min="0" max="20"/>
+      <summary>Posición dentro de esa parte</summary>
+      <description>
+        Orden dentro de la parte elegida, empezando por el 0. Si el número pasa
+        de los indicadores que hay, el de esta extensión se queda el último.
+      </description>
+    </key>
+
+  </schema>
+</schemalist>

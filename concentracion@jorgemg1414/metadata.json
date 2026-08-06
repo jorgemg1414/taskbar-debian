@@ -1,0 +1,9 @@
+{
+  "uuid": "concentracion@jorgemg1414",
+  "name": "Concentración",
+  "description": "Un interruptor en la barra superior que apaga de golpe lo que interrumpe: No molestar, la música y la dock, con temporizador. Al terminar lo deja todo como estaba.",
+  "shell-version": ["48"],
+  "settings-schema": "org.gnome.shell.extensions.concentracion",
+  "gettext-domain": "concentracion",
+  "version": 1
+}

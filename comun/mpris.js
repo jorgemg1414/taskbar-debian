@@ -550,8 +550,13 @@ export async function pausarReproductores(cancellable) {
     }
 
     // Pause en vez de PlayPause: si algo cambia entre la consulta y la orden,
-    // pausar dos veces sigue dejándolo en pausa.
-    await Promise.all(sonando.map(nombre => llamarA(nombre, 'Pause', cancellable)));
+    // pausar dos veces sigue dejándolo en pausa. Pero no todos los
+    // reproductores lo implementan, aunque MPRIS lo pida, así que el que no
+    // conteste se queda con el interruptor de toda la vida.
+    await Promise.all(sonando.map(async nombre => {
+        if (!await llamarA(nombre, 'Pause', cancellable))
+            await llamarA(nombre, 'PlayPause', cancellable);
+    }));
 
     return sonando;
 }
@@ -565,7 +570,10 @@ export async function pausarReproductores(cancellable) {
  */
 export async function reanudarReproductores(nombres, cancellable) {
     // Los que ya no están en el bus fallan solos y no molestan a los demás.
-    await Promise.all(nombres.map(nombre => llamarA(nombre, 'Play', cancellable)));
+    await Promise.all(nombres.map(async nombre => {
+        if (!await llamarA(nombre, 'Play', cancellable))
+            await llamarA(nombre, 'PlayPause', cancellable);
+    }));
 }
 
 /**
