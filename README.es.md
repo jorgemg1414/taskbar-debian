@@ -21,6 +21,7 @@ extensiones (ESM, GNOME 45+): `import ... from 'gi://…'`, clase que extiende
 | [`wol-menu@jorgemg1414/`](wol-menu@jorgemg1414/) | **Wake on LAN** — encender equipos a distancia desde la barra superior |
 | [`equipos-menu@jorgemg1414/`](equipos-menu@jorgemg1414/) | **Equipos** — cómo está cada equipo por dentro, y apagarlo, reiniciarlo o suspenderlo a distancia |
 | [`spotify-menu@jorgemg1414/`](spotify-menu@jorgemg1414/) | **Spotify** — la canción que está sonando, con su portada y sus controles |
+| [`concentracion@jorgemg1414/`](concentracion@jorgemg1414/) | **Concentración** — apagar de golpe lo que interrumpe, con temporizador |
 | [`herramientas/`](herramientas/) | Scripts para convertir archivos `.vnc` en perfiles de Remmina y guardar su contraseña en el llavero de GNOME |
 | [`comun/`](comun/) | Los módulos que comparten varias extensiones. El original está aquí; cada `install.sh` copia los que necesita |
 
@@ -241,6 +242,30 @@ gsettings --schemadir ~/.local/share/gnome-shell/extensions/vnc-menu@jorgemg1414
 
 ---
 
+## Concentración
+
+Un interruptor que apaga de golpe lo que interrumpe, con temporizador: 25, 50 o
+90 minutos, o sin límite.
+
+- **No molestar**, con el mismo interruptor de GNOME. Las notificaciones no se
+  pierden: esperan en el calendario.
+- **Pausa lo que esté sonando** —Spotify, el navegador, un vídeo— y al terminar
+  devuelve solo lo que pausó.
+- **Esconde la dock del todo**, tampoco asoma al llevar el ratón al borde.
+- **En la barra queda el tiempo que falta**, y al llegar a cero todo vuelve a
+  como estaba.
+
+> Lo difícil de esto no es apagar, es deshacer. Antes de tocar nada se apunta
+> cómo estaba, y se guarda en los ajustes, no en memoria: si el shell se
+> reinicia en mitad de una sesión, al volver se retoma la cuenta; y si el plazo
+> venció mientras tanto, se deshace todo al arrancar. Lo que hayas cambiado tú a
+> mano por el camino no se toca.
+
+Documentación completa (qué apaga, cómo lo deshace, ajustes):
+**[concentracion@jorgemg1414/README.es.md](concentracion@jorgemg1414/README.es.md)**
+
+---
+
 ## El sitio en la barra
 
 GNOME no deja reordenar la barra superior: el sitio lo pide cada extensión al
@@ -257,6 +282,7 @@ Vienen puestas en la derecha, en este orden:
 | SSH | 2 |
 | Equipos | 3 |
 | Spotify | 4 |
+| Concentración | 5 |
 
 Si el número pasa de los indicadores que hay en esa parte, el de la extensión se
 queda el último. Y solo manda sobre estas cinco: para ordenar también las de
@@ -353,13 +379,17 @@ taskbar-debian/
 ├── herramientas/          Scripts auxiliares (ver arriba)
 ├── comun/                 Módulos compartidos (ver su propio README)
 │   ├── asyncgio.js        Envoltorios de Promise sobre las llamadas de Gio
+│   ├── barra.js           El sitio del indicador en la barra superior
+│   ├── barraprefs.js      Las dos filas de preferencias que lo eligen
 │   ├── checker.js         Comprobación de puertos, asíncrona y cancelable
 │   ├── hosts.js           Lectura y parseo de ~/.ssh/config
+│   ├── mpris.js           Qué suena, control del reproductor y pausar todo
 │   └── wol.js             Paquete mágico, equipos y MAC aprendidas del ARP
 ├── ssh-menu@jorgemg1414/  SSH Menu (ver su propio README)
 ├── wol-menu@jorgemg1414/  Wake on LAN (ver su propio README)
 ├── equipos-menu@jorgemg1414/  Equipos (ver su propio README)
 ├── spotify-menu@jorgemg1414/  Spotify (ver su propio README)
+├── concentracion@jorgemg1414/ Concentración (ver su propio README)
 └── vnc-menu@jorgemg1414/
     ├── extension.js       Indicador, menú, lanzamiento y limpieza en disable()
     ├── connections.js     Escaneo asíncrono de la carpeta y parser de conexiones

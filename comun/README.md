@@ -16,9 +16,9 @@ repository holds exactly one copy of each file.
 
 | Module | What it does | Used by |
 |---|---|---|
-| `asyncgio.js` | `Promise` wrappers around the async `Gio` calls | all five menus |
-| `barra.js` | Places the indicator in the top bar per its settings, and moves it when they change | all five menus |
-| `barraprefs.js` | The two preference rows that pick that place | all five menus |
+| `asyncgio.js` | `Promise` wrappers around the async `Gio` calls | all six extensions |
+| `barra.js` | Places the indicator in the top bar per its settings, and moves it when they change | all six extensions |
+| `barraprefs.js` | The two preference rows that pick that place | all six extensions |
 | `checker.js` | TCP port checks: async, cancellable, queued | VNC, SSH, WoL, Machines |
 | `hosts.js` | Reads and parses `~/.ssh/config`, including `Include` and grouping | SSH, WoL, Machines |
 | `mpris.js` | What is playing and player control over D-Bus; and pausing everything at once | Spotify, Focus |

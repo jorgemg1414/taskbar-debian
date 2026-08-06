@@ -20,6 +20,7 @@ The code is written against the modern extension API (ESM, GNOME 45+):
 | [`wol-menu@jorgemg1414/`](wol-menu@jorgemg1414/) | **Wake on LAN** — power machines on remotely from the top bar |
 | [`equipos-menu@jorgemg1414/`](equipos-menu@jorgemg1414/) | **Machines** — how each machine is doing inside, and powering it off, rebooting or suspending it remotely |
 | [`spotify-menu@jorgemg1414/`](spotify-menu@jorgemg1414/) | **Spotify** — the song that's playing, with its cover art and controls |
+| [`concentracion@jorgemg1414/`](concentracion@jorgemg1414/) | **Focus** — turning off everything that interrupts at once, on a timer |
 | [`herramientas/`](herramientas/) | Helper scripts: turn `.vnc` files into Remmina profiles and store their password in the GNOME keyring |
 | [`comun/`](comun/) | Modules shared by several extensions. The original lives here; each `install.sh` copies the ones it needs |
 
@@ -234,6 +235,30 @@ gsettings --schemadir ~/.local/share/gnome-shell/extensions/vnc-menu@jorgemg1414
 
 ---
 
+## Focus
+
+A switch that turns off everything that interrupts at once, on a timer: 25, 50
+or 90 minutes, or no limit.
+
+- **Do Not Disturb**, through GNOME's own switch. Notifications aren't lost:
+  they wait in the calendar.
+- **Pauses whatever is playing** — Spotify, the browser, a video — and resumes
+  only what it paused.
+- **Hides the dock completely**; it won't peek out at the edge of the screen
+  either.
+- **The bar shows the time left**, and at zero everything goes back.
+
+> The hard part isn't turning things off, it's undoing it. How things were is
+> written down before anything is touched, and stored in the settings rather
+> than in memory: if the shell restarts mid-session, the countdown picks up
+> where it was; and if the deadline passed meanwhile, everything is undone at
+> startup. Whatever you changed by hand along the way is left alone.
+
+Full documentation (what it turns off, how it undoes it, settings):
+**[concentracion@jorgemg1414/README.md](concentracion@jorgemg1414/README.md)**
+
+---
+
 ## Where they sit in the bar
 
 GNOME doesn't let you reorder the top bar: each extension asks for its place as
@@ -250,6 +275,7 @@ They ship on the right, in this order:
 | SSH | 2 |
 | Machines | 3 |
 | Spotify | 4 |
+| Focus | 5 |
 
 If the number goes past the indicators already in that part, the extension's
 own ends up last. And it only governs these five: ordering third-party ones as
@@ -344,13 +370,17 @@ taskbar-debian/
 ├── herramientas/          Helper scripts (see above)
 ├── comun/                 Shared modules (see its own README)
 │   ├── asyncgio.js        Promise wrappers around Gio's async calls
+│   ├── barra.js           The indicator's place in the top bar
+│   ├── barraprefs.js      The two preference rows that pick it
 │   ├── checker.js         Port checks, asynchronous and cancellable
 │   ├── hosts.js           Reads and parses ~/.ssh/config
+│   ├── mpris.js           What's playing, player control, and pausing everything
 │   └── wol.js             Magic packet, machine list, MACs learned from ARP
 ├── ssh-menu@jorgemg1414/  SSH Menu (see its own README)
 ├── wol-menu@jorgemg1414/  Wake on LAN (see its own README)
 ├── equipos-menu@jorgemg1414/  Machines (see its own README)
 ├── spotify-menu@jorgemg1414/  Spotify (see its own README)
+├── concentracion@jorgemg1414/ Focus (see its own README)
 └── vnc-menu@jorgemg1414/
     ├── extension.js       Indicator, menu, client launching, teardown in disable()
     ├── connections.js     Async folder scanning and connection file parsing

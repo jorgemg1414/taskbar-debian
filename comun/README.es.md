@@ -17,9 +17,9 @@ hay un solo archivo de cada cosa.
 
 | Módulo | Qué hace | Quién lo usa |
 |---|---|---|
-| `asyncgio.js` | Envoltorios de `Promise` sobre las llamadas asíncronas de `Gio` | los cinco menús |
-| `barra.js` | Coloca el indicador en la barra según los ajustes, y lo recoloca al cambiarlos | los cinco menús |
-| `barraprefs.js` | Las dos filas de preferencias con las que se elige ese sitio | los cinco menús |
+| `asyncgio.js` | Envoltorios de `Promise` sobre las llamadas asíncronas de `Gio` | las seis extensiones |
+| `barra.js` | Coloca el indicador en la barra según los ajustes, y lo recoloca al cambiarlos | las seis extensiones |
+| `barraprefs.js` | Las dos filas de preferencias con las que se elige ese sitio | las seis extensiones |
 | `checker.js` | Comprobación de puertos TCP, asíncrona, cancelable y con cola | VNC, SSH, WoL, Equipos |
 | `hosts.js` | Lectura y parseo de `~/.ssh/config`, con `Include` y agrupación | SSH, WoL, Equipos |
 | `mpris.js` | Qué está sonando y control del reproductor, por D-Bus; y pausar todo de golpe | Spotify, Concentración |
