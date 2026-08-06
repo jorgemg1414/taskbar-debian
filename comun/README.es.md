@@ -24,6 +24,7 @@ hay un solo archivo de cada cosa.
 | `hosts.js` | Lectura y parseo de `~/.ssh/config`, con `Include` y agrupación | SSH, WoL, Equipos |
 | `menu.js` | Piezas de menú: fila de acciones, confirmación, buscador, lista con desplazamiento, insignia y foco | VNC, SSH, Equipos |
 | `estilos.css` | Las reglas que se ven igual en todos los menús, con el prefijo `tb-` | VNC, SSH, WoL, Equipos |
+| `instalar.sh` | El instalador: requisitos, copia, esquema y mensajes | las seis extensiones |
 | `mpris.js` | Qué está sonando y control del reproductor, por D-Bus; y pausar todo de golpe | Spotify, Concentración |
 | `wol.js` | Paquete mágico, lista de equipos y MAC aprendidas de la tabla ARP | WoL, SSH, VNC |
 
@@ -76,3 +77,23 @@ una sola hoja por extensión y no admite importar otra, así que cada `install.s
 Por eso esas clases llevan el prefijo `tb-` y no el de cada extensión: son las
 mismas reglas para todas, y tener cuatro copias con cuatro prefijos distintos
 solo servía para que un día dejaran de parecerse.
+
+---
+
+## El instalador
+
+`instalar.sh` no se copia a ninguna parte: lo carga el `install.sh` de cada
+extensión, que se queda solo con lo que cambia de una a otra.
+
+```bash
+UUID="ssh-menu@jorgemg1414"
+PROPIOS=(metadata.json extension.js prefs.js montajes.js)
+COMUNES=(asyncgio.js barra.js checker.js hosts.js menu.js wol.js)
+ESTILOS_COMUNES=si
+
+requisitos() { ... }        # opcional: lo que solo le hace falta a esta
+
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../comun/instalar.sh"
+```
+
+Antes, cualquier arreglo en el instalador había que hacerlo seis veces.

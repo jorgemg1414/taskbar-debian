@@ -23,6 +23,7 @@ repository holds exactly one copy of each file.
 | `hosts.js` | Reads and parses `~/.ssh/config`, including `Include` and grouping | SSH, WoL, Machines |
 | `menu.js` | Menu pieces: action row, confirmation row, search field, scrolling list, badge and focus handling | VNC, SSH, Machines |
 | `estilos.css` | The rules that look the same in every menu, prefixed `tb-` | VNC, SSH, WoL, Machines |
+| `instalar.sh` | The installer: requirements, copying, schema and messages | all six extensions |
 | `mpris.js` | What is playing and player control over D-Bus; and pausing everything at once | Spotify, Focus |
 | `wol.js` | Magic packet, machine list, and MACs learned from the ARP table | WoL, SSH, VNC |
 
@@ -75,3 +76,23 @@ the `stylesheet.css` that gets installed.
 That is why those classes are prefixed `tb-` rather than per-extension: they are
 the same rules for every menu, and keeping four copies under four prefixes only
 served to let them drift apart.
+
+---
+
+## The installer
+
+`instalar.sh` is never copied anywhere: each extension's `install.sh` sources
+it, and keeps only what differs between them.
+
+```bash
+UUID="ssh-menu@jorgemg1414"
+PROPIOS=(metadata.json extension.js prefs.js montajes.js)
+COMUNES=(asyncgio.js barra.js checker.js hosts.js menu.js wol.js)
+ESTILOS_COMUNES=si
+
+requisitos() { ... }        # optional: whatever only this one needs
+
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../comun/instalar.sh"
+```
+
+Before, any fix to the installer had to be made six times.
