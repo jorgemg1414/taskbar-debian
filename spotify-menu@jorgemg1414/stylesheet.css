@@ -1,0 +1,76 @@
+/* stylesheet.css — estilos del menú de Spotify */
+
+/* Texto de la barra superior, junto al icono. */
+.spotify-panel-texto {
+    margin-left: 6px;
+}
+
+/* Cabecera del menú: portada, título, artista y álbum. El ancho se fija aquí
+   para que los títulos largos se corten en vez de estirar el menú. */
+.spotify-pista {
+    width: 240px;
+}
+
+/* Portada del disco. El hueco se reserva aunque todavía no haya imagen, para
+   que el menú no dé un salto cuando llegue. */
+.spotify-caratula {
+    margin-bottom: 10px;
+    border-radius: 8px;
+}
+
+.spotify-titulo {
+    font-weight: bold;
+}
+
+.spotify-artista {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.spotify-album {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.9em;
+}
+
+/* Barra de progreso y sus dos tiempos. */
+.spotify-progreso {
+    width: 240px;
+    padding: 4px 0;
+}
+
+.spotify-tiempo {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.8em;
+    padding-top: 4px;
+}
+
+/* Fila de botones, centrada bajo la canción. */
+.spotify-controles {
+    spacing: 12px;
+    padding: 2px 0;
+}
+
+.spotify-boton {
+    border-radius: 99px;
+    padding: 6px;
+}
+
+.spotify-boton:hover,
+.spotify-boton:focus {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Botón que el reproductor no atendería: se ve, pero apagado. */
+.spotify-boton-apagado {
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.spotify-boton-apagado:hover,
+.spotify-boton-apagado:focus {
+    background-color: transparent;
+}
+
+/* Aviso de que no hay nada sonando. */
+.spotify-aviso {
+    color: rgba(255, 255, 255, 0.7);
+    font-style: italic;
+}

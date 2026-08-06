@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.spotify-menu"
+          path="/org/gnome/shell/extensions/spotify-menu/">
+
+    <key name="any-player" type="b">
+      <default>false</default>
+      <summary>Seguir a cualquier reproductor</summary>
+      <description>
+        Cuando Spotify no está abierto, sigue a cualquier otro programa que
+        publique lo que reproduce por MPRIS: el navegador, un reproductor de
+        vídeo, el de música del escritorio. Con Spotify abierto manda Spotify.
+      </description>
+    </key>
+
+    <key name="panel-format" type="s">
+      <default>'{artista} — {titulo}'</default>
+      <summary>Texto de la barra superior</summary>
+      <description>
+        Plantilla del texto que se ve en la barra. Se sustituyen {titulo},
+        {artista} y {album} por lo que diga el reproductor.
+      </description>
+    </key>
+
+    <key name="panel-max-chars" type="i">
+      <default>30</default>
+      <range min="8" max="80"/>
+      <summary>Longitud máxima del texto</summary>
+      <description>
+        Caracteres que se enseñan como mucho en la barra superior; lo que pase
+        de ahí se corta con puntos suspensivos.
+      </description>
+    </key>
+
+    <key name="show-panel-text" type="b">
+      <default>true</default>
+      <summary>Mostrar el texto en la barra</summary>
+      <description>
+        Con esto desactivado, en la barra queda solo el icono y la canción se
+        lee abriendo el menú.
+      </description>
+    </key>
+
+    <key name="hide-when-stopped" type="b">
+      <default>true</default>
+      <summary>Ocultar el indicador cuando no suena nada</summary>
+      <description>
+        Quita el indicador de la barra mientras no hay música, y lo devuelve en
+        cuanto vuelve a haberla.
+      </description>
+    </key>
+
+    <key name="icon-shows-state" type="b">
+      <default>true</default>
+      <summary>El icono dice si está sonando</summary>
+      <description>
+        Cambia el icono de la barra entre reproducir y pausa según el estado del
+        reproductor, en vez de dejar siempre el mismo.
+      </description>
+    </key>
+
+    <key name="panel-icon" type="s">
+      <default>'audio-x-generic-symbolic'</default>
+      <summary>Icono del panel</summary>
+      <description>
+        Nombre del icono simbólico que se muestra en la barra superior cuando no
+        lo está sustituyendo el estado de la reproducción.
+      </description>
+    </key>
+
+    <key name="show-art" type="b">
+      <default>true</default>
+      <summary>Mostrar la portada</summary>
+      <description>
+        Enseña la portada del disco en el menú. Es lo único que sale a la red:
+        se baja de la dirección que publica el reproductor y se guarda en
+        ~/.cache para no volver a pedirla.
+      </description>
+    </key>
+
+    <key name="show-position" type="b">
+      <default>true</default>
+      <summary>Mostrar por dónde va la canción</summary>
+      <description>
+        Añade al menú la barra de progreso con el tiempo transcurrido y el
+        total. Se actualiza una vez por segundo, y solo con el menú abierto.
+      </description>
+    </key>
+
+    <key name="scroll-changes-track" type="b">
+      <default>false</default>
+      <summary>La rueda del ratón cambia de canción</summary>
+      <description>
+        Girando la rueda sobre el indicador se pasa a la canción siguiente o se
+        vuelve a la anterior. Desactivado por omisión, porque es fácil rozarlo
+        sin querer al pasar el ratón por la barra.
+      </description>
+    </key>
+
+    <key name="middle-click-plays" type="b">
+      <default>true</default>
+      <summary>El botón central reproduce o pausa</summary>
+      <description>
+        Pulsar el indicador con el botón central del ratón alterna entre
+        reproducir y pausar sin abrir el menú.
+      </description>
+    </key>
+
+  </schema>
+</schemalist>

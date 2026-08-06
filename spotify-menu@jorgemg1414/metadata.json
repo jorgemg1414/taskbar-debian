@@ -1,0 +1,9 @@
+{
+  "uuid": "spotify-menu@jorgemg1414",
+  "name": "Spotify",
+  "description": "Indicador en la barra superior con la canción que está sonando: título, artista, portada, por dónde va y los botones para pasar de canción o pausarla. Lo lee del propio reproductor por D-Bus (MPRIS), sin cuentas ni claves.",
+  "shell-version": ["48"],
+  "settings-schema": "org.gnome.shell.extensions.spotify-menu",
+  "gettext-domain": "spotify-menu",
+  "version": 1
+}
