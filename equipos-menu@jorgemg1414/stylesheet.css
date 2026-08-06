@@ -1,34 +1,10 @@
-/* stylesheet.css — estilos del menú de Equipos */
-
-/* Punto de disponibilidad, con los mismos colores que en los demás menús. */
-.equipos-punto {
-    width: 10px;
-    height: 10px;
-    border-radius: 5px;
-    margin-right: 10px;
-    border: 1px solid rgba(0, 0, 0, 0.35);
-}
-
-/* El puerto de SSH acepta conexiones. */
-.equipos-punto-arriba {
-    background-color: #2ec27e;
-    box-shadow: 0 0 4px rgba(46, 194, 126, 0.8);
-}
-
-/* Puerto cerrado, equipo inalcanzable o tiempo de espera agotado. */
-.equipos-punto-abajo {
-    background-color: #e01b24;
-}
-
-/* Sondeo en curso, o esperando a que el equipo termine de apagarse. */
-.equipos-punto-comprobando {
-    background-color: #f5c211;
-}
-
-/* Sin comprobar todavía, comprobaciones desactivadas, o equipo con salto. */
-.equipos-punto-desconocido {
-    background-color: rgba(255, 255, 255, 0.25);
-}
+/*
+ * stylesheet.css — lo propio del menú de Equipos.
+ *
+ * El punto de estado, la insignia del panel, la lista, la fila de acciones y
+ * los avisos están en comun/estilos.css con el prefijo «tb-», y install.sh lo
+ * pega delante de este archivo al instalar.
+ */
 
 /* Resumen de las vitales, a la derecha del nombre. */
 .equipos-resumen {
@@ -38,70 +14,6 @@
 }
 
 /* Disco casi lleno, o consulta que falló: lo que hay que ver sin leer. */
-.equipos-aviso {
+.equipos-alerta {
     color: #ff938c;
-}
-
-/* Avisos de la lista (sin configuración, cargando…). */
-.equipos-aviso-fila {
-    color: rgba(255, 255, 255, 0.7);
-    font-style: italic;
-}
-
-/* La primera cabecera de grupo no necesita separarse de lo de arriba. */
-.equipos-primera-cabecera {
-    margin-top: 0;
-}
-
-/* Zona con desplazamiento de la lista. */
-.equipos-lista {
-    max-height: 400px;
-}
-
-/* Fila de acciones y de confirmación. */
-.equipos-acciones {
-    padding: 4px 8px;
-}
-
-.equipos-accion {
-    padding: 6px 10px;
-    border-radius: 6px;
-    color: rgba(255, 255, 255, 0.9);
-}
-
-.equipos-accion:hover,
-.equipos-accion:focus {
-    background-color: rgba(255, 255, 255, 0.12);
-}
-
-/* Apagar y reiniciar no se pueden deshacer desde aquí: se ven distintas. */
-.equipos-accion-peligrosa {
-    color: #ff938c;
-}
-
-.equipos-accion-peligrosa:hover,
-.equipos-accion-peligrosa:focus {
-    background-color: rgba(224, 27, 36, 0.25);
-}
-
-.equipos-accion-icono {
-    icon-size: 16px;
-    margin-right: 6px;
-}
-
-/* La pregunta de la fila de confirmación. */
-.equipos-pregunta {
-    color: rgba(255, 255, 255, 0.9);
-    padding-left: 4px;
-}
-
-/* Contador de equipos caídos, junto al icono del panel. */
-.equipos-insignia {
-    background-color: #e01b24;
-    color: #ffffff;
-    font-size: 0.7em;
-    font-weight: bold;
-    border-radius: 8px;
-    padding: 1px 5px;
-    margin-left: 3px;
 }

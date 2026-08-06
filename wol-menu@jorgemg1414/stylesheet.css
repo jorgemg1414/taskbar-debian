@@ -1,45 +1,13 @@
-/* stylesheet.css — estilos del menú de Wake on LAN */
-
-/* Punto de estado de los equipos que tienen dirección de comprobación. Mismos
-   colores que en los menús de VNC y de SSH: verde responde, rojo no. */
-.wol-punto {
-    width: 10px;
-    height: 10px;
-    border-radius: 5px;
-    margin-right: 10px;
-    border: 1px solid rgba(0, 0, 0, 0.35);
-}
-
-/* El equipo responde: ya está encendido. */
-.wol-punto-arriba {
-    background-color: #2ec27e;
-    box-shadow: 0 0 4px rgba(46, 194, 126, 0.8);
-}
-
-/* No responde: apagado, o todavía arrancando. */
-.wol-punto-abajo {
-    background-color: #e01b24;
-}
-
-/* Sondeo en curso, incluida la espera al arranque tras mandar el paquete. */
-.wol-punto-comprobando {
-    background-color: #f5c211;
-}
-
-/* Todavía no se ha comprobado, o las comprobaciones están desactivadas. */
-.wol-punto-desconocido {
-    background-color: rgba(255, 255, 255, 0.25);
-}
+/*
+ * stylesheet.css — lo propio del menú de Wake on LAN.
+ *
+ * El punto de estado y los avisos están en comun/estilos.css con el prefijo
+ * «tb-», y install.sh lo pega delante de este archivo al instalar.
+ */
 
 /* MAC a la derecha del nombre, en tono apagado. */
 .wol-mac {
     color: rgba(255, 255, 255, 0.5);
     font-size: 0.8em;
     margin-left: 14px;
-}
-
-/* Aviso de que todavía no hay equipos configurados. */
-.wol-aviso {
-    color: rgba(255, 255, 255, 0.7);
-    font-style: italic;
 }

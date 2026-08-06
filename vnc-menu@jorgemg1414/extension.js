@@ -25,6 +25,10 @@ import {ComprobadorPuertos, ESTADO} from './checker.js';
 import {listarSesiones} from './ventanas.js';
 import {ajustesWol, leerEquipos, datosWolDe, despertar, CacheMacs} from './wol.js';
 import {SitioEnLaBarra} from './barra.js';
+import {
+    ItemAcciones, ItemBuscador, crearInsignia, pintarInsignia,
+    crearListaConScroll, ajustarAltoLista, moverFoco, normalizar,
+} from './menu.js';
 
 // Milisegundos que se espera tras un cambio en la carpeta antes de recargar
 // (los gestores de archivos generan varios eventos seguidos).
@@ -38,10 +42,6 @@ const ALTERNATIVAS_VNC = [
     'gvncviewer %h:%p',
 ];
 const ALTERNATIVAS_REMMINA = ['remmina -c %f'];
-
-// Parte del alto de la pantalla que puede ocupar la lista de conexiones. El
-// resto queda para el buscador, el pie y los márgenes del menú.
-const PROPORCION_ALTO_LISTA = 0.6;
 
 /* -------------------------------------------------------------------------
  * Elemento de menú de una conexión: punto de estado + nombre + host:puerto
@@ -62,7 +62,7 @@ const ItemConexion = GObject.registerClass({
 
         // Punto de disponibilidad (verde/rojo/gris). El color va en la hoja de estilos.
         this._punto = new St.Widget({
-            style_class: 'vnc-punto vnc-punto-desconocido',
+            style_class: 'tb-punto tb-punto-desconocido',
             y_align: Clutter.ActorAlign.CENTER,
         });
         this.add_child(this._punto);
@@ -88,7 +88,7 @@ const ItemConexion = GObject.registerClass({
         if (mostrarLatencia) {
             this._latencia = new St.Label({
                 text: '',
-                style_class: 'vnc-latencia',
+                style_class: 'tb-latencia',
                 y_align: Clutter.ActorAlign.CENTER,
             });
             this.add_child(this._latencia);
@@ -103,10 +103,10 @@ const ItemConexion = GObject.registerClass({
      */
     fijarEstado(estado, latencia = null) {
         const clases = {
-            [ESTADO.ARRIBA]: 'vnc-punto vnc-punto-arriba',
-            [ESTADO.ABAJO]: 'vnc-punto vnc-punto-abajo',
-            [ESTADO.COMPROBANDO]: 'vnc-punto vnc-punto-comprobando',
-            [ESTADO.DESCONOCIDO]: 'vnc-punto vnc-punto-desconocido',
+            [ESTADO.ARRIBA]: 'tb-punto tb-punto-arriba',
+            [ESTADO.ABAJO]: 'tb-punto tb-punto-abajo',
+            [ESTADO.COMPROBANDO]: 'tb-punto tb-punto-comprobando',
+            [ESTADO.DESCONOCIDO]: 'tb-punto tb-punto-desconocido',
         };
         this._punto.style_class = clases[estado] ?? clases[ESTADO.DESCONOCIDO];
 
@@ -137,120 +137,6 @@ const ItemConexion = GObject.registerClass({
             return Clutter.EVENT_STOP;
         }
         return super.vfunc_button_release_event(evento);
-    }
-});
-
-/* -------------------------------------------------------------------------
- * Campo de búsqueda para filtrar las conexiones escribiendo
- * ------------------------------------------------------------------------- */
-const ItemBuscador = GObject.registerClass(
-class ItemBuscador extends PopupMenu.PopupBaseMenuItem {
-    /**
-     * @param {object} opciones opciones del buscador
-     * @param {string} opciones.texto texto inicial del filtro
-     * @param {Function} opciones.alEscribir callback con el texto escrito
-     * @param {Function} opciones.alAceptar callback al pulsar Intro
-     * @param {Function} opciones.alNavegar callback con +1/-1 al pulsar ↓/↑
-     */
-    _init({texto = '', alEscribir, alAceptar, alNavegar}) {
-        // No es activable ni enfocable: el foco lo lleva el campo de texto.
-        super._init({reactive: false, activate: false, hover: false, can_focus: false});
-
-        this.entrada = new St.Entry({
-            style_class: 'vnc-buscador',
-            hint_text: _('Buscar conexión…'),
-            can_focus: true,
-            x_expand: true,
-        });
-        this.entrada.set_primary_icon(new St.Icon({
-            style_class: 'vnc-buscador-icono',
-            icon_name: 'edit-find-symbolic',
-        }));
-        this.entrada.set_text(texto);
-        this.add_child(this.entrada);
-
-        this.entrada.clutter_text.connect('text-changed',
-            () => alEscribir(this.entrada.get_text()));
-
-        // Intro conecta con la primera coincidencia visible.
-        this.entrada.clutter_text.connect('activate', () => alAceptar());
-
-        this.entrada.clutter_text.connect('key-press-event', (_actor, evento) => {
-            const tecla = evento.get_key_symbol();
-
-            // Escape limpia el filtro; si ya está vacío, deja que el menú se cierre.
-            if (tecla === Clutter.KEY_Escape && this.entrada.get_text() !== '') {
-                this.entrada.set_text('');
-                return Clutter.EVENT_STOP;
-            }
-
-            // Las flechas bajan a la lista en vez de mover el cursor: dentro de
-            // un campo de una línea no tienen otro cometido útil.
-            if (tecla === Clutter.KEY_Down)
-                return alNavegar(1);
-            if (tecla === Clutter.KEY_Up)
-                return alNavegar(-1);
-
-            return Clutter.EVENT_PROPAGATE;
-        });
-    }
-
-    /**
-     * Pone el foco del teclado en el campo de texto.
-     */
-    enfocar() {
-        this.entrada.grab_key_focus();
-    }
-});
-
-/* -------------------------------------------------------------------------
- * Fila de acciones: varios botones icono+texto repartidos en una sola línea
- * ------------------------------------------------------------------------- */
-const ItemAcciones = GObject.registerClass(
-class ItemAcciones extends PopupMenu.PopupBaseMenuItem {
-    /**
-     * Tres entradas de menú ocupaban tres filas y dejaban el pie pegado al
-     * borde de la pantalla; en horizontal ocupan una sola.
-     *
-     * @param {{icono: string, texto: string, alPulsar: Function}[]} acciones botones a pintar
-     */
-    _init(acciones) {
-        // No es activable: quien recibe los clics es cada botón.
-        super._init({
-            reactive: false,
-            activate: false,
-            hover: false,
-            can_focus: false,
-            style_class: 'vnc-acciones',
-        });
-
-        for (const {icono, texto, alPulsar} of acciones) {
-            const boton = new St.Button({
-                style_class: 'vnc-accion',
-                can_focus: true,
-                x_expand: true,
-                accessible_name: texto,
-            });
-
-            const caja = new St.BoxLayout({
-                orientation: Clutter.Orientation.HORIZONTAL,
-                x_align: Clutter.ActorAlign.CENTER,
-                x_expand: true,
-            });
-            caja.add_child(new St.Icon({
-                icon_name: icono,
-                style_class: 'vnc-accion-icono',
-                y_align: Clutter.ActorAlign.CENTER,
-            }));
-            caja.add_child(new St.Label({
-                text: texto,
-                y_align: Clutter.ActorAlign.CENTER,
-            }));
-            boton.set_child(caja);
-
-            boton.connect('clicked', () => alPulsar());
-            this.add_child(boton);
-        }
     }
 });
 
@@ -301,11 +187,7 @@ class IndicadorVnc extends PanelMenu.Button {
         this.add_child(this._icono);
 
         // Contador de conexiones sin respuesta, para enterarte sin abrir el menú.
-        this._insignia = new St.Label({
-            style_class: 'vnc-insignia',
-            y_align: Clutter.ActorAlign.CENTER,
-            visible: false,
-        });
+        this._insignia = crearInsignia();
         this.add_child(this._insignia);
 
         this._macs = new CacheMacs(this._settings, 'vnc-menu');
@@ -500,7 +382,7 @@ class IndicadorVnc extends PanelMenu.Button {
      */
     _alAbrirMenu() {
         // El área de trabajo puede haber cambiado (otro monitor, otra escala).
-        this._ajustarAltoLista();
+        ajustarAltoLista(this._scroll);
 
         // Las ventanas van y vienen sin avisar a la extensión.
         this._pintarSesiones();
@@ -654,7 +536,7 @@ class IndicadorVnc extends PanelMenu.Button {
             return;
 
         const cabecera = new PopupMenu.PopupSeparatorMenuItem(_('Sesiones abiertas'));
-        cabecera.add_style_class_name('vnc-primera-cabecera');
+        cabecera.add_style_class_name('tb-primera-cabecera');
         this._seccionSesiones.addMenuItem(cabecera);
 
         for (const sesion of sesiones) {
@@ -671,20 +553,7 @@ class IndicadorVnc extends PanelMenu.Button {
      * visible y con aire.
      */
     _pintarLista() {
-        this._scroll = new St.ScrollView({
-            style_class: 'vnc-lista',
-            hscrollbar_policy: St.PolicyType.NEVER,
-            vscrollbar_policy: St.PolicyType.AUTOMATIC,
-            x_expand: true,
-        });
-
-        this._seccionLista = new PopupMenu.PopupMenuSection();
-        this._scroll.set_child(this._seccionLista.actor);
-
-        // El scroll va dentro de una sección para que removeAll() lo destruya.
-        const contenedor = new PopupMenu.PopupMenuSection();
-        contenedor.actor.add_child(this._scroll);
-        this.menu.addMenuItem(contenedor);
+        ({scroll: this._scroll, seccion: this._seccionLista} = crearListaConScroll(this.menu));
 
         if (this._motivoVacio === 'inexistente') {
             this._itemInformativo(_('No se encontró la carpeta:'));
@@ -697,7 +566,7 @@ class IndicadorVnc extends PanelMenu.Button {
             this._pintarGrupos();
         }
 
-        this._ajustarAltoLista();
+        ajustarAltoLista(this._scroll);
     }
 
     /**
@@ -721,26 +590,10 @@ class IndicadorVnc extends PanelMenu.Button {
             }
         }
 
-        this._insignia.text = String(caidas);
-        this._insignia.visible = caidas > 0;
+        pintarInsignia(this._insignia, caidas);
         this.accessible_name = caidas > 0
             ? `${_('VNC Menu')} — ${caidas} ${_('sin respuesta')}`
             : _('VNC Menu');
-    }
-
-    /**
-     * Limita el alto de la lista a una parte del área de trabajo. El valor va
-     * en píxeles lógicos, de ahí la división por el factor de escala.
-     */
-    _ajustarAltoLista() {
-        if (!this._scroll)
-            return;
-
-        const area = Main.layoutManager.getWorkAreaForMonitor(Main.layoutManager.primaryIndex);
-        const escala = St.ThemeContext.get_for_stage(global.stage).scale_factor;
-        const alto = Math.max(200, Math.round(area.height * PROPORCION_ALTO_LISTA / escala));
-
-        this._scroll.style = `max-height: ${alto}px;`;
     }
 
     /**
@@ -762,7 +615,7 @@ class IndicadorVnc extends PanelMenu.Button {
             if (hayVariosGrupos) {
                 cabecera = new PopupMenu.PopupSeparatorMenuItem(grupo.nombre);
                 if (primero)
-                    cabecera.add_style_class_name('vnc-primera-cabecera');
+                    cabecera.add_style_class_name('tb-primera-cabecera');
                 this._seccionLista.addMenuItem(cabecera);
             }
             primero = false;
@@ -787,7 +640,7 @@ class IndicadorVnc extends PanelMenu.Button {
 
         // Aviso que solo se ve cuando el filtro no encuentra nada.
         this._itemSinCoincidencias = new PopupMenu.PopupMenuItem(
-            _('Ninguna conexión coincide'), {reactive: false, style_class: 'vnc-aviso'});
+            _('Ninguna conexión coincide'), {reactive: false, style_class: 'tb-aviso'});
         this._itemSinCoincidencias.visible = false;
         this._seccionLista.addMenuItem(this._itemSinCoincidencias);
 
@@ -808,22 +661,13 @@ class IndicadorVnc extends PanelMenu.Button {
             return;
 
         this._buscador = new ItemBuscador({
+            pista: _('Buscar conexión…'),
             texto: this._textoFiltro,
             alEscribir: texto => this._aplicarFiltro(texto),
             alAceptar: () => this._activarPrimeraVisible(),
             alNavegar: delta => this._moverFoco(delta),
         });
         this.menu.addMenuItem(this._buscador);
-    }
-
-    /**
-     * Quita acentos y mayúsculas para que la búsqueda sea tolerante.
-     *
-     * @param {string} texto texto a normalizar
-     * @returns {string} texto comparable
-     */
-    _normalizar(texto) {
-        return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     }
 
     /**
@@ -834,7 +678,7 @@ class IndicadorVnc extends PanelMenu.Button {
      */
     _aplicarFiltro(texto) {
         this._textoFiltro = texto;
-        const busqueda = this._normalizar(texto).trim();
+        const busqueda = normalizar(texto).trim();
 
         // La fila de acciones se refiere a una conexión concreta; si la lista
         // cambia debajo, deja de tener sentido.
@@ -844,7 +688,7 @@ class IndicadorVnc extends PanelMenu.Button {
         for (const item of this._items.values()) {
             const {nombre, host, grupo} = item.conexion;
             // Se busca por nombre, host y grupo: así vale tanto "mapelo" como "10.10".
-            const heno = this._normalizar(`${nombre} ${host} ${grupo}`);
+            const heno = normalizar(`${nombre} ${host} ${grupo}`);
             const coincide = busqueda === '' || heno.includes(busqueda);
             item.visible = coincide;
             if (coincide)
@@ -859,51 +703,19 @@ class IndicadorVnc extends PanelMenu.Button {
     }
 
     /**
-     * Mueve el foco entre las conexiones visibles, saltando cabeceras y
-     * conexiones ocultas por el filtro.
+     * Mueve el foco entre las conexiones visibles, saltando cabeceras y las
+     * que el filtro haya ocultado.
      *
      * @param {number} delta +1 para bajar, -1 para subir
      * @returns {boolean} si la tecla queda consumida
      */
     _moverFoco(delta) {
-        const visibles = [...this._items.values()].filter(item => item.visible);
-        if (visibles.length === 0)
-            return Clutter.EVENT_PROPAGATE;
-
-        const foco = global.stage.get_key_focus();
-        const actual = visibles.findIndex(
-            item => item === foco || (foco && item.contains(foco)));
-
-        // Subir desde la primera conexión devuelve el foco al buscador.
-        if (actual === 0 && delta < 0 && this._buscador) {
-            this._buscador.enfocar();
-            return Clutter.EVENT_STOP;
-        }
-
-        const siguiente = actual === -1
-            ? (delta > 0 ? visibles[0] : visibles[visibles.length - 1])
-            : visibles[(actual + delta + visibles.length) % visibles.length];
-
-        siguiente.grab_key_focus();
-        this._asegurarVisible(siguiente);
-        return Clutter.EVENT_STOP;
-    }
-
-    /**
-     * Desplaza la lista lo justo para que un elemento quede a la vista.
-     *
-     * @param {St.Widget} item elemento que debe verse entero
-     */
-    _asegurarVisible(item) {
-        const ajuste = this._scroll?.vadjustment;
-        if (!ajuste)
-            return;
-
-        const caja = item.get_allocation_box();
-        if (caja.y1 < ajuste.value)
-            ajuste.value = caja.y1;
-        else if (caja.y2 > ajuste.value + ajuste.page_size)
-            ajuste.value = caja.y2 - ajuste.page_size;
+        return moverFoco({
+            items: [...this._items.values()],
+            delta,
+            scroll: this._scroll,
+            buscador: this._buscador,
+        });
     }
 
     /* -------------------------- Menú contextual ---------------------- */
@@ -1068,7 +880,7 @@ class IndicadorVnc extends PanelMenu.Button {
      * @param {string} texto texto a mostrar
      */
     _itemInformativo(texto) {
-        const item = new PopupMenu.PopupMenuItem(texto, {reactive: false, style_class: 'vnc-aviso'});
+        const item = new PopupMenu.PopupMenuItem(texto, {reactive: false, style_class: 'tb-aviso'});
         this._seccionLista.addMenuItem(item);
     }
 

@@ -34,6 +34,10 @@ import {ComprobadorPuertos, ESTADO, esperarArranque} from './checker.js';
 import {SitioEnLaBarra} from './barra.js';
 import {ajustesWol, leerEquipos, datosWolDe, despertar, CacheMacs} from './wol.js';
 import {
+    ItemAcciones, ItemConfirmacion, crearInsignia, pintarInsignia,
+    crearListaConScroll, ajustarAltoLista,
+} from './menu.js';
+import {
     MonitorVitales, VITALES, SISTEMA, resumen, detalle, porcentaje,
 } from './vitales.js';
 
@@ -47,9 +51,6 @@ const RETARDO_TRAS_ENERGIA_S = 15;
 
 // Segundos entre sondeo y sondeo mientras se espera a que un equipo arranque.
 const INTERVALO_ARRANQUE_S = 5;
-
-// Parte del alto de la pantalla que puede ocupar la lista de equipos.
-const PROPORCION_ALTO_LISTA = 0.6;
 
 // Acciones de energía, en el orden en que salen en el clic derecho. La clave es
 // el prefijo de los ajustes: «poweroff-command-linux» y compañía.
@@ -94,7 +95,7 @@ const ItemEquipo = GObject.registerClass({
         // Punto de disponibilidad (verde/rojo/gris). El color va en la hoja de
         // estilos. Un equipo detrás de un salto no se sondea.
         this._punto = new St.Widget({
-            style_class: 'equipos-punto equipos-punto-desconocido',
+            style_class: 'tb-punto tb-punto-desconocido',
             y_align: Clutter.ActorAlign.CENTER,
         });
         this.add_child(this._punto);
@@ -125,10 +126,10 @@ const ItemEquipo = GObject.registerClass({
      */
     fijarEstado(estado) {
         const clases = {
-            [ESTADO.ARRIBA]: 'equipos-punto equipos-punto-arriba',
-            [ESTADO.ABAJO]: 'equipos-punto equipos-punto-abajo',
-            [ESTADO.COMPROBANDO]: 'equipos-punto equipos-punto-comprobando',
-            [ESTADO.DESCONOCIDO]: 'equipos-punto equipos-punto-desconocido',
+            [ESTADO.ARRIBA]: 'tb-punto tb-punto-arriba',
+            [ESTADO.ABAJO]: 'tb-punto tb-punto-abajo',
+            [ESTADO.COMPROBANDO]: 'tb-punto tb-punto-comprobando',
+            [ESTADO.DESCONOCIDO]: 'tb-punto tb-punto-desconocido',
         };
         this._punto.style_class = clases[estado] ?? clases[ESTADO.DESCONOCIDO];
     }
@@ -141,7 +142,7 @@ const ItemEquipo = GObject.registerClass({
      * @param {string} error motivo del fallo, si lo hubo
      */
     fijarVitales(estadoVitales, datos, error) {
-        this._resumen.remove_style_class_name('equipos-aviso');
+        this._resumen.remove_style_class_name('equipos-alerta');
 
         if (estadoVitales === VITALES.OK && datos) {
             this._resumen.text = resumen(datos);
@@ -149,7 +150,7 @@ const ItemEquipo = GObject.registerClass({
             // El disco casi lleno es lo único que hay que ver sin leer.
             const usado = porcentaje(datos.disco);
             if (usado !== null && usado >= this._avisoDisco)
-                this._resumen.add_style_class_name('equipos-aviso');
+                this._resumen.add_style_class_name('equipos-alerta');
 
             // Al lector de pantalla se le da el detalle entero: no tiene por
             // qué conformarse con lo que cabe en la fila.
@@ -160,7 +161,7 @@ const ItemEquipo = GObject.registerClass({
             this.accessible_name = `${this.host.nombre} — ${_('consultando…')}`;
         } else if (estadoVitales === VITALES.ERROR) {
             this._resumen.text = error;
-            this._resumen.add_style_class_name('equipos-aviso');
+            this._resumen.add_style_class_name('equipos-alerta');
             this.accessible_name = `${this.host.nombre} — ${error}`;
         } else {
             this._resumen.text = '';
@@ -180,100 +181,6 @@ const ItemEquipo = GObject.registerClass({
             return Clutter.EVENT_STOP;
         }
         return super.vfunc_button_release_event(evento);
-    }
-});
-
-/* -------------------------------------------------------------------------
- * Fila de acciones: varios botones icono+texto repartidos en una sola línea
- * ------------------------------------------------------------------------- */
-const ItemAcciones = GObject.registerClass(
-class ItemAcciones extends PopupMenu.PopupBaseMenuItem {
-    /**
-     * @param {{icono: string, texto: string, peligrosa: boolean, alPulsar: Function}[]} acciones botones a pintar
-     */
-    _init(acciones) {
-        // No es activable: quien recibe los clics es cada botón.
-        super._init({
-            reactive: false,
-            activate: false,
-            hover: false,
-            can_focus: false,
-            style_class: 'equipos-acciones',
-        });
-
-        for (const {icono, texto, peligrosa, alPulsar} of acciones) {
-            const boton = new St.Button({
-                style_class: peligrosa ? 'equipos-accion equipos-accion-peligrosa' : 'equipos-accion',
-                can_focus: true,
-                x_expand: true,
-                accessible_name: texto,
-            });
-
-            const caja = new St.BoxLayout({
-                orientation: Clutter.Orientation.HORIZONTAL,
-                x_align: Clutter.ActorAlign.CENTER,
-                x_expand: true,
-            });
-            if (icono) {
-                caja.add_child(new St.Icon({
-                    icon_name: icono,
-                    style_class: 'equipos-accion-icono',
-                    y_align: Clutter.ActorAlign.CENTER,
-                }));
-            }
-            caja.add_child(new St.Label({
-                text: texto,
-                y_align: Clutter.ActorAlign.CENTER,
-            }));
-            boton.set_child(caja);
-
-            boton.connect('clicked', () => alPulsar());
-            this.add_child(boton);
-        }
-    }
-});
-
-/* -------------------------------------------------------------------------
- * Fila de confirmación: la pregunta y los dos botones
- * ------------------------------------------------------------------------- */
-const ItemConfirmacion = GObject.registerClass(
-class ItemConfirmacion extends PopupMenu.PopupBaseMenuItem {
-    /**
-     * @param {string} pregunta texto de la pregunta
-     * @param {Function} alConfirmar acción al aceptar
-     * @param {Function} alCancelar acción al rechazar
-     */
-    _init(pregunta, alConfirmar, alCancelar) {
-        super._init({
-            reactive: false,
-            activate: false,
-            hover: false,
-            can_focus: false,
-            style_class: 'equipos-acciones',
-        });
-
-        this.add_child(new St.Label({
-            text: pregunta,
-            style_class: 'equipos-pregunta',
-            x_expand: true,
-            y_align: Clutter.ActorAlign.CENTER,
-        }));
-
-        const boton = (texto, clase, accion) => {
-            const b = new St.Button({
-                style_class: clase,
-                can_focus: true,
-                accessible_name: texto,
-                label: texto,
-            });
-            b.connect('clicked', () => accion());
-            this.add_child(b);
-            return b;
-        };
-
-        // El «no» va primero, que es el que se pulsa sin mirar.
-        boton(_('No'), 'equipos-accion', alCancelar);
-        boton(_('Sí'), 'equipos-accion equipos-accion-peligrosa', alConfirmar);
     }
 });
 
@@ -319,11 +226,7 @@ class IndicadorEquipos extends PanelMenu.Button {
         this.add_child(this._icono);
 
         // Contador de equipos sin respuesta, para enterarte sin abrir el menú.
-        this._insignia = new St.Label({
-            style_class: 'equipos-insignia',
-            y_align: Clutter.ActorAlign.CENTER,
-            visible: false,
-        });
+        this._insignia = crearInsignia();
         this.add_child(this._insignia);
 
         this._macs = new CacheMacs(this._settings, 'equipos-menu');
@@ -553,7 +456,7 @@ class IndicadorEquipos extends PanelMenu.Button {
      * Al abrir el menú: sondea los puertos y pide las vitales.
      */
     _alAbrirMenu() {
-        this._ajustarAltoLista();
+        ajustarAltoLista(this._scroll);
         this._preguntar();
         this._programarIntervalo();
     }
@@ -659,20 +562,7 @@ class IndicadorEquipos extends PanelMenu.Button {
      * el menú nunca crezca más que la pantalla y el pie quede siempre visible.
      */
     _pintarLista() {
-        this._scroll = new St.ScrollView({
-            style_class: 'equipos-lista',
-            hscrollbar_policy: St.PolicyType.NEVER,
-            vscrollbar_policy: St.PolicyType.AUTOMATIC,
-            x_expand: true,
-        });
-
-        this._seccionLista = new PopupMenu.PopupMenuSection();
-        this._scroll.set_child(this._seccionLista.actor);
-
-        // El scroll va dentro de una sección para que removeAll() lo destruya.
-        const contenedor = new PopupMenu.PopupMenuSection();
-        contenedor.actor.add_child(this._scroll);
-        this.menu.addMenuItem(contenedor);
+        ({scroll: this._scroll, seccion: this._seccionLista} = crearListaConScroll(this.menu));
 
         if (this._motivoVacio === 'inexistente') {
             this._itemInformativo(_('No se encontró la configuración de SSH:'));
@@ -685,7 +575,7 @@ class IndicadorEquipos extends PanelMenu.Button {
             this._pintarGrupos();
         }
 
-        this._ajustarAltoLista();
+        ajustarAltoLista(this._scroll);
     }
 
     /**
@@ -701,7 +591,7 @@ class IndicadorEquipos extends PanelMenu.Button {
             if (hayVariosGrupos) {
                 const cabecera = new PopupMenu.PopupSeparatorMenuItem(grupo.nombre);
                 if (primero)
-                    cabecera.add_style_class_name('equipos-primera-cabecera');
+                    cabecera.add_style_class_name('tb-primera-cabecera');
                 this._seccionLista.addMenuItem(cabecera);
             }
             primero = false;
@@ -747,26 +637,10 @@ class IndicadorEquipos extends PanelMenu.Button {
             }
         }
 
-        this._insignia.text = String(caidos);
-        this._insignia.visible = caidos > 0;
+        pintarInsignia(this._insignia, caidos);
         this.accessible_name = caidos > 0
             ? `${_('Equipos')} — ${caidos} ${_('sin respuesta')}`
             : _('Equipos');
-    }
-
-    /**
-     * Limita el alto de la lista a una parte del área de trabajo. El valor va
-     * en píxeles lógicos, de ahí la división por el factor de escala.
-     */
-    _ajustarAltoLista() {
-        if (!this._scroll)
-            return;
-
-        const area = Main.layoutManager.getWorkAreaForMonitor(Main.layoutManager.primaryIndex);
-        const escala = St.ThemeContext.get_for_stage(global.stage).scale_factor;
-        const alto = Math.max(200, Math.round(area.height * PROPORCION_ALTO_LISTA / escala));
-
-        this._scroll.style = `max-height: ${alto}px;`;
     }
 
     /**
@@ -776,7 +650,7 @@ class IndicadorEquipos extends PanelMenu.Button {
      */
     _itemInformativo(texto) {
         this._seccionLista.addMenuItem(
-            new PopupMenu.PopupMenuItem(texto, {reactive: false, style_class: 'equipos-aviso-fila'}));
+            new PopupMenu.PopupMenuItem(texto, {reactive: false, style_class: 'tb-aviso'}));
     }
 
     /* -------------------------- Menú contextual ---------------------- */
@@ -981,13 +855,16 @@ class IndicadorEquipos extends PanelMenu.Button {
             return;
         }
 
-        this._abrirContexto(item, new ItemConfirmacion(
-            `¿${accion.etiqueta()} «${item.host.nombre}»?`,
-            () => {
+        this._abrirContexto(item, new ItemConfirmacion({
+            pregunta: `¿${accion.etiqueta()} «${item.host.nombre}»?`,
+            textoSi: _('Sí'),
+            textoNo: _('No'),
+            alConfirmar: () => {
                 this._cerrarContexto();
                 this._ejecutarEnergia(item.host, accion);
             },
-            () => this._cerrarContexto()));
+            alCancelar: () => this._cerrarContexto(),
+        }));
     }
 
     /**

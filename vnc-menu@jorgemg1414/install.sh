@@ -52,13 +52,18 @@ fi
 
 mkdir -p "$DESTINO/schemas"
 
-for archivo in metadata.json extension.js prefs.js connections.js ventanas.js stylesheet.css; do
+for archivo in metadata.json extension.js prefs.js connections.js ventanas.js; do
     install -m 644 "${ORIGEN}/${archivo}" "${DESTINO}/${archivo}"
 done
 
-for archivo in asyncgio.js barra.js barraprefs.js checker.js wol.js; do
+for archivo in asyncgio.js barra.js barraprefs.js checker.js menu.js wol.js; do
     install -m 644 "${COMUN}/${archivo}" "${DESTINO}/${archivo}"
 done
+
+# La hoja de estilos que se instala son las reglas comunes seguidas de las
+# propias: GNOME carga una sola por extensión y no admite importar otra.
+cat "${COMUN}/estilos.css" "${ORIGEN}/stylesheet.css" > "${DESTINO}/stylesheet.css"
+chmod 644 "${DESTINO}/stylesheet.css"
 
 install -m 644 "${ORIGEN}/schemas/org.gnome.shell.extensions.vnc-menu.gschema.xml" \
                "${DESTINO}/schemas/"

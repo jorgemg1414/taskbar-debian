@@ -21,6 +21,8 @@ repository holds exactly one copy of each file.
 | `barraprefs.js` | The two preference rows that pick that place | all six extensions |
 | `checker.js` | TCP port checks: async, cancellable, queued | VNC, SSH, WoL, Machines |
 | `hosts.js` | Reads and parses `~/.ssh/config`, including `Include` and grouping | SSH, WoL, Machines |
+| `menu.js` | Menu pieces: action row, confirmation row, search field, scrolling list, badge and focus handling | VNC, SSH, Machines |
+| `estilos.css` | The rules that look the same in every menu, prefixed `tb-` | VNC, SSH, WoL, Machines |
 | `mpris.js` | What is playing and player control over D-Bus; and pausing everything at once | Spotify, Focus |
 | `wol.js` | Magic packet, machine list, and MACs learned from the ARP table | WoL, SSH, VNC |
 
@@ -60,3 +62,16 @@ original lives here and the copies are made at install time, not in git.
 
 - **The folder is required to install.** If you clone a single extension, its
   `install.sh` stops and tells you `comun/` is missing.
+
+---
+
+## The stylesheet
+
+`estilos.css` is the exception to "copy the file as it is": GNOME loads a single
+stylesheet per extension and can't import another one, so each `install.sh`
+**prepends the shared rules to the extension's own** and writes the result as
+the `stylesheet.css` that gets installed.
+
+That is why those classes are prefixed `tb-` rather than per-extension: they are
+the same rules for every menu, and keeping four copies under four prefixes only
+served to let them drift apart.

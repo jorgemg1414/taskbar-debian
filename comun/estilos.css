@@ -1,0 +1,139 @@
+/*
+ * estilos.css — Lo que se ve igual en todos los menús del repositorio.
+ *
+ * Las clases llevan el prefijo «tb-» (taskbar) y no el de cada extensión: son
+ * las mismas reglas para todas, así que tener cuatro copias con cuatro
+ * prefijos distintos solo servía para que un día dejaran de parecerse.
+ *
+ * GNOME carga una sola hoja por extensión, así que este archivo no se importa:
+ * cada install.sh lo pega delante de la hoja propia de su extensión al
+ * instalar. Lo específico de cada una se queda en la suya.
+ */
+
+/* --------------------------- Punto de estado ---------------------------- */
+
+/* Disponibilidad de un equipo o conexión. El color lo pone el estado. */
+.tb-punto {
+    width: 10px;
+    height: 10px;
+    border-radius: 5px;
+    margin-right: 10px;
+    border: 1px solid rgba(0, 0, 0, 0.35);
+}
+
+/* Responde. */
+.tb-punto-arriba {
+    background-color: #2ec27e;
+    box-shadow: 0 0 4px rgba(46, 194, 126, 0.8);
+}
+
+/* Puerto cerrado, inalcanzable o tiempo de espera agotado. */
+.tb-punto-abajo {
+    background-color: #e01b24;
+}
+
+/* Comprobación en curso, o esperando a que arranque. */
+.tb-punto-comprobando {
+    background-color: #f5c211;
+}
+
+/* Sin comprobar todavía, o comprobaciones desactivadas. */
+.tb-punto-desconocido {
+    background-color: rgba(255, 255, 255, 0.25);
+}
+
+/* --------------------------- Panel superior ----------------------------- */
+
+/* Contador de caídos junto al icono de la barra. */
+.tb-insignia {
+    background-color: #e01b24;
+    color: #ffffff;
+    font-size: 0.7em;
+    font-weight: bold;
+    border-radius: 9px;
+    padding: 1px 6px;
+    margin-left: 2px;
+}
+
+/* ------------------------------- Lista ---------------------------------- */
+
+/* Zona con desplazamiento donde viven las entradas. */
+.tb-lista {
+    padding-right: 2px;
+}
+
+/* La primera cabecera de grupo no necesita separación extra arriba. */
+.tb-primera-cabecera {
+    margin-top: 0;
+}
+
+/* Avisos: sin configuración, sin entradas, cargando… */
+.tb-aviso {
+    color: rgba(255, 255, 255, 0.7);
+    font-style: italic;
+}
+
+/* Milisegundos que tardó en responder, a la derecha de la entrada. */
+.tb-latencia {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.8em;
+    margin-left: 10px;
+    min-width: 48px;
+    text-align: right;
+}
+
+/* ------------------------------ Buscador -------------------------------- */
+
+.tb-buscador {
+    margin: 2px 0 6px 0;
+    min-width: 220px;
+}
+
+.tb-buscador-icono {
+    icon-size: 16px;
+    margin-right: 6px;
+}
+
+/* --------------------------- Fila de acciones --------------------------- */
+
+.tb-acciones {
+    padding: 4px 8px 2px 8px;
+    spacing: 6px;
+}
+
+.tb-accion {
+    padding: 8px 6px;
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.9em;
+}
+
+.tb-accion:hover,
+.tb-accion:focus {
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.tb-accion:active {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.tb-accion-icono {
+    icon-size: 16px;
+    margin-right: 6px;
+}
+
+/* Lo que no se puede deshacer se ve distinto antes de pulsarlo. */
+.tb-accion-peligrosa {
+    color: #ff938c;
+}
+
+.tb-accion-peligrosa:hover,
+.tb-accion-peligrosa:focus {
+    background-color: rgba(224, 27, 36, 0.25);
+}
+
+/* La pregunta de una fila de confirmación. */
+.tb-pregunta {
+    color: rgba(255, 255, 255, 0.9);
+    padding-left: 4px;
+}

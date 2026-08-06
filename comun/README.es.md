@@ -22,6 +22,8 @@ hay un solo archivo de cada cosa.
 | `barraprefs.js` | Las dos filas de preferencias con las que se elige ese sitio | las seis extensiones |
 | `checker.js` | Comprobación de puertos TCP, asíncrona, cancelable y con cola | VNC, SSH, WoL, Equipos |
 | `hosts.js` | Lectura y parseo de `~/.ssh/config`, con `Include` y agrupación | SSH, WoL, Equipos |
+| `menu.js` | Piezas de menú: fila de acciones, confirmación, buscador, lista con desplazamiento, insignia y foco | VNC, SSH, Equipos |
+| `estilos.css` | Las reglas que se ven igual en todos los menús, con el prefijo `tb-` | VNC, SSH, WoL, Equipos |
 | `mpris.js` | Qué está sonando y control del reproductor, por D-Bus; y pausar todo de golpe | Spotify, Concentración |
 | `wol.js` | Paquete mágico, lista de equipos y MAC aprendidas de la tabla ARP | WoL, SSH, VNC |
 
@@ -61,3 +63,16 @@ original vive aquí y las copias se hacen al instalar, no en git.
 
 - **La carpeta hace falta para instalar.** Si clonas solo una extensión, su
   `install.sh` se planta y te dice que falta `comun/`.
+
+---
+
+## La hoja de estilos
+
+`estilos.css` es la excepción a lo de «copiar el archivo tal cual»: GNOME carga
+una sola hoja por extensión y no admite importar otra, así que cada `install.sh`
+**pega las reglas comunes delante de las propias** y escribe el resultado en el
+`stylesheet.css` que se instala.
+
+Por eso esas clases llevan el prefijo `tb-` y no el de cada extensión: son las
+mismas reglas para todas, y tener cuatro copias con cuatro prefijos distintos
+solo servía para que un día dejaran de parecerse.

@@ -52,7 +52,7 @@ class ItemEquipo extends PopupMenu.PopupBaseMenuItem {
         // hay nada que saber del equipo, así que se deja el icono de siempre.
         if (comprobable) {
             this._punto = new St.Widget({
-                style_class: 'wol-punto wol-punto-desconocido',
+                style_class: 'tb-punto tb-punto-desconocido',
                 y_align: Clutter.ActorAlign.CENTER,
             });
             this.add_child(this._punto);
@@ -91,10 +91,10 @@ class ItemEquipo extends PopupMenu.PopupBaseMenuItem {
      */
     fijarEstado(estado) {
         const clases = {
-            [ESTADO.ARRIBA]: 'wol-punto wol-punto-arriba',
-            [ESTADO.ABAJO]: 'wol-punto wol-punto-abajo',
-            [ESTADO.COMPROBANDO]: 'wol-punto wol-punto-comprobando',
-            [ESTADO.DESCONOCIDO]: 'wol-punto wol-punto-desconocido',
+            [ESTADO.ARRIBA]: 'tb-punto tb-punto-arriba',
+            [ESTADO.ABAJO]: 'tb-punto tb-punto-abajo',
+            [ESTADO.COMPROBANDO]: 'tb-punto tb-punto-comprobando',
+            [ESTADO.DESCONOCIDO]: 'tb-punto tb-punto-desconocido',
         };
         const textos = {
             [ESTADO.ARRIBA]: _('encendido'),
@@ -265,7 +265,7 @@ class IndicadorWol extends PanelMenu.Button {
         if (this._equipos.length === 0) {
             const aviso = new PopupMenu.PopupMenuItem(
                 _('No hay equipos configurados'),
-                {reactive: false, style_class: 'wol-aviso'});
+                {reactive: false, style_class: 'tb-aviso'});
             this.menu.addMenuItem(aviso);
         }
 
