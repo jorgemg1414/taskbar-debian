@@ -265,6 +265,8 @@ Menu → **Preferences**, or `gnome-extensions prefs vnc-menu@jorgemg1414`.
 | Refresh while menu is open | 60 s | Between checks while you're looking at the menu |
 | Check in the background | 0 (off) | Seconds between checks with the menu closed |
 | Timeout | 2 s | Before considering a host down |
+| Place in the bar | Right | Which part of the top bar the indicator goes in |
+| Position | 0 | Order within that part, starting at 0 |
 
 **Command placeholders:** `%h` host · `%p` port · `%u` username · `%n` name ·
 `%f` file path.

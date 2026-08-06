@@ -266,6 +266,8 @@ Desde el menú → **Preferencias**, o con `gnome-extensions prefs vnc-menu@jorg
 | Refresco con el menú abierto | 60 s | Entre comprobaciones mientras miras el menú |
 | Comprobar en segundo plano | 0 (desactivado) | Segundos entre comprobaciones con el menú cerrado |
 | Tiempo de espera | 2 s | Antes de dar un host por caído |
+| Sitio en la barra | Derecha | En qué parte de la barra superior se pone el indicador |
+| Posición | 0 | Orden dentro de esa parte, empezando por el 0 |
 
 **Marcadores de los comandos:** `%h` host · `%p` puerto · `%u` usuario ·
 `%n` nombre · `%f` ruta del archivo.

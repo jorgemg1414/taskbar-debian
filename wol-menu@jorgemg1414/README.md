@@ -188,6 +188,8 @@ And globally:
 | Learn MACs | yes | Records the MAC from the ARP table while the machine answers |
 | Panel icon | `network-wired-symbolic` | Any symbolic icon from the theme |
 | Show the MAC | no | The hardware address to the right of each machine |
+| Place in the bar | Right | Which part of the top bar the indicator goes in |
+| Position | 1 | Order within that part, starting at 0 |
 
 With two machines or more, **Wake all** appears and sends the packet to the
 whole list at once.

@@ -7,6 +7,7 @@ import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 
 import {ExtensionPreferences, gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import {anadirFilasDeSitio} from './barraprefs.js';
 
 export default class EquiposMenuPreferences extends ExtensionPreferences {
     /**
@@ -197,6 +198,15 @@ export default class EquiposMenuPreferences extends ExtensionPreferences {
             const fila = new Adw.EntryRow({title: titulo});
             settings.bind(clave, fila, 'text', Gio.SettingsBindFlags.DEFAULT);
             grupoWindows.add(fila);
+
+        /* ------------------------ Sitio en la barra -------------------- */
+        const grupoSitio = new Adw.PreferencesGroup({
+            title: _('Barra superior'),
+            description: _('GNOME no deja reordenar la barra: el sitio lo pide cada ' +
+                'extensión al ponerse. Aquí se elige el de esta.'),
+        });
+        pagina.add(grupoSitio);
+        anadirFilasDeSitio(grupoSitio, settings, _);
         }
     }
 }

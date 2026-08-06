@@ -164,5 +164,30 @@
       <description>Nombre del icono simbólico que se muestra en la barra superior.</description>
     </key>
 
+    <key name="panel-box" type="s">
+      <choices>
+        <choice value="left"/>
+        <choice value="center"/>
+        <choice value="right"/>
+      </choices>
+      <default>'right'</default>
+      <summary>Sitio en la barra superior</summary>
+      <description>
+        En qué parte de la barra se pone el indicador: a la izquierda, en el
+        centro o a la derecha. GNOME no deja reordenarla desde fuera, así que el
+        sitio lo pide la extensión al ponerse.
+      </description>
+    </key>
+
+    <key name="panel-position" type="i">
+      <default>0</default>
+      <range min="0" max="20"/>
+      <summary>Posición dentro de esa parte</summary>
+      <description>
+        Orden dentro de la parte elegida, empezando por el 0. Si el número pasa
+        de los indicadores que hay, el de esta extensión se queda el último.
+      </description>
+    </key>
+
   </schema>
 </schemalist>

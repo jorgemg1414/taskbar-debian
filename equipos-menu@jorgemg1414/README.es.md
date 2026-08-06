@@ -190,6 +190,8 @@ Desde el menú → **Ajustes**, o con `gnome-extensions prefs equipos-menu@jorge
 | Icono del panel | `utilities-system-monitor-symbolic` | Cualquier icono simbólico del tema |
 | Pedir confirmación | sí | Antes de apagar, reiniciar o suspender |
 | Órdenes de energía | ver arriba | Tres para Linux y tres para Windows |
+| Sitio en la barra | Derecha | En qué parte de la barra superior se pone el indicador |
+| Posición | 3 | Orden dentro de esa parte, empezando por el 0 |
 
 Los equipos se agrupan con los mismos comentarios `# Grupo: NOMBRE` que usa el
 [menú de SSH](../ssh-menu@jorgemg1414/), porque leen el mismo archivo.

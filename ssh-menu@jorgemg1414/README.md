@@ -214,6 +214,8 @@ From the menu → **Ajustes**, or with `gnome-extensions prefs ssh-menu@jorgemg1
 | Refresh with menu open | 60 s | How often it re-checks while you look |
 | Background checks | 0 (off) | With the menu closed; 0 leaves the network alone |
 | Timeout | 2 s | Before calling a machine down |
+| Place in the bar | Right | Which part of the top bar the indicator goes in |
+| Position | 2 | Order within that part, starting at 0 |
 
 ### Commands
 

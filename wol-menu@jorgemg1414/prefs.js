@@ -16,6 +16,7 @@ import {
     PUERTO_POR_DEFECTO, PUERTO_SONDA,
 } from './wol.js';
 import {escanearHosts} from './hosts.js';
+import {anadirFilasDeSitio} from './barraprefs.js';
 
 // De dónde se importan los equipos. Es el archivo que lee el propio ssh.
 const CONFIG_SSH = '~/.ssh/config';
@@ -180,6 +181,8 @@ export default class WolMenuPreferences extends ExtensionPreferences {
         });
         settings.bind('show-mac', filaMac, 'active', Gio.SettingsBindFlags.DEFAULT);
         grupoAspecto.add(filaMac);
+
+        anadirFilasDeSitio(grupoAspecto, settings, _);
     }
 
     /**

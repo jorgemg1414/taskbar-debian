@@ -7,6 +7,7 @@ import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 
 import {ExtensionPreferences, gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import {anadirFilasDeSitio} from './barraprefs.js';
 
 export default class VncMenuPreferences extends ExtensionPreferences {
     /**
@@ -192,5 +193,14 @@ export default class VncMenuPreferences extends ExtensionPreferences {
         settings.bind('check-timeout', filaTimeout, 'value', Gio.SettingsBindFlags.DEFAULT);
         settings.bind('enable-checks', filaTimeout, 'sensitive', Gio.SettingsBindFlags.GET);
         grupoChecks.add(filaTimeout);
+
+        /* ------------------------ Sitio en la barra -------------------- */
+        const grupoSitio = new Adw.PreferencesGroup({
+            title: _('Barra superior'),
+            description: _('GNOME no deja reordenar la barra: el sitio lo pide cada ' +
+                'extensión al ponerse. Aquí se elige el de esta.'),
+        });
+        pagina.add(grupoSitio);
+        anadirFilasDeSitio(grupoSitio, settings, _);
     }
 }

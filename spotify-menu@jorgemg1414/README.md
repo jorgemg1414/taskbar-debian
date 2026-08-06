@@ -123,6 +123,23 @@ busctl --user list | grep mpris
 
 ---
 
+## Privacy
+
+What you listen to doesn't leave the machine:
+
+- **No account, no key.** Spotify's web API is never called, no token is asked
+  for, and there's nothing to log into.
+- **No history is kept.** The extension writes down nothing about what you've
+  played: it reads what's sounding right now and paints it. The only thing left
+  on disk is the cover images, in `~/.cache/spotify-menu/`, with no song names —
+  each file is named after the hash of its URL — and an `rm -rf` clears them.
+- **The only network traffic is the cover art**, against the player's own CDN,
+  and it can be turned off.
+- **The settings hold nothing of yours**: a text template, a few switches and a
+  number.
+
+---
+
 ## Settings
 
 | Setting | Default | What it does |
@@ -139,6 +156,8 @@ busctl --user list | grep mpris
 | Show the position | Yes | Progress bar with elapsed and total time |
 | Middle click plays or pauses | Yes | Shortcut on the indicator |
 | Scroll wheel changes track | No | Shortcut on the indicator |
+| Place in the bar | Right | Which part of the top bar the indicator goes in |
+| Position | 4 | Order within that part, starting at 0 |
 
 From the console, without opening the preferences:
 

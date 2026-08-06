@@ -127,6 +127,24 @@ busctl --user list | grep mpris
 
 ---
 
+## Privacidad
+
+Lo que escuchas no sale de aquí:
+
+- **No hay cuenta ni clave.** No se habla con la API web de Spotify, no se pide
+  ningún token y no hay nada que iniciar sesión.
+- **No se guarda un historial.** La extensión no apunta en ningún sitio lo que
+  has escuchado: lee lo que hay sonando en ese momento y lo pinta. Lo único que
+  queda en disco son las imágenes de las portadas, en `~/.cache/spotify-menu/`,
+  sin nombres de canciones —el archivo se llama como el hash de su dirección— y
+  se borran con un `rm -rf`.
+- **El único tráfico de red es la portada**, contra el CDN del propio
+  reproductor, y se puede apagar.
+- **Los ajustes no llevan nada tuyo**: una plantilla de texto, unos cuantos
+  interruptores y un número.
+
+---
+
 ## Ajustes
 
 | Ajuste | Por omisión | Qué hace |
@@ -143,6 +161,8 @@ busctl --user list | grep mpris
 | Mostrar por dónde va | Sí | Barra de progreso con los tiempos |
 | El botón central reproduce o pausa | Sí | Atajo sobre el indicador |
 | La rueda cambia de canción | No | Atajo sobre el indicador |
+| Sitio en la barra | Derecha | En qué parte de la barra superior se pone el indicador |
+| Posición | 4 | Orden dentro de esa parte, empezando por el 0 |
 
 Desde consola, sin abrir las preferencias:
 

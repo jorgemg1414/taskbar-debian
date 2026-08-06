@@ -214,6 +214,8 @@ Desde el menú → **Ajustes**, o con `gnome-extensions prefs ssh-menu@jorgemg14
 | Refresco con el menú abierto | 60 s | Cada cuánto se recomprueba mientras miras |
 | Comprobar en segundo plano | 0 (desactivado) | Con el menú cerrado; 0 no toca la red |
 | Tiempo de espera | 2 s | Antes de dar un equipo por caído |
+| Sitio en la barra | Derecha | En qué parte de la barra superior se pone el indicador |
+| Posición | 2 | Orden dentro de esa parte, empezando por el 0 |
 
 ### Comandos
 

@@ -10,6 +10,7 @@ import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 
 import {ExtensionPreferences, gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import {anadirFilasDeSitio} from './barraprefs.js';
 
 export default class SpotifyMenuPreferences extends ExtensionPreferences {
     /**
@@ -100,6 +101,8 @@ export default class SpotifyMenuPreferences extends ExtensionPreferences {
             _('Nombre del icono simbólico que se usa cuando no lo sustituye el estado.'));
         settings.bind('panel-icon', filaIcono, 'text', Gio.SettingsBindFlags.DEFAULT);
         grupoBarra.add(filaIcono);
+
+        anadirFilasDeSitio(grupoBarra, settings, _);
 
         /* ---------------------------- Menú ----------------------------- */
         const grupoMenu = new Adw.PreferencesGroup({title: _('Menú')});

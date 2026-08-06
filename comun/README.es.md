@@ -17,7 +17,9 @@ hay un solo archivo de cada cosa.
 
 | Módulo | Qué hace | Quién lo usa |
 |---|---|---|
-| `asyncgio.js` | Envoltorios de `Promise` sobre las llamadas asíncronas de `Gio` | los cuatro menús |
+| `asyncgio.js` | Envoltorios de `Promise` sobre las llamadas asíncronas de `Gio` | los cinco menús |
+| `barra.js` | Coloca el indicador en la barra según los ajustes, y lo recoloca al cambiarlos | los cinco menús |
+| `barraprefs.js` | Las dos filas de preferencias con las que se elige ese sitio | los cinco menús |
 | `checker.js` | Comprobación de puertos TCP, asíncrona, cancelable y con cola | VNC, SSH, WoL, Equipos |
 | `hosts.js` | Lectura y parseo de `~/.ssh/config`, con `Include` y agrupación | SSH, WoL, Equipos |
 | `wol.js` | Paquete mágico, lista de equipos y MAC aprendidas de la tabla ARP | WoL, SSH, VNC |
@@ -41,6 +43,10 @@ original vive aquí y las copias se hacen al instalar, no en git.
 - **Un módulo entra aquí cuando lo usan dos extensiones.** Si solo lo usa una,
   su sitio es la carpeta de esa extensión (`connections.js`, `montajes.js`,
   `ventanas.js`, `vitales.js`… se quedan donde están).
+- **`barra.js` es el único que habla con el shell** (`Main.panel`). Los demás
+  son Gio y GLib pelados, y se pueden probar fuera de GNOME. Por eso las filas
+  de preferencias de la barra viven aparte, en `barraprefs.js`: la ventana de
+  preferencias es otro proceso, sin shell.
 - **Nada de aquí conoce a ninguna extensión concreta.** Ni ajustes propios, ni
   `metadata.json`, ni cadenas de la interfaz: lo que se necesite se pasa por
   parámetro. Por eso los avisos del registro van con el nombre del módulo

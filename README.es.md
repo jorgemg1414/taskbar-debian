@@ -241,6 +241,45 @@ gsettings --schemadir ~/.local/share/gnome-shell/extensions/vnc-menu@jorgemg1414
 
 ---
 
+## El sitio en la barra
+
+GNOME no deja reordenar la barra superior: el sitio lo pide cada extensión al
+ponerse. Las cinco de aquí lo sacan de sus ajustes —**Barra superior** en sus
+preferencias—, con la parte de la barra (izquierda, centro o derecha) y el orden
+dentro de ella. Cambiarlo mueve el indicador al momento, sin recargar nada.
+
+Vienen puestas en la derecha, en este orden:
+
+| Extensión | Posición |
+|---|---|
+| VNC | 0 |
+| Wake on LAN | 1 |
+| SSH | 2 |
+| Equipos | 3 |
+| Spotify | 4 |
+
+Si el número pasa de los indicadores que hay en esa parte, el de la extensión se
+queda el último. Y solo manda sobre estas cinco: para ordenar también las de
+terceros hace falta una extensión organizadora, que si la instalas pasa a
+decidir ella.
+
+> **El número es el hueco en el que se mete el indicador al arrancar la
+> extensión, no una posición fija.** En esa parte de la barra también están los
+> indicadores del propio GNOME, y las extensiones no arrancan siempre en el
+> mismo orden, así que dos que empiecen con números seguidos pueden acabar
+> cambiadas. Se arregla probando un par de números hasta que quede como quieres:
+> el cambio se ve al momento.
+
+Desde consola, sin abrir las preferencias:
+
+```bash
+gsettings --schemadir ~/.local/share/gnome-shell/extensions/spotify-menu@jorgemg1414/schemas set org.gnome.shell.extensions.spotify-menu panel-box 'left'
+```
+
+Lo pone [`comun/barra.js`](comun/), compartido por las cinco.
+
+---
+
 ## Requisitos
 
 - GNOME Shell 48 (probado en 48.7, Debian 13, sesión Wayland)

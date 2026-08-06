@@ -66,7 +66,7 @@ for archivo in metadata.json extension.js prefs.js vitales.js stylesheet.css; do
     install -m 644 "${ORIGEN}/${archivo}" "${DESTINO}/${archivo}"
 done
 
-for archivo in asyncgio.js checker.js hosts.js; do
+for archivo in asyncgio.js barra.js barraprefs.js checker.js hosts.js; do
     install -m 644 "${COMUN}/${archivo}" "${DESTINO}/${archivo}"
 done
 

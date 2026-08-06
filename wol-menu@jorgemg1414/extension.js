@@ -25,6 +25,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {despertar, leerEquipos, formatearMac, parsearSonda, CacheMacs} from './wol.js';
 import {ComprobadorPuertos, ESTADO, esperarArranque} from './checker.js';
+import {SitioEnLaBarra} from './barra.js';
 
 // Segundos entre sondeo y sondeo mientras se espera a que un equipo arranque.
 // Un ordenador tarda como poco unas decenas de segundos en levantar la red:
@@ -508,18 +509,20 @@ class IndicadorWol extends PanelMenu.Button {
  * ------------------------------------------------------------------------- */
 export default class WolMenuExtension extends Extension {
     /**
-     * Crea el indicador y lo añade al panel.
+     * Crea el indicador y lo pone en la barra, donde digan los ajustes.
      */
     enable() {
-        this._indicador = new IndicadorWol(this);
-        Main.panel.addToStatusArea(this.uuid, this._indicador, 1, 'right');
+        this._sitio = new SitioEnLaBarra({
+            extension: this,
+            crear: () => new IndicadorWol(this),
+        });
     }
 
     /**
      * Destruye el indicador y, con él, todos sus recursos.
      */
     disable() {
-        this._indicador?.destroy();
-        this._indicador = null;
+        this._sitio?.destruir();
+        this._sitio = null;
     }
 }

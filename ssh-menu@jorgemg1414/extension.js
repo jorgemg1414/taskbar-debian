@@ -27,6 +27,7 @@ import {
 } from './hosts.js';
 import {ComprobadorPuertos, ESTADO} from './checker.js';
 import {listarMontajesSftp, idsMontados, uriDeMontaje, desmontar} from './montajes.js';
+import {SitioEnLaBarra} from './barra.js';
 import {
     ajustesWol, leerEquipos, datosWolDe, despertar, CacheMacs,
 } from './wol.js';
@@ -1636,18 +1637,20 @@ class IndicadorSsh extends PanelMenu.Button {
  * ------------------------------------------------------------------------- */
 export default class SshMenuExtension extends Extension {
     /**
-     * Crea el indicador y lo añade al panel.
+     * Crea el indicador y lo pone en la barra, donde digan los ajustes.
      */
     enable() {
-        this._indicador = new IndicadorSsh(this);
-        Main.panel.addToStatusArea(this.uuid, this._indicador, 2, 'right');
+        this._sitio = new SitioEnLaBarra({
+            extension: this,
+            crear: () => new IndicadorSsh(this),
+        });
     }
 
     /**
      * Destruye el indicador y, con él, todos sus recursos.
      */
     disable() {
-        this._indicador?.destroy();
-        this._indicador = null;
+        this._sitio?.destruir();
+        this._sitio = null;
     }
 }

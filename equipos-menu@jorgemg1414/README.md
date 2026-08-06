@@ -189,6 +189,8 @@ Menu → **Ajustes**, or `gnome-extensions prefs equipos-menu@jorgemg1414`.
 | Panel icon | `utilities-system-monitor-symbolic` | Any symbolic icon from the theme |
 | Ask for confirmation | yes | Before powering off, rebooting or suspending |
 | Power commands | see above | Three for Linux and three for Windows |
+| Place in the bar | Right | Which part of the top bar the indicator goes in |
+| Position | 3 | Order within that part, starting at 0 |
 
 Machines are grouped with the same `# Grupo: NAME` comments the
 [SSH menu](../ssh-menu@jorgemg1414/) uses, because they read the same file.

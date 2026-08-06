@@ -31,6 +31,7 @@ import {
     escanearHosts, agruparHosts, expandirRuta, GRUPO_SIN_NOMBRE,
 } from './hosts.js';
 import {ComprobadorPuertos, ESTADO} from './checker.js';
+import {SitioEnLaBarra} from './barra.js';
 import {
     MonitorVitales, VITALES, SISTEMA, resumen, detalle, porcentaje,
 } from './vitales.js';
@@ -993,18 +994,20 @@ class IndicadorEquipos extends PanelMenu.Button {
  * ------------------------------------------------------------------------- */
 export default class EquiposMenuExtension extends Extension {
     /**
-     * Crea el indicador y lo añade al panel.
+     * Crea el indicador y lo pone en la barra, donde digan los ajustes.
      */
     enable() {
-        this._indicador = new IndicadorEquipos(this);
-        Main.panel.addToStatusArea(this.uuid, this._indicador, 3, 'right');
+        this._sitio = new SitioEnLaBarra({
+            extension: this,
+            crear: () => new IndicadorEquipos(this),
+        });
     }
 
     /**
      * Destruye el indicador y, con él, todos sus recursos.
      */
     disable() {
-        this._indicador?.destroy();
-        this._indicador = null;
+        this._sitio?.destruir();
+        this._sitio = null;
     }
 }

@@ -24,6 +24,7 @@ import {escanearConexiones, agruparConexiones, expandirRuta, GRUPO_SIN_NOMBRE} f
 import {ComprobadorPuertos, ESTADO} from './checker.js';
 import {listarSesiones} from './ventanas.js';
 import {ajustesWol, leerEquipos, datosWolDe, despertar, CacheMacs} from './wol.js';
+import {SitioEnLaBarra} from './barra.js';
 
 // Milisegundos que se espera tras un cambio en la carpeta antes de recargar
 // (los gestores de archivos generan varios eventos seguidos).
@@ -1250,18 +1251,20 @@ class IndicadorVnc extends PanelMenu.Button {
  * ------------------------------------------------------------------------- */
 export default class VncMenuExtension extends Extension {
     /**
-     * Crea el indicador y lo añade al panel.
+     * Crea el indicador y lo pone en la barra, donde digan los ajustes.
      */
     enable() {
-        this._indicador = new IndicadorVnc(this);
-        Main.panel.addToStatusArea(this.uuid, this._indicador, 0, 'right');
+        this._sitio = new SitioEnLaBarra({
+            extension: this,
+            crear: () => new IndicadorVnc(this),
+        });
     }
 
     /**
      * Destruye el indicador y, con él, todos sus recursos.
      */
     disable() {
-        this._indicador?.destroy();
-        this._indicador = null;
+        this._sitio?.destruir();
+        this._sitio = null;
     }
 }

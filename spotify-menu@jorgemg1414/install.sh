@@ -60,7 +60,9 @@ for archivo in metadata.json extension.js prefs.js mpris.js caratula.js styleshe
     install -m 644 "${ORIGEN}/${archivo}" "${DESTINO}/${archivo}"
 done
 
-install -m 644 "${COMUN}/asyncgio.js" "${DESTINO}/asyncgio.js"
+for archivo in asyncgio.js barra.js barraprefs.js; do
+    install -m 644 "${COMUN}/${archivo}" "${DESTINO}/${archivo}"
+done
 
 install -m 644 "${ORIGEN}/schemas/org.gnome.shell.extensions.spotify-menu.gschema.xml" \
                "${DESTINO}/schemas/"

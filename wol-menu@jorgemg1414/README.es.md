@@ -191,6 +191,8 @@ Y a nivel general:
 | Aprender las MAC | sí | Apunta la MAC de la tabla ARP mientras el equipo responde |
 | Icono del panel | `network-wired-symbolic` | Cualquier icono simbólico del tema |
 | Mostrar la MAC | no | La dirección física a la derecha de cada equipo |
+| Sitio en la barra | Derecha | En qué parte de la barra superior se pone el indicador |
+| Posición | 1 | Orden dentro de esa parte, empezando por el 0 |
 
 Con dos equipos o más aparece **Encender todos**, que manda el paquete a toda
 la lista de una vez.

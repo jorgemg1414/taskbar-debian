@@ -16,7 +16,9 @@ repository holds exactly one copy of each file.
 
 | Module | What it does | Used by |
 |---|---|---|
-| `asyncgio.js` | `Promise` wrappers around the async `Gio` calls | all four menus |
+| `asyncgio.js` | `Promise` wrappers around the async `Gio` calls | all five menus |
+| `barra.js` | Places the indicator in the top bar per its settings, and moves it when they change | all five menus |
+| `barraprefs.js` | The two preference rows that pick that place | all five menus |
 | `checker.js` | TCP port checks: async, cancellable, queued | VNC, SSH, WoL, Machines |
 | `hosts.js` | Reads and parses `~/.ssh/config`, including `Include` and grouping | SSH, WoL, Machines |
 | `wol.js` | Magic packet, machine list, and MACs learned from the ARP table | WoL, SSH, VNC |
@@ -40,6 +42,10 @@ original lives here and the copies are made at install time, not in git.
 - **A module moves here once two extensions use it.** If only one does, it
   belongs in that extension's folder (`connections.js`, `montajes.js`,
   `ventanas.js`, `vitales.js`… stay where they are).
+- **`barra.js` is the only one that talks to the shell** (`Main.panel`). The
+  rest are plain Gio and GLib, and can be tested outside GNOME. That is why the
+  top bar's preference rows live separately in `barraprefs.js`: the preferences
+  window is another process, without a shell.
 - **Nothing here knows about any particular extension.** No settings of its own,
   no `metadata.json`, no UI strings: whatever it needs is passed in. That is why
   log warnings carry the module name (`[wol]`, `[hosts]`) instead of an

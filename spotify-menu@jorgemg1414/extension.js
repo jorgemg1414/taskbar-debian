@@ -32,6 +32,7 @@ import * as Slider from 'resource:///org/gnome/shell/ui/slider.js';
 
 import {ClienteMpris, ESTADO, formatearTiempo} from './mpris.js';
 import {CacheCaratulas} from './caratula.js';
+import {SitioEnLaBarra} from './barra.js';
 
 // Cada cuánto se pregunta por dónde va la canción, con el menú abierto.
 const INTERVALO_POSICION_MS = 1000;
@@ -830,20 +831,20 @@ class IndicadorSpotify extends PanelMenu.Button {
  * ------------------------------------------------------------------------- */
 export default class SpotifyMenuExtension extends Extension {
     /**
-     * Crea el indicador y lo añade al panel.
+     * Crea el indicador y lo pone en la barra, donde digan los ajustes.
      */
     enable() {
-        this._indicador = new IndicadorSpotify(this);
-        // A la derecha del reloj empieza el área de estado; el indicador va al
-        // principio de ella, junto a los demás menús de este repositorio.
-        Main.panel.addToStatusArea(this.uuid, this._indicador, 1, 'right');
+        this._sitio = new SitioEnLaBarra({
+            extension: this,
+            crear: () => new IndicadorSpotify(this),
+        });
     }
 
     /**
      * Destruye el indicador y, con él, todos sus recursos.
      */
     disable() {
-        this._indicador?.destroy();
-        this._indicador = null;
+        this._sitio?.destruir();
+        this._sitio = null;
     }
 }
