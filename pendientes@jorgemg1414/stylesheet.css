@@ -1,0 +1,32 @@
+/*
+ * stylesheet.css — lo propio del menú de Pendientes.
+ *
+ * La lista, el buscador, la fila de acciones, la insignia y los avisos están en
+ * comun/estilos.css con el prefijo «tb-», y install.sh lo pega delante de este
+ * archivo al instalar.
+ */
+
+/* Casilla a la izquierda de cada tarea. */
+.pendientes-casilla {
+    icon-size: 16px;
+    margin-right: 10px;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+/* El texto de la tarea, que es lo que se lee. */
+.pendientes-texto {
+    max-width: 460px;
+}
+
+/* Una tarea ya hecha: tachada y apagada, para que no compita con lo que queda. */
+.pendientes-hecha {
+    color: rgba(255, 255, 255, 0.45);
+    text-decoration: line-through;
+}
+
+/* Nombre del archivo, cuando se leen varios. */
+.pendientes-archivo {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.8em;
+    margin-left: 14px;
+}

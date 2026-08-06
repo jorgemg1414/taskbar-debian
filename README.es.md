@@ -22,6 +22,7 @@ extensiones (ESM, GNOME 45+): `import ... from 'gi://…'`, clase que extiende
 | [`equipos-menu@jorgemg1414/`](equipos-menu@jorgemg1414/) | **Equipos** — cómo está cada equipo por dentro, y apagarlo, reiniciarlo o suspenderlo a distancia |
 | [`spotify-menu@jorgemg1414/`](spotify-menu@jorgemg1414/) | **Spotify** — la canción que está sonando, con su portada y sus controles |
 | [`concentracion@jorgemg1414/`](concentracion@jorgemg1414/) | **Concentración** — apagar de golpe lo que interrumpe, con temporizador |
+| [`pendientes@jorgemg1414/`](pendientes@jorgemg1414/) | **Pendientes** — las tareas sin hacer de tus archivos Markdown, y marcarlas desde la barra |
 | [`herramientas/`](herramientas/) | Scripts para convertir archivos `.vnc` en perfiles de Remmina y guardar su contraseña en el llavero de GNOME |
 | [`comun/`](comun/) | Los módulos que comparten varias extensiones. El original está aquí; cada `install.sh` copia los que necesita |
 | [`comprobar.sh`](comprobar.sh) | Repasa el repositorio: sintaxis, imports, instaladores, esquemas y estilos |
@@ -167,6 +168,32 @@ en el menú la portada, el álbum, por dónde va y los botones.
 
 Documentación completa (portadas, otros reproductores, ajustes, depuración):
 **[spotify-menu@jorgemg1414/README.es.md](spotify-menu@jorgemg1414/README.es.md)**
+
+---
+
+## Pendientes
+
+Las tareas sin hacer de tus archivos Markdown —las líneas `- [ ] algo`—
+agrupadas por el encabezado que tengan encima, y marcables desde la barra.
+
+- **Lee tus archivos tal como están**, igual que el menú de VNC lee tus `.vnc` y
+  el de SSH tu `~/.ssh/config`. Ni base de datos, ni servicio, ni formato
+  propio: un `.md` que puedes seguir editando con cualquier editor, o una
+  carpeta entera de ellos.
+- **Marcar cambia un solo carácter** del archivo, el hueco de la casilla. Todo
+  lo demás de la línea —sangría, viñeta, espacios— se copia tal cual.
+- **Y no lo hace a ciegas**: antes de escribir relee el archivo para comprobar
+  que la tarea sigue donde estaba, y escribe con el etag de lo que leyó, así que
+  si lo tenías abierto en el editor la escritura se rechaza en vez de pisar tu
+  cambio.
+- **Se actualiza sola** con `Gio.FileMonitor`, tiene buscador y contador de lo
+  que queda en el panel.
+
+Es la única extensión del repositorio que escribe en un archivo tuyo, de ahí
+tanto cuidado.
+
+Documentación completa (formato, seguros de escritura, ajustes):
+**[pendientes@jorgemg1414/README.es.md](pendientes@jorgemg1414/README.es.md)**
 
 ---
 

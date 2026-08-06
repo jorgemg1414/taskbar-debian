@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.pendientes"
+          path="/org/gnome/shell/extensions/pendientes/">
+
+    <key name="ruta" type="s">
+      <default>'~/Documentos/pendientes.md'</default>
+      <summary>Archivo o carpeta de pendientes</summary>
+      <description>
+        De dónde salen las tareas. Si apunta a un archivo, se leen sus casillas;
+        si apunta a una carpeta, las de todos sus .md, .markdown y .txt, sin
+        entrar en subcarpetas. Si el archivo no existe, «Editar» lo crea con un
+        ejemplo.
+      </description>
+    </key>
+
+    <key name="mostrar-hechas" type="b">
+      <default>false</default>
+      <summary>Mostrar también las tareas hechas</summary>
+      <description>
+        Las tareas ya marcadas salen tachadas al final de su grupo. Por omisión
+        no se muestran: el menú es para lo que queda.
+      </description>
+    </key>
+
+    <key name="editor-command" type="s">
+      <default>''</default>
+      <summary>Comando para abrir el archivo</summary>
+      <description>
+        Se sustituye %f por la ruta del archivo. Vacío prueba, en orden,
+        gnome-text-editor, gedit, kate y xdg-open.
+      </description>
+    </key>
+
+    <key name="enable-search" type="b">
+      <default>true</default>
+      <summary>Buscador en el menú</summary>
+      <description>
+        Campo de filtro al principio del menú para encontrar una tarea
+        escribiendo parte de su texto, de su encabezado o del archivo.
+      </description>
+    </key>
+
+    <key name="search-threshold" type="i">
+      <default>10</default>
+      <range min="0" max="200"/>
+      <summary>Tareas a partir de las cuales aparece el buscador</summary>
+      <description>Con pocas tareas el buscador estorba más que ayuda.</description>
+    </key>
+
+    <key name="panel-badge" type="b">
+      <default>true</default>
+      <summary>Contador en el panel</summary>
+      <description>Cuántas tareas quedan, junto al icono de la barra superior.</description>
+    </key>
+
+    <key name="panel-icon" type="s">
+      <default>'checkbox-checked-symbolic'</default>
+      <summary>Icono del panel</summary>
+      <description>Nombre del icono simbólico que se muestra en la barra superior.</description>
+    </key>
+
+    <key name="panel-box" type="s">
+      <default>'right'</default>
+      <choices>
+        <choice value="left"/>
+        <choice value="center"/>
+        <choice value="right"/>
+      </choices>
+      <summary>Caja de la barra superior</summary>
+      <description>
+        En cuál de las tres zonas de la barra se pone el indicador: izquierda,
+        centro o derecha.
+      </description>
+    </key>
+
+    <key name="panel-position" type="i">
+      <default>4</default>
+      <range min="0" max="20"/>
+      <summary>Posición dentro de la caja</summary>
+      <description>
+        El hueco en el que se mete el indicador al colocarlo. No es una posición
+        fija: en la caja están también los indicadores del propio shell, y las
+        extensiones no se activan siempre en el mismo orden.
+      </description>
+    </key>
+
+  </schema>
+</schemalist>

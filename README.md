@@ -21,6 +21,7 @@ The code is written against the modern extension API (ESM, GNOME 45+):
 | [`equipos-menu@jorgemg1414/`](equipos-menu@jorgemg1414/) | **Machines** — how each machine is doing inside, and powering it off, rebooting or suspending it remotely |
 | [`spotify-menu@jorgemg1414/`](spotify-menu@jorgemg1414/) | **Spotify** — the song that's playing, with its cover art and controls |
 | [`concentracion@jorgemg1414/`](concentracion@jorgemg1414/) | **Focus** — turning off everything that interrupts at once, on a timer |
+| [`pendientes@jorgemg1414/`](pendientes@jorgemg1414/) | **Pendientes** — the unfinished tasks in your Markdown files, ticked from the bar |
 | [`herramientas/`](herramientas/) | Helper scripts: turn `.vnc` files into Remmina profiles and store their password in the GNOME keyring |
 | [`comun/`](comun/) | Modules shared by several extensions. The original lives here; each `install.sh` copies the ones it needs |
 | [`comprobar.sh`](comprobar.sh) | Checks the repository: syntax, imports, installers, schemas and styles |
@@ -160,6 +161,32 @@ and in the menu the cover art, the album, how far in it is, and the buttons.
 
 Full documentation (cover art, other players, settings, troubleshooting):
 **[spotify-menu@jorgemg1414/README.md](spotify-menu@jorgemg1414/README.md)**
+
+---
+
+## Pendientes
+
+The unfinished tasks in your Markdown files — the `- [ ] something` lines —
+grouped by the heading above them, and tickable from the bar.
+
+- **It reads your files as they are**, just as the VNC menu reads your `.vnc`
+  files and the SSH menu your `~/.ssh/config`. No database, no service, no
+  format of its own: a `.md` you can still edit in any editor, or a whole folder
+  of them.
+- **Ticking changes a single character** in the file, the gap inside the
+  checkbox. Everything else on the line — indentation, bullet, spaces — is
+  copied verbatim.
+- **And not blindly**: before writing it re-reads the file to check the task is
+  still where it was, and writes with the etag of what it read, so if you had it
+  open in your editor the write is rejected instead of overwriting your change.
+- **It refreshes itself** through `Gio.FileMonitor`, has a search field and a
+  counter of what's left in the panel.
+
+It is the only extension in the repository that writes to a file of yours, hence
+all the care.
+
+Full documentation (format, write safeguards, settings):
+**[pendientes@jorgemg1414/README.md](pendientes@jorgemg1414/README.md)**
 
 ---
 

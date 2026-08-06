@@ -1,0 +1,9 @@
+{
+  "uuid": "pendientes@jorgemg1414",
+  "name": "Pendientes",
+  "description": "Indicador en la barra superior con las tareas sin hacer de tus archivos Markdown: las líneas «- [ ] algo», agrupadas por el encabezado que tengan encima. Al pulsar una se marca en el archivo, que sigue siendo tuyo y editable con cualquier editor.",
+  "shell-version": ["48"],
+  "settings-schema": "org.gnome.shell.extensions.pendientes",
+  "gettext-domain": "pendientes",
+  "version": 1
+}
