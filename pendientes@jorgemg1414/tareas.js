@@ -287,18 +287,21 @@ export function agruparTareas(tareas, conArchivo = false) {
 }
 
 /**
- * Marca o desmarca una tarea en su archivo.
+ * Reescribe un archivo cambiando solo lo que diga la función que se le pase.
  *
- * Solo cambia el hueco de la casilla: la sangría, la viñeta y el texto se
- * copian tal cual, y el resto del archivo ni se toca. Si la línea ya no dice lo
- * que decía, no se escribe nada.
+ * Es el camino por el que pasan las cuatro operaciones que tocan un archivo
+ * —marcar, editar, añadir y borrar—, para que las tres garantías estén escritas
+ * una sola vez: se relee justo antes, se comprueba que lo que hay es lo que se
+ * esperaba, y se escribe con el etag de esa lectura.
  *
- * @param {object} tarea tarea tal como la leyó el escaneo
+ * @param {string} ruta archivo a reescribir
+ * @param {Function} cambiar recibe las líneas y devuelve las nuevas, o una
+ *   cadena con el motivo por el que no se puede seguir
  * @param {Gio.Cancellable} cancellable cancelable
- * @returns {Promise<string|null>} null si se marcó, o el motivo por el que no
+ * @returns {Promise<string|null>} null si se guardó, o el motivo por el que no
  */
-export async function alternarTarea(tarea, cancellable = null) {
-    const file = Gio.File.new_for_path(tarea.ruta);
+async function reescribir(ruta, cambiar, cancellable) {
+    const file = Gio.File.new_for_path(ruta);
 
     let contenido, etag;
     try {
@@ -310,8 +313,31 @@ export async function alternarTarea(tarea, cancellable = null) {
     const texto = new TextDecoder('utf-8', {fatal: false}).decode(contenido);
     // Se conserva el final de línea que tuviera el archivo.
     const salto = texto.includes('\r\n') ? '\r\n' : '\n';
-    const lineas = texto.split(/\r?\n/);
 
+    const resultado = cambiar(texto.split(/\r?\n/));
+    if (typeof resultado === 'string')
+        return resultado;
+
+    try {
+        await replaceContents(
+            file, new TextEncoder().encode(resultado.join(salto)), etag, cancellable);
+    } catch (e) {
+        if (e.matches?.(Gio.IOErrorEnum, Gio.IOErrorEnum.WRONG_ETAG))
+            return 'el archivo cambió mientras tanto: no se ha tocado nada';
+        return `no se pudo guardar: ${e.message}`;
+    }
+
+    return null;
+}
+
+/**
+ * Localiza la línea de una tarea y la parte en sus cinco trozos.
+ *
+ * @param {string[]} lineas líneas del archivo tal como está ahora
+ * @param {object} tarea tarea tal como la leyó el escaneo
+ * @returns {string[]|string} las partes, o el motivo por el que no cuadra
+ */
+function partesDe(lineas, tarea) {
     const indice = tarea.linea - 1;
     if (indice < 0 || indice >= lineas.length)
         return 'la tarea ya no está donde estaba: el archivo ha cambiado';
@@ -320,25 +346,124 @@ export async function alternarTarea(tarea, cancellable = null) {
     if (!partes || partes[5].trim() !== tarea.texto)
         return 'la tarea ya no está donde estaba: el archivo ha cambiado';
 
-    // Si alguien la marcó por otro lado, no se le da la vuelta a su cambio.
-    const hechaAhora = partes[3] !== ' ';
-    if (hechaAhora !== tarea.hecha)
-        return 'esa tarea ya la habías marcado en el archivo';
+    return partes;
+}
 
-    // Solo el hueco de la casilla: el resto de la línea se copia tal cual.
-    lineas[indice] =
-        `${partes[1]}${partes[2]}${tarea.hecha ? ' ' : 'x'}${partes[4]}${partes[5]}`;
+/**
+ * Marca o desmarca una tarea en su archivo.
+ *
+ * Solo cambia el hueco de la casilla: la sangría, la viñeta y el texto se
+ * copian tal cual, y el resto del archivo ni se toca.
+ *
+ * @param {object} tarea tarea tal como la leyó el escaneo
+ * @param {Gio.Cancellable} cancellable cancelable
+ * @returns {Promise<string|null>} null si se marcó, o el motivo por el que no
+ */
+export async function alternarTarea(tarea, cancellable = null) {
+    return reescribir(tarea.ruta, lineas => {
+        const partes = partesDe(lineas, tarea);
+        if (typeof partes === 'string')
+            return partes;
 
-    try {
-        await replaceContents(
-            file, new TextEncoder().encode(lineas.join(salto)), etag, cancellable);
-    } catch (e) {
-        if (e.matches?.(Gio.IOErrorEnum, Gio.IOErrorEnum.WRONG_ETAG))
-            return 'el archivo cambió mientras tanto: no se ha tocado nada';
-        return `no se pudo guardar: ${e.message}`;
-    }
+        // Si alguien la marcó por otro lado, no se le da la vuelta a su cambio.
+        const hechaAhora = partes[3] !== ' ';
+        if (hechaAhora !== tarea.hecha)
+            return 'esa tarea ya la habías marcado en el archivo';
 
-    return null;
+        lineas[tarea.linea - 1] =
+            `${partes[1]}${partes[2]}${tarea.hecha ? ' ' : 'x'}${partes[4]}${partes[5]}`;
+        return lineas;
+    }, cancellable);
+}
+
+/**
+ * Cambia el texto de una tarea, dejando el resto de la línea como estaba.
+ *
+ * La casilla, la sangría y la viñeta no se tocan: solo se sustituye lo que hay
+ * detrás del corchete. Así se puede corregir una tarea sin abrir el editor.
+ *
+ * @param {object} tarea tarea tal como la leyó el escaneo
+ * @param {string} nuevoTexto texto nuevo, sin la casilla
+ * @param {Gio.Cancellable} cancellable cancelable
+ * @returns {Promise<string|null>} null si se guardó, o el motivo por el que no
+ */
+export async function editarTexto(tarea, nuevoTexto, cancellable = null) {
+    const limpio = (nuevoTexto ?? '').replace(/[\r\n]+/g, ' ').trim();
+    if (limpio === '')
+        return 'una tarea sin texto no es una tarea';
+
+    return reescribir(tarea.ruta, lineas => {
+        const partes = partesDe(lineas, tarea);
+        if (typeof partes === 'string')
+            return partes;
+
+        lineas[tarea.linea - 1] = `${partes[1]}${partes[2]}${partes[3]}${partes[4]}${limpio}`;
+        return lineas;
+    }, cancellable);
+}
+
+/**
+ * Borra la línea de una tarea.
+ *
+ * Se lleva la línea entera, que es lo que se espera de borrar una tarea; lo
+ * demás del archivo se queda igual.
+ *
+ * @param {object} tarea tarea tal como la leyó el escaneo
+ * @param {Gio.Cancellable} cancellable cancelable
+ * @returns {Promise<string|null>} null si se borró, o el motivo por el que no
+ */
+export async function borrarTarea(tarea, cancellable = null) {
+    return reescribir(tarea.ruta, lineas => {
+        const partes = partesDe(lineas, tarea);
+        if (typeof partes === 'string')
+            return partes;
+
+        lineas.splice(tarea.linea - 1, 1);
+        return lineas;
+    }, cancellable);
+}
+
+/**
+ * Añade una tarea nueva al archivo.
+ *
+ * Con «despuesDe» se pone justo debajo de esa tarea, con su misma sangría, que
+ * es lo que se espera al añadir desde una fila concreta. Sin ella se pone al
+ * final del archivo, saltándose las líneas en blanco del final para no dejar un
+ * hueco en medio.
+ *
+ * @param {object} donde dónde va la tarea nueva
+ * @param {string} donde.ruta archivo al que se añade
+ * @param {object} [donde.despuesDe] tarea debajo de la cual ponerla
+ * @param {string} texto texto de la tarea
+ * @param {Gio.Cancellable} cancellable cancelable
+ * @returns {Promise<string|null>} null si se añadió, o el motivo por el que no
+ */
+export async function anadirTarea({ruta, despuesDe = null}, texto, cancellable = null) {
+    const limpio = (texto ?? '').replace(/[\r\n]+/g, ' ').trim();
+    if (limpio === '')
+        return 'una tarea sin texto no es una tarea';
+
+    return reescribir(ruta, lineas => {
+        let sangria = '';
+        let indice;
+
+        if (despuesDe) {
+            const partes = partesDe(lineas, despuesDe);
+            if (typeof partes === 'string')
+                return partes;
+            sangria = partes[1];
+            indice = despuesDe.linea;          // justo debajo de ella
+        } else {
+            // Al final, pero antes de las líneas en blanco que cierran el
+            // archivo: si no, la tarea nueva quedaría separada de la lista.
+            indice = lineas.length;
+            while (indice > 0 && lineas[indice - 1].trim() === '')
+                indice--;
+        }
+
+        lineas.splice(indice, 0, `${sangria}- [ ] ${limpio}`);
+        return lineas;
+    }, cancellable);
 }
 
 /**
