@@ -30,8 +30,9 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {
     escanearHosts, agruparHosts, expandirRuta, GRUPO_SIN_NOMBRE,
 } from './hosts.js';
-import {ComprobadorPuertos, ESTADO} from './checker.js';
+import {ComprobadorPuertos, ESTADO, esperarArranque} from './checker.js';
 import {SitioEnLaBarra} from './barra.js';
+import {ajustesWol, leerEquipos, datosWolDe, despertar, CacheMacs} from './wol.js';
 import {
     MonitorVitales, VITALES, SISTEMA, resumen, detalle, porcentaje,
 } from './vitales.js';
@@ -43,6 +44,9 @@ const RETARDO_RECARGA_MS = 700;
 // Segundos que se espera antes de volver a mirar un equipo al que se le acaba
 // de mandar apagarse o reiniciarse. Lo justo para que le dé tiempo a irse.
 const RETARDO_TRAS_ENERGIA_S = 15;
+
+// Segundos entre sondeo y sondeo mientras se espera a que un equipo arranque.
+const INTERVALO_ARRANQUE_S = 5;
 
 // Parte del alto de la pantalla que puede ocupar la lista de equipos.
 const PROPORCION_ALTO_LISTA = 0.6;
@@ -299,6 +303,9 @@ class IndicadorEquipos extends PanelMenu.Button {
         this._idRecarga = 0;
         this._idIntervalo = 0;
         this._idsEspera = [];         // recomprobaciones tras apagar o reiniciar
+        this._settingsWol = null;     // ajustes de la extensión Wake on LAN
+        this._wolConsultado = false;  // si ya se buscó esa extensión
+        this._encendiendo = new Set();// equipos con un arranque en curso
         this._cancellable = new Gio.Cancellable();
         // Las acciones de energía tienen su propio cancelable: recargar la
         // configuración no debe abortar un apagado a medias.
@@ -319,6 +326,8 @@ class IndicadorEquipos extends PanelMenu.Button {
         });
         this.add_child(this._insignia);
 
+        this._macs = new CacheMacs(this._settings, 'equipos-menu');
+
         this._comprobador = new ComprobadorPuertos({
             timeout: this._settings.get_int('check-timeout'),
             alCambiar: (id, estado) => {
@@ -329,6 +338,12 @@ class IndicadorEquipos extends PanelMenu.Button {
                 const host = this._hostDe(id);
                 if (estado === ESTADO.ARRIBA && host && this.menu.isOpen)
                     this._monitor.pedir(host);
+
+                // Un equipo que acaba de responder tiene su MAC recién puesta
+                // en la tabla ARP: es el momento de apuntarla, que es lo que
+                // permitirá encenderlo el día que aparezca en rojo.
+                if (estado === ESTADO.ARRIBA)
+                    this._macs.programar(() => this._ipsQueResponden());
 
                 // Y las de hace un minuto ya no dicen nada de un equipo que
                 // acaba de dejar de responder.
@@ -778,12 +793,31 @@ class IndicadorEquipos extends PanelMenu.Button {
             return;
 
         const host = item.host;
-        const acciones = ACCIONES_ENERGIA.map(accion => ({
+        const acciones = [];
+
+        // Encender va primero porque es lo contrario de apagar, y solo aparece
+        // si el equipo no responde: si contesta ya está encendido. No pide
+        // confirmación —no hay nada que deshacer— al revés que las otras tres.
+        const wol = this._wolDe(host);
+        if (wol && this._comprobador.estadoDe(host.id) !== ESTADO.ARRIBA &&
+            !this._encendiendo.has(host.id)) {
+            acciones.push({
+                icono: 'system-run-symbolic',
+                texto: _('Encender'),
+                peligrosa: false,
+                alPulsar: () => {
+                    this._cerrarContexto();
+                    this._encender(host, wol);
+                },
+            });
+        }
+
+        acciones.push(...ACCIONES_ENERGIA.map(accion => ({
             icono: accion.icono,
             texto: accion.etiqueta(),
             peligrosa: accion.peligrosa,
             alPulsar: () => this._pedirEnergia(item, accion),
-        }));
+        })));
 
         acciones.push({
             icono: 'edit-copy-symbolic',
@@ -819,6 +853,113 @@ class IndicadorEquipos extends PanelMenu.Button {
     _cerrarContexto() {
         this._contexto?.destroy();
         this._contexto = null;
+    }
+
+    /* ------------------------- Encendido ---------------------------- */
+
+    /**
+     * Direcciones de los equipos que están respondiendo ahora mismo, que son
+     * los únicos de los que se puede aprender la MAC.
+     *
+     * @returns {string[]} direcciones de los equipos que contestan
+     */
+    _ipsQueResponden() {
+        return this._hosts
+            .filter(h => this._comprobador.estadoDe(h.id) === ESTADO.ARRIBA)
+            .map(h => h.host);
+    }
+
+    /**
+     * Con qué datos se puede encender un equipo, si es que se puede.
+     *
+     * Salen del comentario «# MAC:» de su bloque, de los equipos que tengas
+     * dados de alta en la extensión Wake on LAN, o de lo aprendido de la tabla
+     * ARP mientras el equipo respondía.
+     *
+     * @param {object} host equipo del menú
+     * @returns {object|null} datos del paquete mágico, o null
+     */
+    _wolDe(host) {
+        if (!this._settings.get_boolean('enable-wol'))
+            return null;
+
+        // La extensión hermana se busca una sola vez por sesión.
+        if (!this._wolConsultado) {
+            this._wolConsultado = true;
+            this._settingsWol = ajustesWol(this._extension.path);
+        }
+
+        return datosWolDe(
+            host,
+            leerEquipos(this._settingsWol),
+            this._macs.macDe(host.host));
+    }
+
+    /**
+     * Manda el paquete mágico y espera a que el equipo conteste.
+     *
+     * Aquí sí se puede esperar, a diferencia de los otros menús: este ya sabe
+     * por qué puerto se le pregunta al equipo, así que en vez de decir
+     * «paquete enviado» —lo único que garantiza el protocolo— se sondea hasta
+     * que responde de verdad.
+     *
+     * @param {object} host equipo a encender
+     * @param {object} datos mac, destino y puerto del paquete
+     */
+    async _encender(host, datos) {
+        const error = await despertar(datos, this._cancellableAcciones);
+        if (this._destruido)
+            return;
+
+        if (error) {
+            Main.notifyError('Equipos',
+                `${_('No se pudo encender')} «${host.nombre}»: ${error}`);
+            return;
+        }
+
+        const limite = this._settings.get_int('boot-timeout');
+        if (limite <= 0 || host.salto) {
+            Main.notify('Equipos',
+                `${_('Paquete de encendido enviado a')} «${host.nombre}»`);
+            return;
+        }
+
+        Main.notify('Equipos',
+            `${_('Encendiendo')} «${host.nombre}»…`);
+
+        this._encendiendo.add(host.id);
+        this._items.get(host.id)?.fijarEstado(ESTADO.COMPROBANDO);
+
+        let segundos = null;
+        try {
+            segundos = await esperarArranque(
+                host,
+                {
+                    timeout: this._settings.get_int('check-timeout'),
+                    intervalo: INTERVALO_ARRANQUE_S,
+                    limite,
+                },
+                this._cancellableAcciones);
+        } finally {
+            this._encendiendo.delete(host.id);
+        }
+
+        if (this._destruido)
+            return;
+
+        if (segundos === null) {
+            Main.notifyError('Equipos',
+                `«${host.nombre}» ${_('sigue sin responder tras')} ${limite} s`);
+        } else {
+            Main.notify('Equipos',
+                `«${host.nombre}» ${_('ya responde')} (${segundos} s)`);
+        }
+
+        // Sea cual sea el resultado, el estado real lo fija el comprobador; y
+        // si arrancó, ya se le pueden pedir las vitales.
+        this._comprobador.comprobar(host);
+        if (segundos !== null && this.menu.isOpen)
+            this._monitor.pedir(host);
     }
 
     /* ------------------------- Energía ------------------------------ */
@@ -957,6 +1098,10 @@ class IndicadorEquipos extends PanelMenu.Button {
             GLib.source_remove(id);
         this._idsEspera = [];
 
+        // La caché de MAC lleva dentro su propio temporizador y su cancelable.
+        this._macs.destruir();
+        this._macs = null;
+
         this._cancellable.cancel();
         this._cancellableAcciones.cancel();
         this._comprobador.destruir();
@@ -976,12 +1121,14 @@ class IndicadorEquipos extends PanelMenu.Button {
         }
 
         this._items.clear();
+        this._encendiendo.clear();
         this._scroll = null;
         this._seccionLista = null;
         this._contexto = null;
         this._insignia = null;
         this._hosts = [];
         this._archivos = [];
+        this._settingsWol = null;
         this._settings = null;
         this._extension = null;
 

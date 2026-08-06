@@ -150,6 +150,61 @@ export default class EquiposMenuPreferences extends ExtensionPreferences {
         });
         window.add(paginaEnergia);
 
+        const grupoEncender = new Adw.PreferencesGroup({
+            title: _('Encender'),
+            description: _('Cuando un equipo no responde, el clic derecho ofrece ' +
+                '«Encender» si se le conoce la MAC: del comentario «# MAC:» de su bloque, ' +
+                'de los equipos que tengas en la extensión Wake on LAN, o de la tabla ARP. ' +
+                'Es la única acción de energía que no pide confirmación, porque no hay ' +
+                'nada que deshacer.'),
+        });
+        paginaEnergia.add(grupoEncender);
+
+        const filaWol = new Adw.SwitchRow({
+            title: _('Encender desde el menú'),
+            subtitle: _('Manda el paquete mágico de Wake-on-LAN y espera a que el equipo responda.'),
+        });
+        settings.bind('enable-wol', filaWol, 'active', Gio.SettingsBindFlags.DEFAULT);
+        grupoEncender.add(filaWol);
+
+        const filaArranque = new Adw.SpinRow({
+            title: _('Espera al arranque'),
+            subtitle: _('Segundos que se sigue sondeando tras mandar el paquete, para poder ' +
+                'decir si arrancó de verdad. 0 no espera.'),
+            adjustment: new Gtk.Adjustment({
+                lower: 0, upper: 600, step_increment: 10, page_increment: 30,
+            }),
+        });
+        settings.bind('boot-timeout', filaArranque, 'value', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('enable-wol', filaArranque, 'sensitive', Gio.SettingsBindFlags.GET);
+        grupoEncender.add(filaArranque);
+
+        const filaAprender = new Adw.SwitchRow({
+            title: _('Aprender la MAC sola'),
+            subtitle: _('Mientras un equipo responde, se apunta su MAC de la tabla ARP del ' +
+                'sistema. Solo vale para equipos del mismo segmento de red.'),
+        });
+        settings.bind('learn-macs', filaAprender, 'active', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('enable-wol', filaAprender, 'sensitive', Gio.SettingsBindFlags.GET);
+        grupoEncender.add(filaAprender);
+
+        // Cuántas hay ahora mismo. Se lee al abrir la ventana; el botón la
+        // deja a cero y actualiza el texto sin tener que reabrirla.
+        const filaOlvidar = new Adw.ActionRow({title: _('MAC aprendidas')});
+        const etiquetaMacs = new Gtk.Label({css_classes: ['dim-label']});
+        const contarMacs = () =>
+            (etiquetaMacs.label = String(settings.get_strv('macs-aprendidas').length));
+        contarMacs();
+
+        const botonOlvidar = new Gtk.Button({label: _('Olvidar'), valign: Gtk.Align.CENTER});
+        botonOlvidar.connect('clicked', () => {
+            settings.set_strv('macs-aprendidas', []);
+            contarMacs();
+        });
+        filaOlvidar.add_suffix(etiquetaMacs);
+        filaOlvidar.add_suffix(botonOlvidar);
+        grupoEncender.add(filaOlvidar);
+
         const grupoAviso = new Adw.PreferencesGroup({
             title: _('Antes de tocar nada'),
             description: _('Apagar, reiniciar y suspender se ejecutan en el equipo tal ' +
@@ -198,6 +253,7 @@ export default class EquiposMenuPreferences extends ExtensionPreferences {
             const fila = new Adw.EntryRow({title: titulo});
             settings.bind(clave, fila, 'text', Gio.SettingsBindFlags.DEFAULT);
             grupoWindows.add(fila);
+        }
 
         /* ------------------------ Sitio en la barra -------------------- */
         const grupoSitio = new Adw.PreferencesGroup({
@@ -207,6 +263,5 @@ export default class EquiposMenuPreferences extends ExtensionPreferences {
         });
         pagina.add(grupoSitio);
         anadirFilasDeSitio(grupoSitio, settings, _);
-        }
     }
 }

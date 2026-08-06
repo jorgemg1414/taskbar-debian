@@ -83,6 +83,30 @@ Host office-pc
 
 ---
 
+## Waking a machine
+
+The right-click row of a machine that **isn't answering** carries **Encender**:
+it sends the Wake-on-LAN magic packet and, unlike the repository's other menus,
+here we can tell whether it worked. This menu already knows which port it asks
+the machine on, so it probes it every five seconds until it answers — two
+minutes at most — and the notification goes from "waking" to
+"*equipo-taller* is answering (32 s)". As soon as it answers, its vitals are
+requested.
+
+It is the only power action that **doesn't ask for confirmation**: there is
+nothing to undo.
+
+The MAC needs no configuring: while a machine answers, it is recorded from the
+system's ARP table, exactly as the SSH and VNC menus do. A `# MAC:` comment in
+its config block also works, as does having it registered in the
+[Wake on LAN](../wol-menu@jorgemg1414/) extension. The limits are the ARP
+table's own: IPv4 only, and only machines on your own network segment.
+
+A machine behind a `ProxyJump` isn't probed, so there the notification stops at
+"packet sent", which is all that can be claimed.
+
+---
+
 ## Power off, reboot and suspend
 
 They live in each machine's **right-click** row, not the plain click, and they
@@ -187,6 +211,9 @@ Menu → **Ajustes**, or `gnome-extensions prefs equipos-menu@jorgemg1414`.
 | Probe timeout | 2 s | Before considering a machine down |
 | Panel counter | yes | How many machines aren't answering, next to the icon |
 | Panel icon | `utilities-system-monitor-symbolic` | Any symbolic icon from the theme |
+| Wake from the menu | yes | Adds **Encender** to the right-click row of machines that aren't answering |
+| Boot timeout | 120 s | How long to keep probing after sending the packet. 0 doesn't wait |
+| Learn the MAC | yes | Records the MAC from the ARP table while the machine answers |
 | Ask for confirmation | yes | Before powering off, rebooting or suspending |
 | Power commands | see above | Three for Linux and three for Windows |
 | Place in the bar | Right | Which part of the top bar the indicator goes in |

@@ -83,6 +83,30 @@ Host pc-oficina
 
 ---
 
+## Encender
+
+El clic derecho de un equipo que **no responde** trae **Encender**: manda el
+paquete mágico de Wake-on-LAN y, a diferencia de los otros menús del
+repositorio, aquí sí se puede decir si funcionó. Este menú ya sabe por qué
+puerto se le pregunta al equipo, así que lo sondea cada cinco segundos hasta
+que contesta —dos minutos como mucho— y la notificación pasa de «encendiendo»
+a «*equipo-taller* ya responde (32 s)». En cuanto responde, se le piden las
+vitales.
+
+Es la única acción de energía que **no pide confirmación**: no hay nada que
+deshacer.
+
+La MAC no hay que configurarla: mientras un equipo responde se apunta de la
+tabla ARP del sistema, igual que en los menús de SSH y de VNC. También vale un
+comentario `# MAC:` en su bloque del config, o tenerlo dado de alta en la
+extensión [Wake on LAN](../wol-menu@jorgemg1414/). Los límites son los de la
+propia tabla ARP: solo IPv4 y solo equipos de tu mismo segmento de red.
+
+Un equipo detrás de un `ProxyJump` no se sondea, así que ahí la notificación se
+queda en «paquete enviado», que es lo único que se puede afirmar.
+
+---
+
 ## Apagar, reiniciar y suspender
 
 Están en el **clic derecho** de cada equipo, no en el clic normal, y piden
@@ -188,6 +212,9 @@ Desde el menú → **Ajustes**, o con `gnome-extensions prefs equipos-menu@jorge
 | Tiempo de espera del sondeo | 2 s | Antes de dar un equipo por caído |
 | Contador en el panel | sí | Cuántos equipos no responden, junto al icono |
 | Icono del panel | `utilities-system-monitor-symbolic` | Cualquier icono simbólico del tema |
+| Encender desde el menú | sí | Añade **Encender** al clic derecho de los equipos que no responden |
+| Espera al arranque | 120 s | Cuánto se sigue sondeando tras mandar el paquete. 0 no espera |
+| Aprender la MAC sola | sí | Apunta la MAC de la tabla ARP mientras el equipo responde |
 | Pedir confirmación | sí | Antes de apagar, reiniciar o suspender |
 | Órdenes de energía | ver arriba | Tres para Linux y tres para Windows |
 | Sitio en la barra | Derecha | En qué parte de la barra superior se pone el indicador |

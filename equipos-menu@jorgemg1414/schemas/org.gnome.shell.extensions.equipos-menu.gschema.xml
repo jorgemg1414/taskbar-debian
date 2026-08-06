@@ -71,6 +71,49 @@
       </description>
     </key>
 
+    <key name="enable-wol" type="b">
+      <default>true</default>
+      <summary>Encender equipos desde el menú</summary>
+      <description>
+        Añade «Encender» a las acciones del clic derecho cuando el equipo no
+        responde y se le conoce la MAC, ya sea por un comentario «# MAC:» en su
+        bloque del config, porque esté dado de alta en la extensión Wake on LAN
+        o porque se le haya aprendido de la tabla ARP.
+      </description>
+    </key>
+
+    <key name="learn-macs" type="b">
+      <default>true</default>
+      <summary>Aprender la MAC de los equipos</summary>
+      <description>
+        Mientras un equipo responde, apunta su MAC de la tabla ARP del sistema
+        (/proc/net/arp) para poder encenderlo el día que no responda, sin tener
+        que configurar nada. Solo funciona con equipos del mismo segmento de red
+        y con direcciones IPv4: para los demás, la tabla tiene la MAC del router
+        y no la suya, y esas entradas se descartan.
+      </description>
+    </key>
+
+    <key name="macs-aprendidas" type="as">
+      <default>[]</default>
+      <summary>MAC aprendidas</summary>
+      <description>
+        Caché de lo aprendido de la tabla ARP, un JSON por equipo con las claves
+        ip, mac y visto. Se puede vaciar sin miedo: se vuelve a llenar sola.
+      </description>
+    </key>
+
+    <key name="boot-timeout" type="i">
+      <default>120</default>
+      <range min="0" max="600"/>
+      <summary>Espera al arranque, en segundos</summary>
+      <description>
+        Tras mandar el paquete mágico se sigue sondeando al equipo hasta este
+        límite, para poder decir si arrancó de verdad en vez de solo que el
+        paquete salió. Con 0 no se espera.
+      </description>
+    </key>
+
     <key name="confirm-power" type="b">
       <default>true</default>
       <summary>Confirmar antes de apagar</summary>
