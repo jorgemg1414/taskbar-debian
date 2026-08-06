@@ -19,6 +19,7 @@ The code is written against the modern extension API (ESM, GNOME 45+):
 | [`ssh-menu@jorgemg1414/`](ssh-menu@jorgemg1414/) | **SSH Menu** — the machines in your `~/.ssh/config`: terminal session or SFTP, from the same row |
 | [`wol-menu@jorgemg1414/`](wol-menu@jorgemg1414/) | **Wake on LAN** — power machines on remotely from the top bar |
 | [`equipos-menu@jorgemg1414/`](equipos-menu@jorgemg1414/) | **Machines** — how each machine is doing inside, and powering it off, rebooting or suspending it remotely |
+| [`spotify-menu@jorgemg1414/`](spotify-menu@jorgemg1414/) | **Spotify** — the song that's playing, with its cover art and controls |
 | [`herramientas/`](herramientas/) | Helper scripts: turn `.vnc` files into Remmina profiles and store their password in the GNOME keyring |
 | [`comun/`](comun/) | Modules shared by several extensions. The original lives here; each `install.sh` copies the ones it needs |
 
@@ -131,6 +132,33 @@ Full documentation (remote querying, power, permissions, debugging):
 
 ---
 
+## Spotify
+
+What song is playing, without opening anything: artist and title in the bar,
+and in the menu the cover art, the album, how far in it is, and the buttons.
+
+- **It asks the player itself** over D-Bus, through the standard MPRIS interface
+  GNOME already uses for its media controls. No account to link, no web API key,
+  and nothing leaving the machine.
+- **You write the bar**: `{artista} — {titulo}` by default, as long as you like,
+  or just the icon. The icon says whether it's playing or paused.
+- **The cover art is downloaded once** and kept in `~/.cache`; coming back to a
+  song doesn't touch the network again. It can be turned off entirely.
+- **Dragging the progress bar seeks** to another point in the song, and buttons
+  the player wouldn't act on are dimmed instead of pretending.
+- **Middle click to pause** without opening the menu, and the scroll wheel to
+  change track if you enable it.
+- **It works with other players too**: with Spotify closed it can follow the
+  browser, or anything else that speaks MPRIS.
+
+> With the menu closed the indicator only listens. Position, which nobody
+> announces over D-Bus, is polled once a second and only while the menu is open.
+
+Full documentation (cover art, other players, settings, troubleshooting):
+**[spotify-menu@jorgemg1414/README.md](spotify-menu@jorgemg1414/README.md)**
+
+---
+
 ## Helper scripts
 
 `.vnc` files carry their password encrypted with RealVNC's own key, which
@@ -212,6 +240,8 @@ gsettings --schemadir ~/.local/share/gnome-shell/extensions/vnc-menu@jorgemg1414
 - For the SSH menu: `openssh-client`, and `gvfs-backends` for SFTP
 - For the Machines menu: `openssh-client`, and your key authorised on each
   remote machine (`herramientas/autorizar-clave.sh`)
+- For the Spotify menu: a player that speaks MPRIS — the official client does —
+  and `gir1.2-soup-3.0` for the cover art, which already ships with GNOME
 
 ```bash
 sudo apt install libglib2.0-dev-bin remmina remmina-plugin-vnc openssh-client gvfs-backends
@@ -281,6 +311,7 @@ taskbar-debian/
 ├── ssh-menu@jorgemg1414/  SSH Menu (see its own README)
 ├── wol-menu@jorgemg1414/  Wake on LAN (see its own README)
 ├── equipos-menu@jorgemg1414/  Machines (see its own README)
+├── spotify-menu@jorgemg1414/  Spotify (see its own README)
 └── vnc-menu@jorgemg1414/
     ├── extension.js       Indicator, menu, client launching, teardown in disable()
     ├── connections.js     Async folder scanning and connection file parsing

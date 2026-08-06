@@ -20,6 +20,7 @@ extensiones (ESM, GNOME 45+): `import ... from 'gi://…'`, clase que extiende
 | [`ssh-menu@jorgemg1414/`](ssh-menu@jorgemg1414/) | **SSH Menu** — los equipos de tu `~/.ssh/config`: sesión en terminal o SFTP, desde la misma fila |
 | [`wol-menu@jorgemg1414/`](wol-menu@jorgemg1414/) | **Wake on LAN** — encender equipos a distancia desde la barra superior |
 | [`equipos-menu@jorgemg1414/`](equipos-menu@jorgemg1414/) | **Equipos** — cómo está cada equipo por dentro, y apagarlo, reiniciarlo o suspenderlo a distancia |
+| [`spotify-menu@jorgemg1414/`](spotify-menu@jorgemg1414/) | **Spotify** — la canción que está sonando, con su portada y sus controles |
 | [`herramientas/`](herramientas/) | Scripts para convertir archivos `.vnc` en perfiles de Remmina y guardar su contraseña en el llavero de GNOME |
 | [`comun/`](comun/) | Los módulos que comparten varias extensiones. El original está aquí; cada `install.sh` copia los que necesita |
 
@@ -138,6 +139,33 @@ Documentación completa (consulta remota, energía, permisos, depuración):
 
 ---
 
+## Spotify
+
+Qué canción está sonando, sin abrir nada: el artista y el título en la barra, y
+en el menú la portada, el álbum, por dónde va y los botones.
+
+- **Se lo pregunta al propio reproductor** por D-Bus, con la interfaz estándar
+  MPRIS que ya usa GNOME para sus controles de música. Sin cuenta que enlazar,
+  sin clave de la API web y sin nada que salga del equipo.
+- **La barra la escribes tú**: `{artista} — {titulo}` por omisión, con el largo
+  que quieras, o solo el icono. El icono dice si está sonando o en pausa.
+- **La portada se baja una vez** y se guarda en `~/.cache`; volver a una canción
+  ya no toca la red. Se puede apagar del todo.
+- **Arrastrando la barra de progreso se salta** a otro punto de la canción, y
+  los botones que el reproductor no atendería salen apagados en vez de fingir.
+- **Botón central para pausar** sin abrir el menú, y rueda para cambiar de
+  canción si la activas.
+- **Sirve para otros reproductores**: con Spotify cerrado puede seguir al
+  navegador o a cualquier programa que hable MPRIS.
+
+> Con el menú cerrado el indicador solo escucha. La posición, que nadie anuncia
+> por D-Bus, se pregunta una vez por segundo y únicamente con el menú abierto.
+
+Documentación completa (portadas, otros reproductores, ajustes, depuración):
+**[spotify-menu@jorgemg1414/README.es.md](spotify-menu@jorgemg1414/README.es.md)**
+
+---
+
 ## Herramientas
 
 Los archivos `.vnc` llevan la contraseña cifrada con la clave propia de RealVNC,
@@ -219,6 +247,8 @@ gsettings --schemadir ~/.local/share/gnome-shell/extensions/vnc-menu@jorgemg1414
 - Para el menú de SSH: `openssh-client`, y `gvfs-backends` para el SFTP
 - Para el menú de Equipos: `openssh-client`, y tu clave autorizada en cada
   equipo remoto (`herramientas/autorizar-clave.sh`)
+- Para el menú de Spotify: un reproductor que hable MPRIS —el cliente oficial lo
+  hace— y `gir1.2-soup-3.0` para las portadas, que ya viene con GNOME
 
 ```bash
 sudo apt install libglib2.0-dev-bin remmina remmina-plugin-vnc openssh-client gvfs-backends
@@ -288,6 +318,7 @@ taskbar-debian/
 ├── ssh-menu@jorgemg1414/  SSH Menu (ver su propio README)
 ├── wol-menu@jorgemg1414/  Wake on LAN (ver su propio README)
 ├── equipos-menu@jorgemg1414/  Equipos (ver su propio README)
+├── spotify-menu@jorgemg1414/  Spotify (ver su propio README)
 └── vnc-menu@jorgemg1414/
     ├── extension.js       Indicador, menú, lanzamiento y limpieza en disable()
     ├── connections.js     Escaneo asíncrono de la carpeta y parser de conexiones
