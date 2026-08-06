@@ -34,8 +34,8 @@ import {ComprobadorPuertos, ESTADO, esperarArranque} from './checker.js';
 import {SitioEnLaBarra} from './barra.js';
 import {ajustesWol, leerEquipos, datosWolDe, despertar, CacheMacs} from './wol.js';
 import {
-    ItemAcciones, ItemConfirmacion, crearInsignia, pintarInsignia,
-    crearListaConScroll, ajustarAltoLista,
+    ItemAcciones, ItemConfirmacion, ItemBuscador, crearInsignia, pintarInsignia,
+    crearListaConScroll, ajustarAltoLista, moverFoco, normalizar,
 } from './menu.js';
 import {
     MonitorVitales, VITALES, SISTEMA, resumen, detalle, porcentaje,
@@ -84,9 +84,11 @@ const ItemEquipo = GObject.registerClass({
 }, class ItemEquipo extends PopupMenu.PopupBaseMenuItem {
     /**
      * @param {object} host equipo a representar
-     * @param {number} avisoDisco porcentaje de disco a partir del cual se avisa
+     * @param {object} opciones qué partes de la fila se pintan
+     * @param {number} opciones.avisoDisco porcentaje de disco con el que se avisa
+     * @param {boolean} opciones.mostrarLatencia si se muestran los milisegundos
      */
-    _init(host, avisoDisco) {
+    _init(host, {avisoDisco, mostrarLatencia}) {
         super._init();
 
         this.host = host;
@@ -117,14 +119,24 @@ const ItemEquipo = GObject.registerClass({
             y_align: Clutter.ActorAlign.CENTER,
         });
         this.add_child(this._resumen);
+
+        if (mostrarLatencia) {
+            this._latencia = new St.Label({
+                text: '',
+                style_class: 'tb-latencia',
+                y_align: Clutter.ActorAlign.CENTER,
+            });
+            this.add_child(this._latencia);
+        }
     }
 
     /**
      * Pinta el estado del sondeo del puerto.
      *
      * @param {string} estado valor de ESTADO
+     * @param {number|null} latencia milisegundos de respuesta, si se conocen
      */
-    fijarEstado(estado) {
+    fijarEstado(estado, latencia = null) {
         const clases = {
             [ESTADO.ARRIBA]: 'tb-punto tb-punto-arriba',
             [ESTADO.ABAJO]: 'tb-punto tb-punto-abajo',
@@ -132,6 +144,12 @@ const ItemEquipo = GObject.registerClass({
             [ESTADO.DESCONOCIDO]: 'tb-punto tb-punto-desconocido',
         };
         this._punto.style_class = clases[estado] ?? clases[ESTADO.DESCONOCIDO];
+
+        // Los milisegundos solo dicen algo de un equipo que responde.
+        if (this._latencia) {
+            this._latencia.text =
+                estado === ESTADO.ARRIBA && latencia !== null ? `${latencia} ms` : '';
+        }
     }
 
     /**
@@ -210,6 +228,12 @@ class IndicadorEquipos extends PanelMenu.Button {
         this._idRecarga = 0;
         this._idIntervalo = 0;
         this._idsEspera = [];         // recomprobaciones tras apagar o reiniciar
+        this._buscador = null;        // ItemBuscador, si hay equipos de sobra
+        this._cabeceras = [];         // {cabecera, items} por grupo, para filtrar
+        this._itemSinCoincidencias = null;
+        this._textoFiltro = '';
+        this._idFoco = 0;             // idle para enfocar el buscador
+        this._idIntervaloFondo = 0;   // sondeo con el menú cerrado
         this._settingsWol = null;     // ajustes de la extensión Wake on LAN
         this._wolConsultado = false;  // si ya se buscó esa extensión
         this._encendiendo = new Set();// equipos con un arranque en curso
@@ -233,8 +257,8 @@ class IndicadorEquipos extends PanelMenu.Button {
 
         this._comprobador = new ComprobadorPuertos({
             timeout: this._settings.get_int('check-timeout'),
-            alCambiar: (id, estado) => {
-                this._items.get(id)?.fijarEstado(estado);
+            alCambiar: (id, estado, latencia) => {
+                this._items.get(id)?.fijarEstado(estado, latencia);
                 this._actualizarInsignia();
                 // Preguntarle las vitales a un equipo que no acepta conexiones
                 // es esperar a que ssh agote su propio plazo para nada.
@@ -268,7 +292,19 @@ class IndicadorEquipos extends PanelMenu.Button {
                 this._alCerrarMenu();
         });
 
+        // Las flechas se atienden en el menú entero: la navegación por omisión
+        // no sabe que hay equipos ocultos por el filtro y se para en ellos.
+        this._idTeclas = this.menu.actor.connect('key-press-event', (_actor, evento) => {
+            const tecla = evento.get_key_symbol();
+            if (tecla === Clutter.KEY_Down)
+                return this._moverFoco(1);
+            if (tecla === Clutter.KEY_Up)
+                return this._moverFoco(-1);
+            return Clutter.EVENT_PROPAGATE;
+        });
+
         this._conectarSettings();
+        this._programarIntervaloFondo();
         this._reconstruirMenu();   // pinta el estado «cargando»
         this.recargar();
     }
@@ -326,6 +362,10 @@ class IndicadorEquipos extends PanelMenu.Button {
             this._idsSettings.push(this._settings.connect(`changed::${clave}`, cb));
 
         conectar('config-path', () => this.recargar());
+        conectar('show-latency', () => this._reconstruirMenu());
+        conectar('enable-search', () => this._reconstruirMenu());
+        conectar('search-threshold', () => this._reconstruirMenu());
+        conectar('background-check-interval', () => this._programarIntervaloFondo());
         conectar('disk-warning', () => this._reconstruirMenu());
         conectar('panel-icon', () =>
             (this._icono.icon_name = this._settings.get_string('panel-icon')));
@@ -339,6 +379,8 @@ class IndicadorEquipos extends PanelMenu.Button {
                 this._programarIntervalo();
         });
         conectar('enable-checks', () => {
+            this._programarIntervaloFondo();
+            this._reconstruirMenu();
             if (this.menu.isOpen)
                 this._alAbrirMenu();
             else
@@ -456,7 +498,20 @@ class IndicadorEquipos extends PanelMenu.Button {
      * Al abrir el menú: sondea los puertos y pide las vitales.
      */
     _alAbrirMenu() {
+        // El área de trabajo puede haber cambiado (otro monitor, otra escala).
         ajustarAltoLista(this._scroll);
+
+        // El foco se pide en cuanto el menú termina de abrirse; hacerlo antes
+        // no funciona porque la animación todavía está reordenando el foco.
+        if (this._buscador && !this._idFoco) {
+            this._idFoco = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                this._idFoco = 0;
+                if (!this._destruido && this.menu.isOpen)
+                    this._buscador?.enfocar();
+                return GLib.SOURCE_REMOVE;
+            });
+        }
+
         this._preguntar();
         this._programarIntervalo();
     }
@@ -470,6 +525,13 @@ class IndicadorEquipos extends PanelMenu.Button {
         this._comprobador.cancelarPendientes();
         this._monitor.cancelarPendientes();
         this._cerrarContexto();
+
+        // El filtro no sobrevive al cierre: al reabrir se ve la lista completa.
+        if (this._textoFiltro) {
+            this._textoFiltro = '';
+            this._buscador?.entrada.set_text('');
+            this._aplicarFiltro('');
+        }
     }
 
     /**
@@ -504,6 +566,30 @@ class IndicadorEquipos extends PanelMenu.Button {
     }
 
     /**
+     * (Re)programa el sondeo con el menú cerrado. Desactivado por omisión.
+     *
+     * Solo se sondea el puerto: pedir las vitales es abrir una conexión SSH, y
+     * eso no se hace si nadie está mirando.
+     */
+    _programarIntervaloFondo() {
+        if (this._idIntervaloFondo) {
+            GLib.source_remove(this._idIntervaloFondo);
+            this._idIntervaloFondo = 0;
+        }
+
+        const segundos = this._settings.get_int('background-check-interval');
+        if (!this._settings.get_boolean('enable-checks') || segundos <= 0)
+            return;
+
+        this._idIntervaloFondo = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, segundos, () => {
+            // Con el menú abierto ya se está refrescando por su cuenta.
+            if (!this.menu.isOpen)
+                this._comprobador.comprobarTodas(this._comprobables);
+            return GLib.SOURCE_CONTINUE;
+        });
+    }
+
+    /**
      * Detiene el refresco periódico.
      */
     _pararIntervalo() {
@@ -533,9 +619,13 @@ class IndicadorEquipos extends PanelMenu.Button {
     _reconstruirMenu() {
         this.menu.removeAll();
         this._items.clear();
+        this._cabeceras = [];
+        this._buscador = null;
+        this._itemSinCoincidencias = null;
         this._scroll = null;
         this._contexto = null;   // removeAll() ya lo ha destruido
 
+        this._pintarBuscador();
         this._pintarLista();
 
         this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
@@ -586,10 +676,19 @@ class IndicadorEquipos extends PanelMenu.Button {
         const avisoDisco = this._settings.get_int('disk-warning');
         const hayVariosGrupos = grupos.length > 1 || grupos[0]?.nombre !== GRUPO_SIN_NOMBRE;
 
+        const opciones = {
+            avisoDisco,
+            mostrarLatencia: this._settings.get_boolean('show-latency') &&
+                             this._settings.get_boolean('enable-checks'),
+        };
+
         let primero = true;
         for (const grupo of grupos) {
+            const itemsDelGrupo = [];
+
+            let cabecera = null;
             if (hayVariosGrupos) {
-                const cabecera = new PopupMenu.PopupSeparatorMenuItem(grupo.nombre);
+                cabecera = new PopupMenu.PopupSeparatorMenuItem(grupo.nombre);
                 if (primero)
                     cabecera.add_style_class_name('tb-primera-cabecera');
                 this._seccionLista.addMenuItem(cabecera);
@@ -597,10 +696,10 @@ class IndicadorEquipos extends PanelMenu.Button {
             primero = false;
 
             for (const host of grupo.hosts) {
-                const item = new ItemEquipo(host, avisoDisco);
-                item.fijarEstado(host.salto
-                    ? ESTADO.DESCONOCIDO
-                    : this._comprobador.estadoDe(host.id));
+                const item = new ItemEquipo(host, opciones);
+                item.fijarEstado(
+                    host.salto ? ESTADO.DESCONOCIDO : this._comprobador.estadoDe(host.id),
+                    this._comprobador.latenciaDe(host.id));
                 item.fijarVitales(
                     this._monitor.estadoDe(host.id),
                     this._monitor.datosDe(host.id),
@@ -615,7 +714,101 @@ class IndicadorEquipos extends PanelMenu.Button {
 
                 this._seccionLista.addMenuItem(item);
                 this._items.set(host.id, item);
+                itemsDelGrupo.push(item);
             }
+
+            if (cabecera)
+                this._cabeceras.push({cabecera, items: itemsDelGrupo});
+        }
+
+        // Aviso que solo se ve cuando el filtro no encuentra nada.
+        this._itemSinCoincidencias = new PopupMenu.PopupMenuItem(
+            _('Ningún equipo coincide'), {reactive: false, style_class: 'tb-aviso'});
+        this._itemSinCoincidencias.visible = false;
+        this._seccionLista.addMenuItem(this._itemSinCoincidencias);
+
+        // Si se venía filtrando (p. ej. tras recargar), se mantiene el filtro.
+        if (this._textoFiltro)
+            this._aplicarFiltro(this._textoFiltro);
+    }
+
+    /* --------------------------- Búsqueda ---------------------------- */
+
+    /**
+     * Añade el campo de búsqueda si hay suficientes equipos.
+     */
+    _pintarBuscador() {
+        if (!this._settings.get_boolean('enable-search'))
+            return;
+        if (this._hosts.length < this._settings.get_int('search-threshold'))
+            return;
+
+        this._buscador = new ItemBuscador({
+            pista: _('Buscar equipo…'),
+            texto: this._textoFiltro,
+            alEscribir: texto => this._aplicarFiltro(texto),
+            alAceptar: () => this._activarPrimeroVisible(),
+            alNavegar: delta => this._moverFoco(delta),
+        });
+        this.menu.addMenuItem(this._buscador);
+    }
+
+    /**
+     * Oculta los equipos que no coinciden, y con ellos las cabeceras de los
+     * grupos que quedan vacíos.
+     *
+     * @param {string} texto texto del filtro
+     */
+    _aplicarFiltro(texto) {
+        this._textoFiltro = texto;
+        const busqueda = normalizar(texto).trim();
+
+        // La fila de acciones se refiere a un equipo concreto; si la lista
+        // cambia debajo, deja de tener sentido.
+        this._cerrarContexto();
+
+        let visibles = 0;
+        for (const item of this._items.values()) {
+            const {nombre, host, usuario, grupo} = item.host;
+            const heno = normalizar(`${nombre} ${host} ${usuario} ${grupo}`);
+            const coincide = busqueda === '' || heno.includes(busqueda);
+            item.visible = coincide;
+            if (coincide)
+                visibles++;
+        }
+
+        for (const {cabecera, items} of this._cabeceras)
+            cabecera.visible = items.some(item => item.visible);
+
+        if (this._itemSinCoincidencias)
+            this._itemSinCoincidencias.visible = visibles === 0;
+    }
+
+    /**
+     * Mueve el foco entre los equipos visibles.
+     *
+     * @param {number} delta +1 para bajar, -1 para subir
+     * @returns {boolean} si la tecla queda consumida
+     */
+    _moverFoco(delta) {
+        return moverFoco({
+            items: [...this._items.values()],
+            delta,
+            scroll: this._scroll,
+            buscador: this._buscador,
+        });
+    }
+
+    /**
+     * Refresca el primer equipo visible (Intro en el buscador).
+     */
+    _activarPrimeroVisible() {
+        for (const item of this._items.values()) {
+            if (!item.visible)
+                continue;
+            this._comprobador.comprobar(item.host);
+            this._monitor.pedir(item.host);
+            return;
         }
     }
 
@@ -971,6 +1164,14 @@ class IndicadorEquipos extends PanelMenu.Button {
             this._idRecarga = 0;
         }
         this._pararIntervalo();
+        if (this._idIntervaloFondo) {
+            GLib.source_remove(this._idIntervaloFondo);
+            this._idIntervaloFondo = 0;
+        }
+        if (this._idFoco) {
+            GLib.source_remove(this._idFoco);
+            this._idFoco = 0;
+        }
         for (const id of this._idsEspera)
             GLib.source_remove(id);
         this._idsEspera = [];
@@ -996,8 +1197,15 @@ class IndicadorEquipos extends PanelMenu.Button {
             this.menu.disconnect(this._idAbrir);
             this._idAbrir = 0;
         }
+        if (this._idTeclas) {
+            this.menu.actor.disconnect(this._idTeclas);
+            this._idTeclas = 0;
+        }
 
         this._items.clear();
+        this._cabeceras = [];
+        this._buscador = null;
+        this._itemSinCoincidencias = null;
         this._encendiendo.clear();
         this._scroll = null;
         this._seccionLista = null;

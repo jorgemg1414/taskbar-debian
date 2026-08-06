@@ -209,6 +209,10 @@ Desde el menú → **Ajustes**, o con `gnome-extensions prefs equipos-menu@jorge
 | Reaprovechar la conexión | sí | `ControlMaster`: una sola conexión SSH por equipo |
 | Vida de la conexión compartida | 120 s | `ControlPersist` |
 | Comprobar disponibilidad | sí | El punto verde o rojo, sondeando el puerto |
+| Comprobar en segundo plano | 0 (desactivado) | Segundos entre sondeos con el menú cerrado |
+| Mostrar la latencia | no | Milisegundos que tarda el equipo en aceptar la conexión |
+| Buscador en el menú | sí | Filtrar escribiendo |
+| Mostrarlo a partir de | 8 | Equipos necesarios para que aparezca el buscador |
 | Tiempo de espera del sondeo | 2 s | Antes de dar un equipo por caído |
 | Contador en el panel | sí | Cuántos equipos no responden, junto al icono |
 | Icono del panel | `utilities-system-monitor-symbolic` | Cualquier icono simbólico del tema |

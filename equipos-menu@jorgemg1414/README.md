@@ -208,6 +208,10 @@ Menu → **Ajustes**, or `gnome-extensions prefs equipos-menu@jorgemg1414`.
 | Reuse the connection | yes | `ControlMaster`: a single SSH connection per machine |
 | Shared connection lifetime | 120 s | `ControlPersist` |
 | Check availability | yes | The green or red dot, by probing the port |
+| Check in the background | 0 (off) | Seconds between probes with the menu closed |
+| Show latency | no | Milliseconds the machine takes to accept the connection |
+| Search field | yes | Filter as you type |
+| Show it from | 8 | Machines needed for the search field to appear |
 | Probe timeout | 2 s | Before considering a machine down |
 | Panel counter | yes | How many machines aren't answering, next to the icon |
 | Panel icon | `utilities-system-monitor-symbolic` | Any symbolic icon from the theme |

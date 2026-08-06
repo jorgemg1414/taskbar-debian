@@ -117,6 +117,27 @@ export default class EquiposMenuPreferences extends ExtensionPreferences {
         settings.bind('enable-checks', filaChecks, 'active', Gio.SettingsBindFlags.DEFAULT);
         grupoChecks.add(filaChecks);
 
+        const filaFondo = new Adw.SpinRow({
+            title: _('Comprobar en segundo plano'),
+            subtitle: _('Segundos entre sondeos con el menú cerrado, para que el contador ' +
+                'del panel esté al día sin abrirlo. 0 lo desactiva. Las vitales, que son ' +
+                'una conexión SSH, se siguen pidiendo solo con el menú abierto.'),
+            adjustment: new Gtk.Adjustment({
+                lower: 0, upper: 86400, step_increment: 30, page_increment: 300,
+            }),
+        });
+        settings.bind('background-check-interval', filaFondo, 'value', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('enable-checks', filaFondo, 'sensitive', Gio.SettingsBindFlags.GET);
+        grupoChecks.add(filaFondo);
+
+        const filaLatencia = new Adw.SwitchRow({
+            title: _('Mostrar la latencia'),
+            subtitle: _('Milisegundos que tarda el equipo en aceptar la conexión.'),
+        });
+        settings.bind('show-latency', filaLatencia, 'active', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('enable-checks', filaLatencia, 'sensitive', Gio.SettingsBindFlags.GET);
+        grupoChecks.add(filaLatencia);
+
         const filaEspera = new Adw.SpinRow({
             title: _('Tiempo de espera del sondeo'),
             subtitle: _('Segundos antes de dar un equipo por caído.'),
@@ -131,6 +152,24 @@ export default class EquiposMenuPreferences extends ExtensionPreferences {
         /* -------------------------- Apariencia -------------------------- */
         const grupoAspecto = new Adw.PreferencesGroup({title: _('Apariencia')});
         pagina.add(grupoAspecto);
+
+        const filaBuscador = new Adw.SwitchRow({
+            title: _('Buscador en el menú'),
+            subtitle: _('Filtra los equipos escribiendo parte de su alias, su host o su grupo.'),
+        });
+        settings.bind('enable-search', filaBuscador, 'active', Gio.SettingsBindFlags.DEFAULT);
+        grupoAspecto.add(filaBuscador);
+
+        const filaUmbral = new Adw.SpinRow({
+            title: _('Mostrarlo a partir de'),
+            subtitle: _('Equipos necesarios para que aparezca el buscador.'),
+            adjustment: new Gtk.Adjustment({
+                lower: 0, upper: 200, step_increment: 1, page_increment: 5,
+            }),
+        });
+        settings.bind('search-threshold', filaUmbral, 'value', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('enable-search', filaUmbral, 'sensitive', Gio.SettingsBindFlags.GET);
+        grupoAspecto.add(filaUmbral);
 
         const filaIcono = new Adw.EntryRow({title: _('Icono del panel')});
         settings.bind('panel-icon', filaIcono, 'text', Gio.SettingsBindFlags.DEFAULT);

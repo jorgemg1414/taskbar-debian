@@ -176,6 +176,46 @@
       </description>
     </key>
 
+    <key name="background-check-interval" type="i">
+      <default>0</default>
+      <range min="0" max="86400"/>
+      <summary>Comprobación en segundo plano, en segundos</summary>
+      <description>
+        Cada cuánto se sondea el puerto de los equipos con el menú cerrado, para
+        que el contador del panel esté al día sin tener que abrirlo. Con 0 no se
+        toca la red con el menú cerrado. Solo afecta al sondeo del puerto: las
+        vitales, que son una conexión SSH, siguen pidiéndose únicamente con el
+        menú abierto.
+      </description>
+    </key>
+
+    <key name="show-latency" type="b">
+      <default>false</default>
+      <summary>Mostrar la latencia</summary>
+      <description>
+        Milisegundos que tarda el equipo en aceptar la conexión, junto a su
+        resumen. Viene apagado porque la fila ya lleva bastante.
+      </description>
+    </key>
+
+    <key name="enable-search" type="b">
+      <default>true</default>
+      <summary>Buscador en el menú</summary>
+      <description>
+        Campo de filtro al principio del menú para encontrar un equipo
+        escribiendo parte de su alias, su host o su grupo.
+      </description>
+    </key>
+
+    <key name="search-threshold" type="i">
+      <default>8</default>
+      <range min="0" max="200"/>
+      <summary>Equipos a partir de los cuales aparece el buscador</summary>
+      <description>
+        Con pocos equipos el buscador estorba más que ayuda.
+      </description>
+    </key>
+
     <key name="check-timeout" type="i">
       <default>2</default>
       <range min="1" max="30"/>
