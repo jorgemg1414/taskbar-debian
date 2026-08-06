@@ -182,6 +182,9 @@ agrupadas por el encabezado que tengan encima, y marcables desde la barra.
   carpeta entera de ellos.
 - **Marcar cambia un solo carácter** del archivo, el hueco de la casilla. Todo
   lo demás de la línea —sangría, viñeta, espacios— se copia tal cual.
+- **Y se escribe sin abrir el editor**: editar el texto, apuntar una tarea
+  nueva o borrar una se hacen en la propia fila, con un campo de texto que se
+  cierra con Intro o con Escape.
 - **Y no lo hace a ciegas**: antes de escribir relee el archivo para comprobar
   que la tarea sigue donde estaba, y escribe con el etag de lo que leyó, así que
   si lo tenías abierto en el editor la escritura se rechaza en vez de pisar tu

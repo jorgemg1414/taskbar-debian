@@ -14,7 +14,7 @@ Markdown. Al pulsar una, se marca en el archivo.
   │  ☐ Pedir tóner para la L3560    │
   │  Casa                           │
   │  ☐ Comprar pan                  │
-  │  ↻ Recargar   ✎ Editar   ⚙ Ajustes │
+  │  ＋ Nueva  ↻ Recargar  ✎ Archivo │
   └─────────────────────────────────┘
 ```
 
@@ -83,13 +83,31 @@ con el motivo.
 | Gesto | Qué hace |
 |---|---|
 | Clic en una tarea | La marca o la desmarca en el archivo |
-| Clic derecho | Copiar su texto, o abrir el archivo en el editor |
+| Clic derecho | **Editar**, **Añadir debajo**, **Copiar** y **Borrar** |
 | ↓ / ↑ | Recorrer la lista, también desde el buscador |
 | Intro en el buscador | Marca la primera que coincida |
+| **Nueva** | Apunta una tarea al final del archivo |
 | **Recargar** | Vuelve a leer, sin cerrar el menú |
-| **Editar** | Abre el archivo en tu editor. Si no existe, lo crea con un ejemplo |
+| **Abrir archivo** | Lo abre en tu editor. Si no existe, lo crea con un ejemplo |
 
 El contador del panel dice cuántas quedan.
+
+### Escribir sin abrir el editor
+
+**Editar** y **Añadir debajo** abren un campo de texto en la propia fila:
+escribes, Intro guarda y Escape lo deja como estaba. Lo mismo hace **Nueva** al
+final de la lista.
+
+- Al **editar** solo se sustituye lo que va detrás del corchete. La casilla, la
+  sangría y la viñeta se quedan como estaban, así que una tarea ya marcada
+  sigue marcada aunque le cambies la frase.
+- Al **añadir debajo**, la tarea nueva hereda la sangría de aquella sobre la que
+  pulsaste, que es lo que hace falta para apuntar una subtarea.
+- **Nueva** la pone al final del archivo, antes de las líneas en blanco del
+  cierre para que no quede suelta. Con una carpeta configurada va al archivo de
+  la última tarea de la lista.
+- **Borrar** se lleva la línea entera y es lo único que pregunta antes: una
+  tarea marcada se desmarca, pero una borrada ya no está.
 
 ---
 
@@ -126,8 +144,9 @@ Para desinstalar:
 ```
 
 No hace falta ningún programa: se leen y se escriben archivos de texto con
-`Gio`. Un editor solo hace falta para el botón **Editar**, y si no hay ninguno
-conocido se abre con la aplicación predeterminada del sistema.
+`Gio`, y para escribir una tarea no hace falta salir del menú. Un editor solo
+hace falta para **Abrir archivo**, y si no hay ninguno conocido se abre con la
+aplicación predeterminada del sistema.
 
 ---
 

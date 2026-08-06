@@ -176,6 +176,9 @@ grouped by the heading above them, and tickable from the bar.
 - **Ticking changes a single character** in the file, the gap inside the
   checkbox. Everything else on the line — indentation, bullet, spaces — is
   copied verbatim.
+- **And you write without opening the editor**: rewording a task, jotting a new
+  one down or deleting one all happen in the row itself, in a text field that
+  closes with Enter or Escape.
 - **And not blindly**: before writing it re-reads the file to check the task is
   still where it was, and writes with the etag of what it read, so if you had it
   open in your editor the write is rejected instead of overwriting your change.

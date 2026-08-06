@@ -14,7 +14,7 @@ Clicking one ticks it in the file.
   │  ☐ Pedir tóner para la L3560    │
   │  Casa                           │
   │  ☐ Comprar pan                  │
-  │  ↻ Recargar   ✎ Editar   ⚙ Ajustes │
+  │  ＋ Nueva  ↻ Recargar  ✎ Archivo │
   └─────────────────────────────────┘
 ```
 
@@ -84,13 +84,31 @@ notification explains why.
 | Gesture | What it does |
 |---|---|
 | Click a task | Ticks or unticks it in the file |
-| Right click | Copy its text, or open the file in your editor |
+| Right click | **Editar**, **Añadir debajo**, **Copiar** and **Borrar** |
 | ↓ / ↑ | Walk the list, including from the search field |
 | Enter in the search field | Ticks the first match |
+| **Nueva** | Jots a task down at the end of the file |
 | **Recargar** | Re-reads without closing the menu |
-| **Editar** | Opens the file in your editor. If it doesn't exist, creates it with an example |
+| **Abrir archivo** | Opens it in your editor. If it doesn't exist, creates it with an example |
 
 The panel counter shows how many are left.
+
+### Writing without opening the editor
+
+**Editar** and **Añadir debajo** open a text field in the row itself: you type,
+Enter saves and Escape leaves everything as it was. **Nueva** does the same at
+the end of the list.
+
+- **Editing** replaces only what follows the bracket. The checkbox, indentation
+  and bullet stay as they were, so a task already ticked stays ticked even if
+  you reword it.
+- **Adding below** gives the new task the indentation of the one you clicked,
+  which is what you need to jot down a subtask.
+- **Nueva** puts it at the end of the file, before the blank lines that close
+  it so it doesn't end up stranded. With a folder configured it goes to the file
+  of the last task in the list.
+- **Borrar** takes the whole line, and is the only one that asks first: a ticked
+  task can be unticked, but a deleted one is gone.
 
 ---
 
@@ -126,9 +144,10 @@ To uninstall:
 ./install.sh --uninstall
 ```
 
-No external program is needed: text files are read and written through `Gio`. An
-editor only matters for the **Editar** button, and if no known one is installed
-the file opens with the system default.
+No external program is needed: text files are read and written through `Gio`,
+and writing a task never means leaving the menu. An editor only matters for
+**Abrir archivo**, and if no known one is installed the file opens with the
+system default.
 
 ---
 

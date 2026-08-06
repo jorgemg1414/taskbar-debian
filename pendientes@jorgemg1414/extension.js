@@ -26,11 +26,12 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {
-    escanearTareas, agruparTareas, alternarTarea, crearArchivoSiFalta, expandirRuta,
+    escanearTareas, agruparTareas, alternarTarea, editarTexto, anadirTarea,
+    borrarTarea, crearArchivoSiFalta, expandirRuta,
 } from './tareas.js';
 import {SitioEnLaBarra} from './barra.js';
 import {
-    ItemAcciones, ItemBuscador, crearInsignia, pintarInsignia,
+    ItemAcciones, ItemBuscador, ItemConfirmacion, crearInsignia, pintarInsignia,
     crearListaConScroll, ajustarAltoLista, moverFoco, normalizar,
 } from './menu.js';
 
@@ -126,6 +127,58 @@ const ItemTarea = GObject.registerClass({
             return Clutter.EVENT_STOP;
         }
         return super.vfunc_button_release_event(evento);
+    }
+});
+
+/* -------------------------------------------------------------------------
+ * Fila con un campo de texto, para escribir una tarea sin salir del menú
+ * ------------------------------------------------------------------------- */
+const ItemEntrada = GObject.registerClass(
+class ItemEntrada extends PopupMenu.PopupBaseMenuItem {
+    /**
+     * @param {object} opciones opciones de la fila
+     * @param {string} [opciones.texto] texto con el que empieza el campo
+     * @param {string} opciones.pista texto de sugerencia cuando está vacío
+     * @param {Function} opciones.alAceptar recibe el texto al pulsar Intro
+     * @param {Function} opciones.alCancelar se llama al pulsar Escape
+     */
+    _init({texto = '', pista, alAceptar, alCancelar}) {
+        // No es activable ni enfocable: el foco lo lleva el campo de texto.
+        super._init({reactive: false, activate: false, hover: false, can_focus: false});
+
+        this.entrada = new St.Entry({
+            style_class: 'tb-buscador',
+            hint_text: pista,
+            can_focus: true,
+            x_expand: true,
+        });
+        this.entrada.set_text(texto);
+        this.add_child(this.entrada);
+
+        this.entrada.clutter_text.connect('key-press-event', (_actor, evento) => {
+            const tecla = evento.get_key_symbol();
+
+            if (tecla === Clutter.KEY_Return || tecla === Clutter.KEY_KP_Enter) {
+                alAceptar(this.entrada.get_text());
+                return Clutter.EVENT_STOP;
+            }
+
+            // Escape deja el archivo como estaba, se haya escrito lo que se haya
+            // escrito.
+            if (tecla === Clutter.KEY_Escape) {
+                alCancelar();
+                return Clutter.EVENT_STOP;
+            }
+
+            return Clutter.EVENT_PROPAGATE;
+        });
+    }
+
+    /**
+     * Pone el foco del teclado en el campo de texto.
+     */
+    enfocar() {
+        this.entrada.grab_key_focus();
     }
 });
 
@@ -383,13 +436,20 @@ class IndicadorPendientes extends PanelMenu.Button {
 
         this.menu.addMenuItem(new ItemAcciones([
             {
+                icono: 'list-add-symbolic',
+                texto: _('Nueva'),
+                alPulsar: () => this._nuevaTarea(),
+            },
+            {
                 icono: 'view-refresh-symbolic',
                 texto: _('Recargar'),
                 alPulsar: () => this.recargar(),
             },
             {
+                // «Editar» ahora es lo que se hace en la propia fila, así que
+                // este botón dice lo que hace: abrir el archivo fuera.
                 icono: 'text-editor-symbolic',
-                texto: _('Editar'),
+                texto: _('Abrir archivo'),
                 alPulsar: () => {
                     this.menu.close();
                     this._editar();
@@ -633,7 +693,17 @@ class IndicadorPendientes extends PanelMenu.Button {
             return;
 
         const tarea = item.tarea;
-        const contexto = new ItemAcciones([
+        this._abrirFilaBajo(item, new ItemAcciones([
+            {
+                icono: 'document-edit-symbolic',
+                texto: _('Editar'),
+                alPulsar: () => this._editarTexto(item),
+            },
+            {
+                icono: 'list-add-symbolic',
+                texto: _('Añadir debajo'),
+                alPulsar: () => this._anadirDebajo(item),
+            },
             {
                 icono: 'edit-copy-symbolic',
                 texto: _('Copiar'),
@@ -644,19 +714,176 @@ class IndicadorPendientes extends PanelMenu.Button {
                 },
             },
             {
-                icono: 'text-editor-symbolic',
-                texto: _('Abrir archivo'),
-                alPulsar: () => {
-                    this.menu.close();
-                    this._editar(tarea.ruta);
-                },
+                icono: 'user-trash-symbolic',
+                texto: _('Borrar'),
+                peligrosa: true,
+                alPulsar: () => this._pedirBorrar(item),
             },
-        ]);
-        contexto._idTarea = tarea.id;
+        ]));
+    }
+
+    /**
+     * Pone una fila justo debajo de una tarea, sustituyendo a la que hubiera.
+     *
+     * @param {ItemTarea} item tarea bajo la que va
+     * @param {PopupMenu.PopupBaseMenuItem} fila fila a insertar
+     */
+    _abrirFilaBajo(item, fila) {
+        this._cerrarContexto();
+        fila._idTarea = item.tarea.id;
 
         const posicion = this._seccionLista._getMenuItems().indexOf(item);
-        this._seccionLista.addMenuItem(contexto, posicion + 1);
-        this._contexto = contexto;
+        this._seccionLista.addMenuItem(fila, posicion + 1);
+        this._contexto = fila;
+
+        // El foco se pide en cuanto la fila está puesta; hacerlo antes no
+        // funciona porque el menú todavía la está colocando.
+        if (fila.enfocar && !this._idFoco) {
+            this._idFoco = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                this._idFoco = 0;
+                if (!this._destruido && this._contexto === fila)
+                    fila.enfocar();
+                return GLib.SOURCE_REMOVE;
+            });
+        }
+    }
+
+    /* --------------------------- Editar ------------------------------ */
+
+    /**
+     * Cambia el texto de una tarea desde el propio menú.
+     *
+     * @param {ItemTarea} item tarea a editar
+     */
+    _editarTexto(item) {
+        const tarea = item.tarea;
+
+        this._abrirFilaBajo(item, new ItemEntrada({
+            texto: tarea.texto,
+            pista: _('Texto de la tarea'),
+            alCancelar: () => this._cerrarContexto(),
+            alAceptar: texto => {
+                this._cerrarContexto();
+                if (texto.trim() === tarea.texto)
+                    return;
+                this._aplicar(
+                    editarTexto(tarea, texto, this._cancellableAcciones),
+                    _('No se pudo cambiar el texto'));
+            },
+        }));
+    }
+
+    /**
+     * Añade una tarea justo debajo de otra, con su misma sangría.
+     *
+     * @param {ItemTarea} item tarea de referencia
+     */
+    _anadirDebajo(item) {
+        const tarea = item.tarea;
+
+        this._abrirFilaBajo(item, new ItemEntrada({
+            pista: _('Tarea nueva, debajo de esta'),
+            alCancelar: () => this._cerrarContexto(),
+            alAceptar: texto => {
+                this._cerrarContexto();
+                this._aplicar(
+                    anadirTarea({ruta: tarea.ruta, despuesDe: tarea}, texto,
+                        this._cancellableAcciones),
+                    _('No se pudo añadir la tarea'));
+            },
+        }));
+    }
+
+    /**
+     * Pregunta antes de borrar, que es lo único que no se puede deshacer desde
+     * el menú: una tarea marcada se desmarca, pero una borrada ya no está.
+     *
+     * @param {ItemTarea} item tarea a borrar
+     */
+    _pedirBorrar(item) {
+        const tarea = item.tarea;
+
+        this._abrirFilaBajo(item, new ItemConfirmacion({
+            pregunta: `¿${_('Borrar')} «${tarea.texto}»?`,
+            textoSi: _('Sí'),
+            textoNo: _('No'),
+            alCancelar: () => this._cerrarContexto(),
+            alConfirmar: () => {
+                this._cerrarContexto();
+                this._aplicar(
+                    borrarTarea(tarea, this._cancellableAcciones),
+                    _('No se pudo borrar la tarea'));
+            },
+        }));
+    }
+
+    /**
+     * Añade una tarea al final, desde el pie del menú.
+     *
+     * Va al archivo de la última tarea de la lista, que con un solo archivo
+     * —lo normal— es el de siempre. Si todavía no hay ninguna, al configurado,
+     * que se crea con un ejemplo si hace falta.
+     */
+    _nuevaTarea() {
+        const ultima = this._tareas[this._tareas.length - 1];
+        const ruta = ultima ? ultima.ruta : (this._archivos[0] ?? this._ruta);
+
+        const entrada = new ItemEntrada({
+            pista: _('Tarea nueva'),
+            alCancelar: () => this._cerrarContexto(),
+            alAceptar: texto => {
+                this._cerrarContexto();
+
+                try {
+                    crearArchivoSiFalta(ruta);
+                } catch (e) {
+                    Main.notifyError('Pendientes',
+                        `${_('No se pudo crear')} ${ruta}: ${e.message}`);
+                    return;
+                }
+
+                this._aplicar(
+                    anadirTarea({ruta}, texto, this._cancellableAcciones),
+                    _('No se pudo añadir la tarea'));
+            },
+        });
+
+        // Al final de la lista, que es donde va a aparecer la tarea.
+        this._cerrarContexto();
+        this._seccionLista.addMenuItem(entrada);
+        this._contexto = entrada;
+
+        if (!this._idFoco) {
+            this._idFoco = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                this._idFoco = 0;
+                if (!this._destruido && this._contexto === entrada)
+                    entrada.enfocar();
+                return GLib.SOURCE_REMOVE;
+            });
+        }
+    }
+
+    /**
+     * Espera a una operación sobre el archivo y avisa si no salió.
+     *
+     * Cuando sale bien no hay que hacer nada: el FileMonitor ve el cambio y
+     * recarga la lista dentro de un momento.
+     *
+     * @param {Promise<string|null>} promesa operación de tareas.js
+     * @param {string} queHacia qué se estaba intentando, para el aviso
+     */
+    _aplicar(promesa, queHacia) {
+        promesa
+            .then(motivo => {
+                if (this._destruido || !motivo)
+                    return;
+                Main.notifyError('Pendientes', `${queHacia}: ${motivo}`);
+                this.recargar();
+            })
+            .catch(e => {
+                if (!this._destruido)
+                    Main.notifyError('Pendientes', `${queHacia}: ${e.message}`);
+            });
     }
 
     /**
