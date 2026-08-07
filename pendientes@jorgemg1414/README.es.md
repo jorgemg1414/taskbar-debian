@@ -9,12 +9,12 @@ Markdown. Al pulsar una, se marca en el archivo.
 ● 3
 
   ┌─────────────────────────────────┐
-  │  Sucursales                     │
+  │  Sucursales ──────────────── ＋  │
   │  ☐ Cambiar el disco de Bodega   │
   │  ☐ Pedir tóner para la L3560    │
-  │  Casa                           │
+  │  Casa ───────────────────── ＋  │
   │  ☐ Comprar pan                  │
-  │  ＋ Nueva  ↻ Recargar  ✎ Archivo │
+  │  ＋Tarea ＋Grupo ↻Recargar ✎Archivo │
   └─────────────────────────────────┘
 ```
 
@@ -84,28 +84,38 @@ con el motivo.
 |---|---|
 | Clic en una tarea | La marca o la desmarca en el archivo |
 | Clic derecho | **Editar**, **Añadir debajo**, **Copiar** y **Borrar** |
+| **＋** en una cabecera | Apunta una tarea en ese grupo |
 | ↓ / ↑ | Recorrer la lista, también desde el buscador |
 | Intro en el buscador | Marca la primera que coincida |
-| **Nueva** | Apunta una tarea al final del archivo |
+| **Tarea** | Apunta una tarea al final del archivo |
+| **Grupo** | Crea un encabezado nuevo con su primera tarea |
 | **Recargar** | Vuelve a leer, sin cerrar el menú |
-| **Abrir archivo** | Lo abre en tu editor. Si no existe, lo crea con un ejemplo |
+| **Archivo** | Lo abre en tu editor. Si no existe, lo crea con un ejemplo |
 
 El contador del panel dice cuántas quedan.
 
 ### Escribir sin abrir el editor
 
-**Editar** y **Añadir debajo** abren un campo de texto en la propia fila:
-escribes, Intro guarda y Escape lo deja como estaba. Lo mismo hace **Nueva** al
-final de la lista.
+**Editar**, **Añadir debajo** y el **＋** de cada cabecera abren un campo de
+texto en la propia fila: escribes, Intro guarda y Escape lo deja como estaba. Lo
+mismo hacen **Tarea** y **Grupo** al final de la lista.
 
 - Al **editar** solo se sustituye lo que va detrás del corchete. La casilla, la
   sangría y la viñeta se quedan como estaban, así que una tarea ya marcada
   sigue marcada aunque le cambies la frase.
 - Al **añadir debajo**, la tarea nueva hereda la sangría de aquella sobre la que
-  pulsaste, que es lo que hace falta para apuntar una subtarea.
-- **Nueva** la pone al final del archivo, antes de las líneas en blanco del
+  pulsaste, que es lo que hace falta para apuntar una subtarea. Si esa tarea
+  tiene subtareas, la nueva va detrás de todas ellas y no en medio.
+- El **＋ de una cabecera** pone la tarea al final de ese grupo, al margen de la
+  primera del grupo: es la forma de apuntar algo en «Casa» sin que se vaya al
+  final del archivo. Es lo que quita el último motivo para abrir el editor.
+- **Tarea** la pone al final del archivo, antes de las líneas en blanco del
   cierre para que no quede suelta. Con una carpeta configurada va al archivo de
   la última tarea de la lista.
+- **Grupo** pregunta dos cosas, el nombre y la primera tarea, porque en el
+  archivo van juntas: un encabezado sin ninguna casilla debajo no saldría en el
+  menú. Se escribe con el mismo nivel de almohadillas que los demás grupos del
+  archivo.
 - **Borrar** se lleva la línea entera y es lo único que pregunta antes: una
   tarea marcada se desmarca, pero una borrada ya no está.
 

@@ -27,7 +27,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {
     escanearTareas, agruparTareas, alternarTarea, editarTexto, anadirTarea,
-    borrarTarea, crearArchivoSiFalta, expandirRuta,
+    anadirGrupo, borrarTarea, crearArchivoSiFalta, expandirRuta,
 } from './tareas.js';
 import {SitioEnLaBarra} from './barra.js';
 import {
@@ -127,6 +127,35 @@ const ItemTarea = GObject.registerClass({
             return Clutter.EVENT_STOP;
         }
         return super.vfunc_button_release_event(evento);
+    }
+});
+
+/* -------------------------------------------------------------------------
+ * Cabecera de grupo: el nombre, la raya y un «+» para apuntar ahí dentro
+ * ------------------------------------------------------------------------- */
+const ItemCabecera = GObject.registerClass({
+    Signals: {'anadir': {}},
+}, class ItemCabecera extends PopupMenu.PopupSeparatorMenuItem {
+    /**
+     * El «+» de la cabecera es lo que hace que una tarea vaya al grupo que te
+     * interesa: «Nueva», al final del archivo, siempre caía en el último.
+     *
+     * @param {string} texto nombre del grupo
+     */
+    _init(texto) {
+        super._init(texto);
+
+        this._boton = new St.Button({
+            style_class: 'pendientes-mas',
+            can_focus: true,
+            accessible_name: `${_('Añadir en')} ${texto}`,
+        });
+        this._boton.set_child(new St.Icon({
+            icon_name: 'list-add-symbolic',
+            style_class: 'pendientes-mas-icono',
+        }));
+        this._boton.connect('clicked', () => this.emit('anadir'));
+        this.add_child(this._boton);
     }
 });
 
@@ -443,8 +472,13 @@ class IndicadorPendientes extends PanelMenu.Button {
         this.menu.addMenuItem(new ItemAcciones([
             {
                 icono: 'list-add-symbolic',
-                texto: _('Nueva'),
+                texto: _('Tarea'),
                 alPulsar: () => this._nuevaTarea(),
+            },
+            {
+                icono: 'format-justify-left-symbolic',
+                texto: _('Grupo'),
+                alPulsar: () => this._nuevoGrupo(),
             },
             {
                 icono: 'view-refresh-symbolic',
@@ -455,7 +489,7 @@ class IndicadorPendientes extends PanelMenu.Button {
                 // «Editar» ahora es lo que se hace en la propia fila, así que
                 // este botón dice lo que hace: abrir el archivo fuera.
                 icono: 'text-editor-symbolic',
-                texto: _('Abrir archivo'),
+                texto: _('Archivo'),
                 alPulsar: () => {
                     this.menu.close();
                     this._editar();
@@ -500,16 +534,20 @@ class IndicadorPendientes extends PanelMenu.Button {
      */
     _pintarGrupos() {
         const grupos = agruparTareas(this._visibles, this._variosArchivos);
-        const unSoloGrupo = grupos.length === 1;
+        // Con un solo grupo en todo el archivo la cabecera no dice nada que no
+        // se vea ya. Se miran todas las tareas y no solo las visibles: si un
+        // grupo está entero hecho, su cabecera desaparecería y con ella el «+».
+        const unSoloGrupo =
+            agruparTareas(this._tareas, this._variosArchivos).length === 1;
 
         let primero = true;
         for (const grupo of grupos) {
             const itemsDelGrupo = [];
 
-            // Con un solo grupo, la cabecera no dice nada que no se vea ya.
             let cabecera = null;
             if (!unSoloGrupo) {
-                cabecera = new PopupMenu.PopupSeparatorMenuItem(grupo.nombre);
+                cabecera = new ItemCabecera(grupo.nombre);
+                cabecera.connect('anadir', () => this._anadirEnGrupo(grupo, itemsDelGrupo));
                 if (primero)
                     cabecera.add_style_class_name('tb-primera-cabecera');
                 this._seccionLista.addMenuItem(cabecera);
@@ -742,20 +780,32 @@ class IndicadorPendientes extends PanelMenu.Button {
         this._seccionLista.addMenuItem(fila, posicion + 1);
         this._contexto = fila;
 
-        // El foco se pide en cuanto la fila está puesta; hacerlo antes no
-        // funciona porque el menú todavía la está colocando.
-        if (fila.enfocar && !this._idFoco) {
-            this._idFoco = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-                this._idFoco = 0;
-                if (!this._destruido && this._contexto === fila) {
-                    fila.enfocar();
-                    // Con la lista larga, la fila puede haber quedado fuera de
-                    // la parte visible: se sube hasta ella.
-                    asegurarVisible(this._scroll, fila);
-                }
-                return GLib.SOURCE_REMOVE;
-            });
-        }
+        if (fila.enfocar)
+            this._enfocarFila(fila);
+    }
+
+    /**
+     * Pone el foco en una fila recién abierta y la trae a la parte visible.
+     *
+     * Se hace en cuanto el menú está quieto y no antes: mientras la está
+     * colocando, ni el foco ni la posición valen todavía.
+     *
+     * @param {PopupMenu.PopupBaseMenuItem} fila fila que acaba de abrirse
+     */
+    _enfocarFila(fila) {
+        if (this._idFoco)
+            return;
+
+        this._idFoco = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            this._idFoco = 0;
+            if (!this._destruido && this._contexto === fila) {
+                fila.enfocar();
+                // Con la lista larga, la fila puede haber quedado fuera de la
+                // parte visible: se sube hasta ella.
+                asegurarVisible(this._scroll, fila);
+            }
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     /* --------------------------- Editar ------------------------------ */
@@ -828,52 +878,126 @@ class IndicadorPendientes extends PanelMenu.Button {
     }
 
     /**
-     * Añade una tarea al final, desde el pie del menú.
+     * Añade una tarea al final del grupo que la pidió.
      *
-     * Va al archivo de la última tarea de la lista, que con un solo archivo
-     * —lo normal— es el de siempre. Si todavía no hay ninguna, al configurado,
-     * que se crea con un ejemplo si hace falta.
+     * El «+» de la cabecera es lo que evita tener que abrir el editor para
+     * apuntar algo en un grupo que no sea el último del archivo. Va con la
+     * sangría de la primera tarea del grupo, no con la de la última: si la
+     * última es una subtarea, la nueva no tiene por qué serlo.
+     *
+     * @param {{nombre: string, tareas: object[]}} grupo grupo de la cabecera
+     * @param {ItemTarea[]} items filas de ese grupo, en el mismo orden
      */
-    _nuevaTarea() {
-        const ultima = this._tareas[this._tareas.length - 1];
-        const ruta = ultima ? ultima.ruta : (this._archivos[0] ?? this._ruta);
+    _anadirEnGrupo(grupo, items) {
+        const ultima = grupo.tareas[grupo.tareas.length - 1];
+        const sangria = grupo.tareas[0].sangriaTexto;
 
-        const entrada = new ItemEntrada({
-            pista: _('Tarea nueva'),
+        this._abrirFilaBajo(items[items.length - 1], new ItemEntrada({
+            pista: `${_('Tarea nueva en')} «${grupo.nombre}»`,
             alCancelar: () => this._cerrarContexto(),
             alAceptar: texto => {
                 this._cerrarContexto();
-
-                try {
-                    crearArchivoSiFalta(ruta);
-                } catch (e) {
-                    Main.notifyError('Pendientes',
-                        `${_('No se pudo crear')} ${ruta}: ${e.message}`);
-                    return;
-                }
-
                 this._aplicar(
-                    anadirTarea({ruta}, texto, this._cancellableAcciones),
+                    anadirTarea({ruta: ultima.ruta, despuesDe: ultima, sangria}, texto,
+                        this._cancellableAcciones),
                     _('No se pudo añadir la tarea'));
             },
+        }));
+    }
+
+    /**
+     * Añade una tarea al final del archivo, desde el pie del menú.
+     */
+    _nuevaTarea() {
+        const ruta = this._rutaParaAnadir();
+
+        this._entradaAlFinal(_('Tarea nueva'), texto => {
+            this._cerrarContexto();
+            if (!this._asegurarArchivo(ruta))
+                return;
+
+            this._aplicar(
+                anadirTarea({ruta}, texto, this._cancellableAcciones),
+                _('No se pudo añadir la tarea'));
+        });
+    }
+
+    /**
+     * Crea un grupo nuevo al final del archivo: primero el nombre, luego su
+     * primera tarea.
+     *
+     * Son dos pasos porque van juntos en el archivo: un encabezado sin ninguna
+     * tarea debajo no aparecería en el menú, que saca los grupos de las tareas.
+     */
+    _nuevoGrupo() {
+        const ruta = this._rutaParaAnadir();
+
+        this._entradaAlFinal(_('Grupo nuevo'), titulo => {
+            const nombre = titulo.trim();
+            if (nombre === '') {
+                this._cerrarContexto();
+                return;
+            }
+
+            this._entradaAlFinal(`${_('Primera tarea de')} «${nombre}»`, texto => {
+                this._cerrarContexto();
+                if (!this._asegurarArchivo(ruta))
+                    return;
+
+                this._aplicar(
+                    anadirGrupo(ruta, nombre, texto, this._cancellableAcciones),
+                    _('No se pudo crear el grupo'));
+            });
+        });
+    }
+
+    /**
+     * Abre un campo de texto al final de la lista, que es donde va a aparecer
+     * lo que se escriba.
+     *
+     * @param {string} pista texto de sugerencia del campo
+     * @param {Function} alAceptar recibe el texto al pulsar Intro
+     */
+    _entradaAlFinal(pista, alAceptar) {
+        const entrada = new ItemEntrada({
+            pista,
+            alAceptar,
+            alCancelar: () => this._cerrarContexto(),
         });
 
-        // Al final de la lista, que es donde va a aparecer la tarea.
         this._cerrarContexto();
         this._seccionLista.addMenuItem(entrada);
         this._contexto = entrada;
+        this._enfocarFila(entrada);
+    }
 
-        if (!this._idFoco) {
-            this._idFoco = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-                this._idFoco = 0;
-                if (!this._destruido && this._contexto === entrada) {
-                    entrada.enfocar();
-                    // El campo está al final de la lista, que es justo lo que
-                    // se sale de la parte visible cuando hay muchas tareas.
-                    asegurarVisible(this._scroll, entrada);
-                }
-                return GLib.SOURCE_REMOVE;
-            });
+    /**
+     * Archivo al que van las tareas y los grupos que se añaden desde el pie.
+     *
+     * El de la última tarea de la lista, que con un solo archivo —lo normal—
+     * es el de siempre. Si todavía no hay ninguna, el configurado.
+     *
+     * @returns {string} ruta del archivo
+     */
+    _rutaParaAnadir() {
+        const ultima = this._tareas[this._tareas.length - 1];
+        return ultima ? ultima.ruta : (this._archivos[0] ?? this._ruta);
+    }
+
+    /**
+     * Crea el archivo con un ejemplo si todavía no está, para poder escribir en
+     * él a continuación.
+     *
+     * @param {string} ruta archivo en el que se va a escribir
+     * @returns {boolean} si se puede seguir
+     */
+    _asegurarArchivo(ruta) {
+        try {
+            crearArchivoSiFalta(ruta);
+            return true;
+        } catch (e) {
+            Main.notifyError('Pendientes', `${_('No se pudo crear')} ${ruta}: ${e.message}`);
+            return false;
         }
     }
 

@@ -24,6 +24,24 @@
     text-decoration: line-through;
 }
 
+/* El «+» de la cabecera de un grupo: apunta una tarea ahí dentro. Apagado
+ * mientras no se le hace caso, para que la cabecera siga siendo una cabecera. */
+.pendientes-mas {
+    padding: 1px 6px;
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.pendientes-mas:hover,
+.pendientes-mas:focus {
+    background-color: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.pendientes-mas-icono {
+    icon-size: 14px;
+}
+
 /* Nombre del archivo, cuando se leen varios. */
 .pendientes-archivo {
     color: rgba(255, 255, 255, 0.45);

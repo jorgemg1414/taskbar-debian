@@ -148,6 +148,9 @@ export function parsearTareas(texto, ruta) {
             archivo,
             linea: i + 1,
             sangria: tarea[1].length,
+            // La sangría tal cual está escrita, con sus tabuladores si los
+            // tiene: es lo que se copia al añadir una tarea al lado.
+            sangriaTexto: tarea[1],
             hecha: tarea[3] !== ' ',
             texto: texto_,
             encabezado,
@@ -350,6 +353,90 @@ function partesDe(lineas, tarea) {
 }
 
 /**
+ * La sangría de una línea, tal cual está escrita.
+ *
+ * @param {string} linea línea del archivo
+ * @returns {string} los espacios o tabuladores de delante
+ */
+function sangriaDe(linea) {
+    return linea.match(/^[ \t]*/)[0];
+}
+
+/**
+ * Dónde acaba una tarea contando lo que cuelga de ella.
+ *
+ * Una tarea es su línea y todo lo que venga debajo más sangrado: sus subtareas
+ * y las notas que le hayas puesto. Se trata como un bloque para que al moverla
+ * o al sangrarla se lleve lo suyo consigo, que es lo que uno espera.
+ *
+ * @param {string[]} lineas líneas del archivo
+ * @param {number} inicio índice de la línea de la tarea
+ * @returns {number} índice de la primera línea que ya no es suya
+ */
+function finDelBloque(lineas, inicio) {
+    const sangria = sangriaDe(lineas[inicio]).length;
+
+    let fin = inicio + 1;
+    while (fin < lineas.length) {
+        const linea = lineas[fin];
+        if (linea.trim() === '' || ENCABEZADO.test(linea))
+            break;
+        if (sangriaDe(linea).length <= sangria)
+            break;
+        fin++;
+    }
+
+    return fin;
+}
+
+/**
+ * Busca la tarea de al lado a la misma altura, saltando lo que cuelgue de ella.
+ *
+ * Es lo que hace que subir una tarea la ponga encima de su hermana y no en
+ * medio de las subtareas de su hermana. No se cruza ningún encabezado: mover
+ * una tarea no la cambia de grupo.
+ *
+ * @param {string[]} lineas líneas del archivo
+ * @param {number} inicio primera línea del bloque propio
+ * @param {number} fin línea siguiente al bloque propio
+ * @param {number} sangria sangría de la tarea, en caracteres
+ * @param {number} delta -1 para la de encima, +1 para la de debajo
+ * @returns {number} índice de la hermana, o -1 si no la hay
+ */
+function hermana(lineas, inicio, fin, sangria, delta) {
+    if (delta > 0) {
+        let p = fin;
+        while (p < lineas.length && lineas[p].trim() === '')
+            p++;
+        if (p >= lineas.length || ENCABEZADO.test(lineas[p]))
+            return -1;
+        return sangriaDe(lineas[p]).length === sangria && TAREA.test(lineas[p]) ? p : -1;
+    }
+
+    let p = inicio - 1;
+    while (p >= 0 && lineas[p].trim() === '')
+        p--;
+    if (p < 0 || ENCABEZADO.test(lineas[p]))
+        return -1;
+
+    // La línea de encima puede ser una subtarea de la hermana: se sigue
+    // subiendo hasta dar con la altura propia.
+    while (p >= 0) {
+        const linea = lineas[p];
+        if (linea.trim() === '' || ENCABEZADO.test(linea))
+            return -1;
+        const altura = sangriaDe(linea).length;
+        if (altura < sangria)
+            return -1;                      // es la de arriba, no una hermana
+        if (altura === sangria)
+            return TAREA.test(linea) ? p : -1;
+        p--;
+    }
+
+    return -1;
+}
+
+/**
  * Marca o desmarca una tarea en su archivo.
  *
  * Solo cambia el hueco de la casilla: la sangría, la viñeta y el texto se
@@ -431,28 +518,36 @@ export async function borrarTarea(tarea, cancellable = null) {
  * final del archivo, saltándose las líneas en blanco del final para no dejar un
  * hueco en medio.
  *
+ * «sangria» manda sobre la que se heredaría: al añadir al final de un grupo la
+ * tarea va al margen del grupo aunque la última de la lista sea una subtarea.
+ *
  * @param {object} donde dónde va la tarea nueva
  * @param {string} donde.ruta archivo al que se añade
  * @param {object} [donde.despuesDe] tarea debajo de la cual ponerla
+ * @param {string} [donde.sangria] sangría a usar, en vez de la heredada
  * @param {string} texto texto de la tarea
  * @param {Gio.Cancellable} cancellable cancelable
  * @returns {Promise<string|null>} null si se añadió, o el motivo por el que no
  */
-export async function anadirTarea({ruta, despuesDe = null}, texto, cancellable = null) {
+export async function anadirTarea({ruta, despuesDe = null, sangria = null}, texto,
+    cancellable = null) {
     const limpio = (texto ?? '').replace(/[\r\n]+/g, ' ').trim();
     if (limpio === '')
         return 'una tarea sin texto no es una tarea';
 
     return reescribir(ruta, lineas => {
-        let sangria = '';
+        let margen = sangria ?? '';
         let indice;
 
         if (despuesDe) {
             const partes = partesDe(lineas, despuesDe);
             if (typeof partes === 'string')
                 return partes;
-            sangria = partes[1];
-            indice = despuesDe.linea;          // justo debajo de ella
+            if (sangria === null)
+                margen = partes[1];
+            // Debajo de ella y de las suyas: una subtarea no se queda huérfana
+            // por meter otra tarea en medio.
+            indice = finDelBloque(lineas, despuesDe.linea - 1);
         } else {
             // Al final, pero antes de las líneas en blanco que cierran el
             // archivo: si no, la tarea nueva quedaría separada de la lista.
@@ -461,7 +556,83 @@ export async function anadirTarea({ruta, despuesDe = null}, texto, cancellable =
                 indice--;
         }
 
-        lineas.splice(indice, 0, `${sangria}- [ ] ${limpio}`);
+        lineas.splice(indice, 0, `${margen}- [ ] ${limpio}`);
+        return lineas;
+    }, cancellable);
+}
+
+/**
+ * Nivel de encabezado con el que se escriben los grupos de un archivo.
+ *
+ * Se copia el del último que haya: si tus grupos son «##», el nuevo también.
+ * Un archivo con un solo encabezado es uno que solo tiene título, así que el
+ * grupo cuelga de él.
+ *
+ * @param {string[]} lineas líneas del archivo
+ * @returns {number} número de almohadillas, de 1 a 6
+ */
+function nivelDeGrupo(lineas) {
+    let ultimo = 0;
+    let cuantos = 0;
+    let enCodigo = false;
+
+    for (const linea of lineas) {
+        if (CERCA.test(linea)) {
+            enCodigo = !enCodigo;
+            continue;
+        }
+        if (enCodigo)
+            continue;
+
+        const titulo = linea.match(ENCABEZADO);
+        if (titulo) {
+            ultimo = titulo[1].length;
+            cuantos++;
+        }
+    }
+
+    if (cuantos === 0)
+        return 2;
+    if (cuantos === 1)
+        return Math.min(ultimo + 1, 6);
+    return ultimo;
+}
+
+/**
+ * Crea un grupo nuevo al final del archivo, con su primera tarea.
+ *
+ * Van juntos a propósito: un encabezado sin ninguna tarea debajo no sale en el
+ * menú —los grupos se sacan de las tareas—, así que crearlo solo sería crear
+ * algo que no se ve.
+ *
+ * @param {string} ruta archivo al que se añade
+ * @param {string} titulo nombre del grupo, sin almohadillas
+ * @param {string} texto primera tarea del grupo
+ * @param {Gio.Cancellable} cancellable cancelable
+ * @returns {Promise<string|null>} null si se creó, o el motivo por el que no
+ */
+export async function anadirGrupo(ruta, titulo, texto, cancellable = null) {
+    const nombre = (titulo ?? '').replace(/[\r\n]+/g, ' ').replace(/^#+\s*/, '').trim();
+    if (nombre === '')
+        return 'un grupo sin nombre no se distingue de los demás';
+
+    const limpio = (texto ?? '').replace(/[\r\n]+/g, ' ').trim();
+    if (limpio === '')
+        return 'un grupo sin ninguna tarea no saldría en el menú';
+
+    return reescribir(ruta, lineas => {
+        let indice = lineas.length;
+        while (indice > 0 && lineas[indice - 1].trim() === '')
+            indice--;
+
+        const marca = '#'.repeat(nivelDeGrupo(lineas));
+        const nuevas = [`${marca} ${nombre}`, '', `- [ ] ${limpio}`];
+
+        // La línea en blanco de separación solo hace falta si hay algo encima.
+        if (indice > 0)
+            nuevas.unshift('');
+
+        lineas.splice(indice, 0, ...nuevas);
         return lineas;
     }, cancellable);
 }

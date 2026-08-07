@@ -9,12 +9,12 @@ Clicking one ticks it in the file.
 ● 3
 
   ┌─────────────────────────────────┐
-  │  Sucursales                     │
+  │  Sucursales ──────────────── ＋  │
   │  ☐ Cambiar el disco de Bodega   │
   │  ☐ Pedir tóner para la L3560    │
-  │  Casa                           │
+  │  Casa ───────────────────── ＋  │
   │  ☐ Comprar pan                  │
-  │  ＋ Nueva  ↻ Recargar  ✎ Archivo │
+  │  ＋Tarea ＋Grupo ↻Recargar ✎Archivo │
   └─────────────────────────────────┘
 ```
 
@@ -85,28 +85,38 @@ notification explains why.
 |---|---|
 | Click a task | Ticks or unticks it in the file |
 | Right click | **Editar**, **Añadir debajo**, **Copiar** and **Borrar** |
+| **＋** on a heading | Jots a task down in that group |
 | ↓ / ↑ | Walk the list, including from the search field |
 | Enter in the search field | Ticks the first match |
-| **Nueva** | Jots a task down at the end of the file |
+| **Tarea** | Jots a task down at the end of the file |
+| **Grupo** | Creates a new heading with its first task |
 | **Recargar** | Re-reads without closing the menu |
-| **Abrir archivo** | Opens it in your editor. If it doesn't exist, creates it with an example |
+| **Archivo** | Opens it in your editor. If it doesn't exist, creates it with an example |
 
 The panel counter shows how many are left.
 
 ### Writing without opening the editor
 
-**Editar** and **Añadir debajo** open a text field in the row itself: you type,
-Enter saves and Escape leaves everything as it was. **Nueva** does the same at
-the end of the list.
+**Editar**, **Añadir debajo** and the **＋** on each heading open a text field in
+the row itself: you type, Enter saves and Escape leaves everything as it was.
+**Tarea** and **Grupo** do the same at the end of the list.
 
 - **Editing** replaces only what follows the bracket. The checkbox, indentation
   and bullet stay as they were, so a task already ticked stays ticked even if
   you reword it.
 - **Adding below** gives the new task the indentation of the one you clicked,
-  which is what you need to jot down a subtask.
-- **Nueva** puts it at the end of the file, before the blank lines that close
+  which is what you need to jot down a subtask. If that task has subtasks, the
+  new one goes after all of them rather than in the middle.
+- **The ＋ on a heading** puts the task at the end of that group, at the
+  indentation of the group's first task: that's how you jot something down under
+  "Casa" without it landing at the end of the file. It's what removes the last
+  reason to open the editor.
+- **Tarea** puts it at the end of the file, before the blank lines that close
   it so it doesn't end up stranded. With a folder configured it goes to the file
   of the last task in the list.
+- **Grupo** asks two things, the name and the first task, because in the file
+  they belong together: a heading with no checkbox under it wouldn't show up in
+  the menu. It's written with the same heading level as the file's other groups.
 - **Borrar** takes the whole line, and is the only one that asks first: a ticked
   task can be unticked, but a deleted one is gone.
 
