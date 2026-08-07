@@ -14,6 +14,8 @@ Markdown. Al pulsar una, se marca en el archivo.
   │  ☐ Pedir tóner para la L3560    │
   │  Casa ───────────────────── ＋  │
   │  ☐ Comprar pan                  │
+  │  ☑ Sacar la basura              │
+  │  ✕ Quitar del archivo la hecha  │
   │ ＋Tarea ＋Grupo ↻Recargar ✎Archivo ⚙ │
   └─────────────────────────────────┘
 ```
@@ -43,8 +45,9 @@ desde siempre:
 - **La sangría se respeta**: una subtarea se ve sangrada en el menú.
 - **Los bloques de código se saltan.** Un `- [ ]` dentro de ``` es un ejemplo, no
   una tarea — este mismo README está lleno de ellos.
-- **Las hechas no se muestran** por omisión: el menú es para lo que queda. Se
-  pueden mostrar tachadas desde los ajustes.
+- **Las hechas se quedan tachadas** en su sitio, y solo se van del archivo
+  cuando le das al botón del final de la lista. Desde los ajustes se puede
+  hacer que desaparezcan del menú en cuanto las marcas.
 
 Puedes apuntar a **un archivo** o a **una carpeta**. Con una carpeta se leen
 todos sus `.md`, `.markdown` y `.txt` —sin entrar en subcarpetas— y cada tarea
@@ -122,9 +125,10 @@ mismo hacen **Tarea** y **Grupo** al final de la lista.
 
 ### Barrer las hechas
 
-Las tareas marcadas no se muestran, así que el archivo se va llenando de `[x]`
-sin que se note. Cuando hay alguna, al final de la lista sale **Quitar del
-archivo las N hechas**, que las borra de golpe después de preguntar.
+Marcar una tarea no la quita de ningún sitio: se queda tachada donde estaba, y
+en el archivo sigue con su `[x]`. Quitarlas es cosa tuya, y se hace desde
+**Quitar del archivo las N hechas**, al final de la lista, que las borra de
+golpe después de preguntar.
 
 - **Se cuentan antes y se comprueban después.** Si entre la pregunta y el sí
   cambió el número de hechas del archivo, no se toca nada y te lo dice.
@@ -132,8 +136,8 @@ archivo las N hechas**, que las borra de golpe después de preguntar.
   a las suyas colgando de otra cosa.
 - Con una carpeta configurada, cada archivo se limpia por su cuenta y con su
   propia cuenta.
-- Al terminar avisa de cuántas se ha llevado, porque con las hechas ocultas no
-  se vería.
+- Al terminar dice cuántas se ha llevado: es un borrado de varias líneas de
+  golpe y conviene saber en qué quedó.
 
 ### Ordenar sin abrir el editor
 
@@ -164,7 +168,7 @@ Desde el menú → **Ajustes**, o con `gnome-extensions prefs pendientes@jorgemg
 | Ajuste | Por omisión | Descripción |
 |---|---|---|
 | Archivo o carpeta | `~/Documentos/pendientes.md` | De dónde salen las tareas |
-| Mostrar también las hechas | no | Salen tachadas al final de su grupo |
+| Mostrar también las hechas | sí | Se quedan tachadas en su sitio hasta que las quitas |
 | Comando para abrir el archivo | vacío | `%f` es la ruta; vacío prueba gnome-text-editor, gedit, kate y xdg-open |
 | Buscador en el menú | sí | Filtrar escribiendo |
 | Mostrarlo a partir de | 10 | Tareas necesarias para que aparezca el buscador |

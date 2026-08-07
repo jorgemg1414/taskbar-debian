@@ -39,8 +39,8 @@ export default class PendientesPreferences extends ExtensionPreferences {
 
         const filaHechas = new Adw.SwitchRow({
             title: _('Mostrar también las hechas'),
-            subtitle: _('Salen tachadas al final de su grupo. Sin esto, el menú es solo ' +
-                'para lo que queda.'),
+            subtitle: _('Se quedan tachadas en su sitio hasta que las quites con el botón ' +
+                'del final de la lista. Sin esto desaparecen del menú en cuanto las marcas.'),
         });
         settings.bind('mostrar-hechas', filaHechas, 'active', Gio.SettingsBindFlags.DEFAULT);
         grupoArchivo.add(filaHechas);

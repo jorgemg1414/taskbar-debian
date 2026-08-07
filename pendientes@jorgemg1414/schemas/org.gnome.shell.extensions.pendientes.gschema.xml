@@ -15,11 +15,12 @@
     </key>
 
     <key name="mostrar-hechas" type="b">
-      <default>false</default>
+      <default>true</default>
       <summary>Mostrar también las tareas hechas</summary>
       <description>
-        Las tareas ya marcadas salen tachadas al final de su grupo. Por omisión
-        no se muestran: el menú es para lo que queda.
+        Las tareas ya marcadas se quedan en su sitio, tachadas, hasta que las
+        quites con el botón del final de la lista. Desactivado desaparecen del
+        menú en cuanto las marcas, aunque sigan en el archivo.
       </description>
     </key>
 

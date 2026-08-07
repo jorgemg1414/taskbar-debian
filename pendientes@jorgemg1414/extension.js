@@ -551,8 +551,9 @@ class IndicadorPendientes extends PanelMenu.Button {
     /**
      * Al final de la lista, la forma de barrer las hechas sin abrir el editor.
      *
-     * Solo aparece cuando hay alguna: por omisión las hechas ni se ven, así que
-     * si no se dijera aquí no habría manera de enterarse de que se acumulan.
+     * Marcar una tarea no la quita de nada: se queda tachada en su sitio y en
+     * el archivo sigue con su equis. Quitarlas se pide desde aquí, y esta fila
+     * solo está cuando hay alguna que quitar.
      */
     _pintarLimpieza() {
         const hechas = this._tareas.filter(t => t.hecha);
@@ -592,8 +593,7 @@ class IndicadorPendientes extends PanelMenu.Button {
      * Quita las tareas hechas de cada archivo del que salieron.
      *
      * Se le dice a cada uno cuántas se contaron en él: si entretanto cambió, no
-     * se toca. Y avisa al terminar, porque con las hechas ocultas —lo de
-     * siempre— no se vería lo que se ha llevado.
+     * se toca. Y avisa al terminar, que son varias líneas de golpe.
      *
      * @param {object[]} hechas tareas marcadas que había al preguntar
      */

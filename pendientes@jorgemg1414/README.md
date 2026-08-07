@@ -14,6 +14,8 @@ Clicking one ticks it in the file.
   │  ☐ Pedir tóner para la L3560    │
   │  Casa ───────────────────── ＋  │
   │  ☐ Comprar pan                  │
+  │  ☑ Sacar la basura              │
+  │  ✕ Quitar del archivo la hecha  │
   │ ＋Tarea ＋Grupo ↻Recargar ✎Archivo ⚙ │
   └─────────────────────────────────┘
 ```
@@ -44,8 +46,9 @@ Markdown:
 - **Indentation is kept**: a subtask appears indented in the menu.
 - **Code blocks are skipped.** A `- [ ]` inside ``` is an example, not a task —
   this very README is full of them.
-- **Done tasks are hidden** by default: the menu is for what's left. They can be
-  shown struck through from the settings.
+- **Done tasks stay struck through** where they are, and only leave the file
+  when you press the button at the end of the list. The settings can make them
+  vanish from the menu as soon as you tick them.
 
 You can point it at **a file** or at **a folder**. With a folder it reads every
 `.md`, `.markdown` and `.txt` in it — without descending into subfolders — and
@@ -123,9 +126,10 @@ the row itself: you type, Enter saves and Escape leaves everything as it was.
 
 ### Sweeping the done ones
 
-Ticked tasks aren't shown, so the file fills up with `[x]` without you noticing.
-Whenever there are any, **Quitar del archivo las N hechas** appears at the end of
-the list and deletes them in one go, after asking.
+Ticking a task doesn't take it away from anywhere: it stays struck through where
+it was, and keeps its `[x]` in the file. Removing them is up to you, from
+**Quitar del archivo las N hechas** at the end of the list, which deletes them in
+one go after asking.
 
 - **They're counted before and checked after.** If the number of done tasks in
   the file changed between the question and the yes, nothing is touched and it
@@ -134,8 +138,8 @@ the list and deletes them in one go, after asking.
   would leave its own hanging off something else.
 - With a folder configured, each file is swept on its own and against its own
   count.
-- It reports how many it took when it's done, since with done tasks hidden you
-  wouldn't see it.
+- It reports how many it took when it's done: several lines go at once and it's
+  worth knowing how it ended up.
 
 ### Reordering without opening the editor
 
@@ -166,7 +170,7 @@ Menu → **Ajustes**, or `gnome-extensions prefs pendientes@jorgemg1414`.
 | Setting | Default | Description |
 |---|---|---|
 | File or folder | `~/Documentos/pendientes.md` | Where the tasks come from |
-| Show done tasks too | no | They appear struck through at the end of their group |
+| Show done tasks too | yes | They stay struck through in place until you remove them |
 | Command to open the file | empty | `%f` is the path; empty tries gnome-text-editor, gedit, kate and xdg-open |
 | Search field | yes | Filter as you type |
 | Show it from | 10 | Tasks needed for the search field to appear |
