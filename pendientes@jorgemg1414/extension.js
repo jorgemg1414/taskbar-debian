@@ -797,12 +797,18 @@ class IndicadorPendientes extends PanelMenu.Button {
         const tarea = item.tarea;
         const nuevo = !tarea.hecha;
 
+        // A la escritura se le pasa una copia con el estado que tenía la tarea
+        // cuando se leyó el archivo, que es contra lo que comprueba que nadie
+        // la haya marcado por otro lado. La de la lista se pinta ya, y pintarla
+        // le cambia ese estado.
+        const comoEstaba = {...tarea};
+
         // El objeto de la tarea es el mismo que guarda la lista, así que el
         // contador del panel ya cuenta bien sin esperar a la recarga.
         item.fijarHecha(nuevo);
         this._actualizarInsignia();
 
-        alternarTarea(tarea, this._cancellableAcciones)
+        alternarTarea(comoEstaba, this._cancellableAcciones)
             .then(motivo => {
                 if (this._destruido)
                     return;
