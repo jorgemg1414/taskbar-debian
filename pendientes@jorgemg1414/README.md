@@ -14,7 +14,7 @@ Clicking one ticks it in the file.
   │  ☐ Pedir tóner para la L3560    │
   │  Casa ───────────────────── ＋  │
   │  ☐ Comprar pan                  │
-  │  ＋Tarea ＋Grupo ↻Recargar ✎Archivo │
+  │ ＋Tarea ＋Grupo ↻Recargar ✎Archivo ⚙ │
   └─────────────────────────────────┘
 ```
 

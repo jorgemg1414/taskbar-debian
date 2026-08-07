@@ -508,8 +508,11 @@ class IndicadorPendientes extends PanelMenu.Button {
                 },
             },
             {
+                // Sin nombre: con cinco botones el pie se iba de ancho, y una
+                // rueda dentada es lo único que no hace falta explicar.
                 icono: 'preferences-system-symbolic',
                 texto: _('Ajustes'),
+                soloIcono: true,
                 alPulsar: () => {
                     this.menu.close();
                     this._extension.openPreferences();

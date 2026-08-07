@@ -14,7 +14,7 @@ Markdown. Al pulsar una, se marca en el archivo.
   │  ☐ Pedir tóner para la L3560    │
   │  Casa ───────────────────── ＋  │
   │  ☐ Comprar pan                  │
-  │  ＋Tarea ＋Grupo ↻Recargar ✎Archivo │
+  │ ＋Tarea ＋Grupo ↻Recargar ✎Archivo ⚙ │
   └─────────────────────────────────┘
 ```
 
