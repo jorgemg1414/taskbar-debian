@@ -743,6 +743,13 @@ export async function anadirTarea({ruta, despuesDe = null, sangria = null}, text
             indice = lineas.length;
             while (indice > 0 && lineas[indice - 1].trim() === '')
                 indice--;
+
+            // Una lista que empieza pegada a un párrafo o a un encabezado se
+            // lee mal: si lo de encima no es otra tarea, se deja un hueco.
+            if (indice > 0 && !TAREA.test(lineas[indice - 1])) {
+                lineas.splice(indice, 0, '');
+                indice++;
+            }
         }
 
         lineas.splice(indice, 0, `${margen}- [ ] ${limpio}`);

@@ -257,7 +257,11 @@ const ItemHost = GObject.registerClass({
             this.emit('contexto');
             return Clutter.EVENT_STOP;
         }
-        return super.vfunc_button_release_event(evento);
+        // El clic izquierdo se deja pasar y no se encadena al padre:
+        // PopupBaseMenuItem activa sus filas con un Clutter.ClickAction, no con
+        // este vfunc, así que «super» llega hasta StBoxLayout —que no lo
+        // implementa— y suelta un error en cada pulsación.
+        return Clutter.EVENT_PROPAGATE;
     }
 });
 
