@@ -89,6 +89,7 @@ con el motivo.
 | Intro en el buscador | Marca la primera que coincida |
 | **Tarea** | Apunta una tarea al final del archivo |
 | **Grupo** | Crea un encabezado nuevo con su primera tarea |
+| **Quitar del archivo las N hechas** | Al final de la lista, cuando hay alguna |
 | **Recargar** | Vuelve a leer, sin cerrar el menú |
 | **Archivo** | Lo abre en tu editor. Si no existe, lo crea con un ejemplo |
 
@@ -118,6 +119,21 @@ mismo hacen **Tarea** y **Grupo** al final de la lista.
   archivo.
 - **Borrar** se lleva la línea entera y es lo único que pregunta antes: una
   tarea marcada se desmarca, pero una borrada ya no está.
+
+### Barrer las hechas
+
+Las tareas marcadas no se muestran, así que el archivo se va llenando de `[x]`
+sin que se note. Cuando hay alguna, al final de la lista sale **Quitar del
+archivo las N hechas**, que las borra de golpe después de preguntar.
+
+- **Se cuentan antes y se comprueban después.** Si entre la pregunta y el sí
+  cambió el número de hechas del archivo, no se toca nada y te lo dice.
+- **Una hecha con subtareas sin hacer se queda** donde está: llevársela dejaría
+  a las suyas colgando de otra cosa.
+- Con una carpeta configurada, cada archivo se limpia por su cuenta y con su
+  propia cuenta.
+- Al terminar avisa de cuántas se ha llevado, porque con las hechas ocultas no
+  se vería.
 
 ### Ordenar sin abrir el editor
 

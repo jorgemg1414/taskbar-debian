@@ -27,8 +27,8 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {
     escanearTareas, agruparTareas, alternarTarea, editarTexto, anadirTarea,
-    anadirGrupo, borrarTarea, moverTarea, sangrarTarea, crearArchivoSiFalta,
-    expandirRuta, SIN_SITIO,
+    anadirGrupo, borrarTarea, moverTarea, sangrarTarea, limpiarHechas,
+    crearArchivoSiFalta, expandirRuta, SIN_SITIO,
 } from './tareas.js';
 import {SitioEnLaBarra} from './barra.js';
 import {
@@ -538,7 +538,93 @@ class IndicadorPendientes extends PanelMenu.Button {
             this._pintarGrupos();
         }
 
+        // También cuando no queda ninguna pendiente: es justo entonces cuando
+        // el archivo está lleno de casillas marcadas.
+        this._pintarLimpieza();
+
         ajustarAltoLista(this._scroll);
+    }
+
+    /**
+     * Al final de la lista, la forma de barrer las hechas sin abrir el editor.
+     *
+     * Solo aparece cuando hay alguna: por omisión las hechas ni se ven, así que
+     * si no se dijera aquí no habría manera de enterarse de que se acumulan.
+     */
+    _pintarLimpieza() {
+        const hechas = this._tareas.filter(t => t.hecha);
+        if (hechas.length === 0)
+            return;
+
+        const fila = new PopupMenu.PopupImageMenuItem(
+            hechas.length === 1
+                ? _('Quitar del archivo la tarea hecha')
+                : `${_('Quitar del archivo las')} ${hechas.length} ${_('tareas hechas')}`,
+            'edit-clear-all-symbolic');
+
+        fila.connect('activate', () => this._pedirLimpiar(fila, hechas));
+        this._seccionLista.addMenuItem(fila);
+    }
+
+    /**
+     * Pregunta antes de barrer, que se lleva varias líneas de golpe.
+     *
+     * @param {PopupMenu.PopupBaseMenuItem} fila fila desde la que se pidió
+     * @param {object[]} hechas tareas marcadas que hay ahora mismo
+     */
+    _pedirLimpiar(fila, hechas) {
+        this._abrirFilaBajo(fila, new ItemConfirmacion({
+            pregunta: `¿${_('Quitar')} ${hechas.length} ${_('del archivo')}?`,
+            textoSi: _('Sí'),
+            textoNo: _('No'),
+            alCancelar: () => this._cerrarContexto(),
+            alConfirmar: () => {
+                this._cerrarContexto();
+                this._limpiar(hechas);
+            },
+        }));
+    }
+
+    /**
+     * Quita las tareas hechas de cada archivo del que salieron.
+     *
+     * Se le dice a cada uno cuántas se contaron en él: si entretanto cambió, no
+     * se toca. Y avisa al terminar, porque con las hechas ocultas —lo de
+     * siempre— no se vería lo que se ha llevado.
+     *
+     * @param {object[]} hechas tareas marcadas que había al preguntar
+     */
+    _limpiar(hechas) {
+        const porArchivo = new Map();
+        for (const tarea of hechas)
+            porArchivo.set(tarea.ruta, (porArchivo.get(tarea.ruta) ?? 0) + 1);
+
+        Promise.all([...porArchivo].map(([ruta, cuantas]) =>
+            limpiarHechas(ruta, cuantas, this._cancellableAcciones)))
+            .then(resultados => {
+                if (this._destruido)
+                    return;
+
+                const borradas = resultados.reduce((n, r) => n + r.borradas, 0);
+                const conservadas = resultados.reduce((n, r) => n + r.conservadas, 0);
+                const motivo = resultados.map(r => r.motivo).find(Boolean);
+
+                if (motivo && borradas === 0) {
+                    Main.notifyError('Pendientes', `${_('No se limpió')}: ${motivo}`);
+                } else {
+                    const cola = conservadas > 0
+                        ? ` (${conservadas} ${_('se quedan: tienen subtareas sin hacer')})`
+                        : '';
+                    Main.notify('Pendientes',
+                        `${_('Quitadas')} ${borradas} ${_('tareas hechas')}${cola}`);
+                }
+
+                this.recargar();
+            })
+            .catch(e => {
+                if (!this._destruido)
+                    Main.notifyError('Pendientes', `${_('No se limpió')}: ${e.message}`);
+            });
     }
 
     /**
@@ -888,7 +974,9 @@ class IndicadorPendientes extends PanelMenu.Button {
      */
     _abrirFilaBajo(item, fila) {
         this._cerrarContexto();
-        fila._idTarea = item.tarea.id;
+        // La fila de limpiar no es una tarea, y no pasa nada: solo sirve para
+        // saber si el clic derecho vuelve a caer sobre la misma.
+        fila._idTarea = item.tarea?.id ?? null;
 
         const posicion = this._seccionLista._getMenuItems().indexOf(item);
         this._seccionLista.addMenuItem(fila, posicion + 1);

@@ -90,6 +90,7 @@ notification explains why.
 | Enter in the search field | Ticks the first match |
 | **Tarea** | Jots a task down at the end of the file |
 | **Grupo** | Creates a new heading with its first task |
+| **Quitar del archivo las N hechas** | At the end of the list, whenever there are any |
 | **Recargar** | Re-reads without closing the menu |
 | **Archivo** | Opens it in your editor. If it doesn't exist, creates it with an example |
 
@@ -119,6 +120,22 @@ the row itself: you type, Enter saves and Escape leaves everything as it was.
   the menu. It's written with the same heading level as the file's other groups.
 - **Borrar** takes the whole line, and is the only one that asks first: a ticked
   task can be unticked, but a deleted one is gone.
+
+### Sweeping the done ones
+
+Ticked tasks aren't shown, so the file fills up with `[x]` without you noticing.
+Whenever there are any, **Quitar del archivo las N hechas** appears at the end of
+the list and deletes them in one go, after asking.
+
+- **They're counted before and checked after.** If the number of done tasks in
+  the file changed between the question and the yes, nothing is touched and it
+  says so.
+- **A done task with unfinished subtasks stays** where it is: taking it away
+  would leave its own hanging off something else.
+- With a folder configured, each file is swept on its own and against its own
+  count.
+- It reports how many it took when it's done, since with done tasks hidden you
+  wouldn't see it.
 
 ### Reordering without opening the editor
 

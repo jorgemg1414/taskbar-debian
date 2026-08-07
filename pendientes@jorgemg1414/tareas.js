@@ -517,6 +517,70 @@ export async function borrarTarea(tarea, cancellable = null) {
 }
 
 /**
+ * Quita del archivo todas las tareas ya marcadas.
+ *
+ * Es lo que evita tener que abrir el editor de vez en cuando a barrer las
+ * hechas, que si no se van acumulando. Como borra varias líneas de golpe, se
+ * comprueba antes que en el archivo siguen estando exactamente las que se
+ * contaron al preguntar: si entretanto marcaste otra, no se toca nada.
+ *
+ * Una hecha con subtareas sin hacer se queda donde está: llevársela dejaría a
+ * las suyas colgando de otra cosa.
+ *
+ * @param {string} ruta archivo a limpiar
+ * @param {number} esperadas cuántas hechas había cuando se preguntó
+ * @param {Gio.Cancellable} cancellable cancelable
+ * @returns {Promise<{motivo: string|null, borradas: number, conservadas: number}>} qué pasó
+ */
+export async function limpiarHechas(ruta, esperadas, cancellable = null) {
+    let borradas = 0;
+    let conservadas = 0;
+
+    const motivo = await reescribir(ruta, lineas => {
+        const hechas = [];
+        let enCodigo = false;
+
+        for (let i = 0; i < lineas.length; i++) {
+            if (CERCA.test(lineas[i])) {
+                enCodigo = !enCodigo;
+                continue;
+            }
+            if (enCodigo)
+                continue;
+
+            const tarea = lineas[i].match(TAREA);
+            if (tarea && tarea[3] !== ' ' && tarea[5].trim() !== '')
+                hechas.push(i);
+        }
+
+        if (hechas.length !== esperadas)
+            return 'el archivo ya no tiene las mismas tareas hechas';
+
+        const aBorrar = hechas.filter(i => {
+            const conPendientes = lineas.slice(i + 1, finDelBloque(lineas, i)).some(linea => {
+                const sub = linea.match(TAREA);
+                return sub && sub[3] === ' ';
+            });
+            if (conPendientes)
+                conservadas++;
+            return !conPendientes;
+        });
+
+        if (aBorrar.length === 0)
+            return 'las que hay tienen subtareas sin hacer';
+
+        // De atrás adelante: si no, cada línea que se va desplaza a las demás.
+        for (const i of aBorrar.reverse())
+            lineas.splice(i, 1);
+
+        borradas = aBorrar.length;
+        return lineas;
+    }, cancellable);
+
+    return {motivo, borradas, conservadas};
+}
+
+/**
  * Sube o baja una tarea dentro de su grupo.
  *
  * Se mueve el bloque entero —la tarea y lo que cuelgue de ella— y se
