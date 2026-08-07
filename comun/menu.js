@@ -33,7 +33,11 @@ class ItemAcciones extends PopupMenu.PopupBaseMenuItem {
      * Varias entradas de menú ocupaban varias filas y dejaban el pie pegado al
      * borde de la pantalla; en horizontal ocupan una sola.
      *
-     * @param {{icono: string, texto: string, peligrosa: boolean, alPulsar: Function}[]} acciones botones a pintar
+     * Una acción con «soloIcono» se queda en el icono y no se estira: son las
+     * que caben de sobra sin nombre —las flechas— y así dejan sitio a las que
+     * sí lo necesitan.
+     *
+     * @param {{icono: string, texto: string, peligrosa: boolean, soloIcono: boolean, alPulsar: Function}[]} acciones botones a pintar
      */
     _init(acciones) {
         // No es activable: quien recibe los clics es cada botón.
@@ -45,11 +49,18 @@ class ItemAcciones extends PopupMenu.PopupBaseMenuItem {
             style_class: 'tb-acciones',
         });
 
-        for (const {icono, texto, peligrosa, alPulsar} of acciones) {
+        // En el mismo orden en que se pidieron, para poder devolverles el foco.
+        this.botones = [];
+
+        for (const {icono, texto, peligrosa, soloIcono, alPulsar} of acciones) {
+            let clase = soloIcono ? 'tb-accion tb-accion-compacta' : 'tb-accion';
+            if (peligrosa)
+                clase += ' tb-accion-peligrosa';
+
             const boton = new St.Button({
-                style_class: peligrosa ? 'tb-accion tb-accion-peligrosa' : 'tb-accion',
+                style_class: clase,
                 can_focus: true,
-                x_expand: true,
+                x_expand: !soloIcono,
                 accessible_name: texto,
             });
 
@@ -61,19 +72,35 @@ class ItemAcciones extends PopupMenu.PopupBaseMenuItem {
             if (icono) {
                 caja.add_child(new St.Icon({
                     icon_name: icono,
-                    style_class: 'tb-accion-icono',
+                    style_class: soloIcono ? 'tb-accion-icono-solo' : 'tb-accion-icono',
                     y_align: Clutter.ActorAlign.CENTER,
                 }));
             }
-            caja.add_child(new St.Label({
-                text: texto,
-                y_align: Clutter.ActorAlign.CENTER,
-            }));
+            if (!soloIcono) {
+                caja.add_child(new St.Label({
+                    text: texto,
+                    y_align: Clutter.ActorAlign.CENTER,
+                }));
+            }
             boton.set_child(caja);
 
             boton.connect('clicked', () => alPulsar());
             this.add_child(boton);
+            this.botones.push(boton);
         }
+    }
+
+    /**
+     * Devuelve el foco a uno de los botones.
+     *
+     * Hace falta cuando la fila se rehace debajo de la misma tarea —al mover
+     * una, por ejemplo—: sin esto habría que volver a apuntar con el ratón
+     * entre pulsación y pulsación.
+     *
+     * @param {number} indice posición del botón en la lista de acciones
+     */
+    enfocarBoton(indice) {
+        this.botones[indice]?.grab_key_focus();
     }
 });
 

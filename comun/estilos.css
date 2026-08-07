@@ -122,6 +122,15 @@
     margin-right: 6px;
 }
 
+/* Un botón que se queda en el icono: ocupa lo justo y no se estira. */
+.tb-accion-compacta {
+    padding: 8px 8px;
+}
+
+.tb-accion-icono-solo {
+    icon-size: 16px;
+}
+
 /* Lo que no se puede deshacer se ve distinto antes de pulsarlo. */
 .tb-accion-peligrosa {
     color: #ff938c;

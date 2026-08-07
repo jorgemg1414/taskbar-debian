@@ -27,7 +27,8 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {
     escanearTareas, agruparTareas, alternarTarea, editarTexto, anadirTarea,
-    anadirGrupo, borrarTarea, crearArchivoSiFalta, expandirRuta,
+    anadirGrupo, borrarTarea, moverTarea, sangrarTarea, crearArchivoSiFalta,
+    expandirRuta, SIN_SITIO,
 } from './tareas.js';
 import {SitioEnLaBarra} from './barra.js';
 import {
@@ -244,6 +245,10 @@ class IndicadorPendientes extends PanelMenu.Button {
         this._scroll = null;
         this._seccionLista = null;
         this._contexto = null;
+        // Tarea bajo la que está abierta la fila de acciones. Se guarda por
+        // texto y no por línea para que sobreviva a mover la tarea.
+        this._ancla = null;
+        this._recargaPendiente = false;
         this._textoFiltro = '';
         this._idRecarga = 0;
         this._idFoco = 0;
@@ -335,6 +340,13 @@ class IndicadorPendientes extends PanelMenu.Button {
     recargar() {
         if (this._destruido)
             return;
+
+        // Con un campo de texto abierto, rehacer el menú se llevaría por
+        // delante la frase a medio escribir. Se espera a que se cierre.
+        if (this._contexto instanceof ItemEntrada) {
+            this._recargaPendiente = true;
+            return;
+        }
 
         this._cancellable.cancel();
         this._cancellable = new Gio.Cancellable();
@@ -574,6 +586,8 @@ class IndicadorPendientes extends PanelMenu.Button {
 
         if (this._textoFiltro)
             this._aplicarFiltro(this._textoFiltro);
+
+        this._restaurarAcciones();
     }
 
     /**
@@ -733,11 +747,48 @@ class IndicadorPendientes extends PanelMenu.Button {
     _alternarContexto(item) {
         const yaAbierto = this._contexto?._idTarea === item.tarea.id;
         this._cerrarContexto();
-        if (yaAbierto)
-            return;
+        if (!yaAbierto)
+            this._abrirAcciones(item);
+    }
 
+    /**
+     * Pinta la fila de acciones de una tarea y la deja anclada a ella.
+     *
+     * Las cuatro flechas van sin nombre y al principio: mover y sangrar son
+     * cosas de sitio, se entienden por el dibujo y así queda hueco para las
+     * cuatro que sí necesitan palabras.
+     *
+     * @param {ItemTarea} item tarea a la que pertenece la fila
+     * @param {number} [boton] botón al que devolver el foco, o -1 para ninguno
+     */
+    _abrirAcciones(item, boton = -1) {
         const tarea = item.tarea;
-        this._abrirFilaBajo(item, new ItemAcciones([
+
+        const fila = new ItemAcciones([
+            {
+                icono: 'go-up-symbolic',
+                texto: _('Subir'),
+                soloIcono: true,
+                alPulsar: () => this._mover(item, -1, 0),
+            },
+            {
+                icono: 'go-down-symbolic',
+                texto: _('Bajar'),
+                soloIcono: true,
+                alPulsar: () => this._mover(item, 1, 1),
+            },
+            {
+                icono: 'format-indent-more-symbolic',
+                texto: _('Convertir en subtarea'),
+                soloIcono: true,
+                alPulsar: () => this._sangrar(item, 1, 2),
+            },
+            {
+                icono: 'format-indent-less-symbolic',
+                texto: _('Sacar del margen'),
+                soloIcono: true,
+                alPulsar: () => this._sangrar(item, -1, 3),
+            },
             {
                 icono: 'document-edit-symbolic',
                 texto: _('Editar'),
@@ -763,7 +814,70 @@ class IndicadorPendientes extends PanelMenu.Button {
                 peligrosa: true,
                 alPulsar: () => this._pedirBorrar(item),
             },
-        ]));
+        ]);
+
+        this._abrirFilaBajo(item, fila);
+
+        // El ancla es por texto y no por línea: mover una tarea le cambia la
+        // línea, y es justo entonces cuando la fila tiene que seguir ahí.
+        this._ancla = {ruta: tarea.ruta, texto: tarea.texto, boton};
+        if (boton >= 0)
+            this._enfocarFila(fila, () => fila.enfocarBoton(boton));
+    }
+
+    /**
+     * Vuelve a poner la fila de acciones donde estaba después de rehacer la
+     * lista, que es lo que pasa cada vez que se mueve una tarea.
+     */
+    _restaurarAcciones() {
+        const ancla = this._ancla;
+        if (!ancla)
+            return;
+
+        const item = [...this._items.values()].find(
+            i => i.tarea.ruta === ancla.ruta && i.tarea.texto === ancla.texto);
+
+        if (!item) {
+            this._ancla = null;
+            return;
+        }
+
+        this._abrirAcciones(item, ancla.boton);
+
+        // El foco se devuelve una sola vez, la de justo después de mover: el
+        // monitor vuelve a recargar medio segundo más tarde y para entonces
+        // puedes estar escribiendo en el buscador.
+        this._ancla.boton = -1;
+    }
+
+    /* --------------------------- Mover ------------------------------- */
+
+    /**
+     * Sube o baja una tarea dentro de su grupo.
+     *
+     * @param {ItemTarea} item tarea a mover
+     * @param {number} delta -1 para subirla, +1 para bajarla
+     * @param {number} boton botón que se pulsó, para devolverle el foco
+     */
+    _mover(item, delta, boton) {
+        this._ancla = {ruta: item.tarea.ruta, texto: item.tarea.texto, boton};
+        this._aplicar(
+            moverTarea(item.tarea, delta, this._cancellableAcciones),
+            _('No se pudo mover la tarea'), true);
+    }
+
+    /**
+     * Convierte una tarea en subtarea de la de encima, o la saca de serlo.
+     *
+     * @param {ItemTarea} item tarea a sangrar
+     * @param {number} delta +1 para sangrarla, -1 para sacarla
+     * @param {number} boton botón que se pulsó, para devolverle el foco
+     */
+    _sangrar(item, delta, boton) {
+        this._ancla = {ruta: item.tarea.ruta, texto: item.tarea.texto, boton};
+        this._aplicar(
+            sangrarTarea(item.tarea, delta, this._cancellableAcciones),
+            _('No se pudo sangrar la tarea'), true);
     }
 
     /**
@@ -781,7 +895,7 @@ class IndicadorPendientes extends PanelMenu.Button {
         this._contexto = fila;
 
         if (fila.enfocar)
-            this._enfocarFila(fila);
+            this._enfocarFila(fila, () => fila.enfocar());
     }
 
     /**
@@ -791,15 +905,16 @@ class IndicadorPendientes extends PanelMenu.Button {
      * colocando, ni el foco ni la posición valen todavía.
      *
      * @param {PopupMenu.PopupBaseMenuItem} fila fila que acaba de abrirse
+     * @param {Function} enfocar qué enfocar de la fila
      */
-    _enfocarFila(fila) {
+    _enfocarFila(fila, enfocar) {
         if (this._idFoco)
             return;
 
         this._idFoco = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
             this._idFoco = 0;
             if (!this._destruido && this._contexto === fila) {
-                fila.enfocar();
+                enfocar();
                 // Con la lista larga, la fila puede haber quedado fuera de la
                 // parte visible: se sube hasta ella.
                 asegurarVisible(this._scroll, fila);
@@ -968,7 +1083,7 @@ class IndicadorPendientes extends PanelMenu.Button {
         this._cerrarContexto();
         this._seccionLista.addMenuItem(entrada);
         this._contexto = entrada;
-        this._enfocarFila(entrada);
+        this._enfocarFila(entrada, () => entrada.enfocar());
     }
 
     /**
@@ -1004,19 +1119,27 @@ class IndicadorPendientes extends PanelMenu.Button {
     /**
      * Espera a una operación sobre el archivo y avisa si no salió.
      *
-     * Cuando sale bien no hay que hacer nada: el FileMonitor ve el cambio y
-     * recarga la lista dentro de un momento.
+     * Cuando sale bien no suele hacer falta nada más: el FileMonitor ve el
+     * cambio y recarga la lista dentro de un momento. Mover y sangrar sí piden
+     * la recarga en el acto, porque la siguiente pulsación de la flecha va
+     * sobre una tarea que ya ha cambiado de línea.
      *
      * @param {Promise<string|null>} promesa operación de tareas.js
      * @param {string} queHacia qué se estaba intentando, para el aviso
+     * @param {boolean} [recargarAhora] si se relee sin esperar al monitor
      */
-    _aplicar(promesa, queHacia) {
+    _aplicar(promesa, queHacia, recargarAhora = false) {
         promesa
             .then(motivo => {
-                if (this._destruido || !motivo)
+                if (this._destruido || motivo === SIN_SITIO)
                     return;
-                Main.notifyError('Pendientes', `${queHacia}: ${motivo}`);
-                this.recargar();
+
+                if (motivo) {
+                    Main.notifyError('Pendientes', `${queHacia}: ${motivo}`);
+                    this.recargar();
+                } else if (recargarAhora) {
+                    this.recargar();
+                }
             })
             .catch(e => {
                 if (!this._destruido)
@@ -1025,11 +1148,21 @@ class IndicadorPendientes extends PanelMenu.Button {
     }
 
     /**
-     * Quita la fila de acciones, si hay alguna abierta.
+     * Quita la fila que hubiera abierta bajo una tarea.
      */
     _cerrarContexto() {
+        const eraEntrada = this._contexto instanceof ItemEntrada;
+
         this._contexto?.destroy();
         this._contexto = null;
+        this._ancla = null;
+
+        // La recarga que se dejó en espera para no borrar lo que se estaba
+        // escribiendo ya se puede hacer.
+        if (eraEntrada && this._recargaPendiente) {
+            this._recargaPendiente = false;
+            this.recargar();
+        }
     }
 
     /* -------------------------- Lanzamiento -------------------------- */
@@ -1154,6 +1287,7 @@ class IndicadorPendientes extends PanelMenu.Button {
         this._scroll = null;
         this._seccionLista = null;
         this._contexto = null;
+        this._ancla = null;
         this._insignia = null;
         this._tareas = [];
         this._archivos = [];

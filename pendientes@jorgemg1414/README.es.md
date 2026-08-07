@@ -83,7 +83,7 @@ con el motivo.
 | Gesto | Qué hace |
 |---|---|
 | Clic en una tarea | La marca o la desmarca en el archivo |
-| Clic derecho | **Editar**, **Añadir debajo**, **Copiar** y **Borrar** |
+| Clic derecho | ↑ ↓ para moverla, → ← para sangrarla, y **Editar**, **Añadir debajo**, **Copiar** y **Borrar** |
 | **＋** en una cabecera | Apunta una tarea en ese grupo |
 | ↓ / ↑ | Recorrer la lista, también desde el buscador |
 | Intro en el buscador | Marca la primera que coincida |
@@ -118,6 +118,26 @@ mismo hacen **Tarea** y **Grupo** al final de la lista.
   archivo.
 - **Borrar** se lleva la línea entera y es lo único que pregunta antes: una
   tarea marcada se desmarca, pero una borrada ya no está.
+
+### Ordenar sin abrir el editor
+
+Las cuatro flechas del clic derecho cambian de sitio la tarea en el archivo:
+
+| Flecha | Qué hace |
+|---|---|
+| ↑ ↓ | La sube o la baja, intercambiándola con la tarea de al lado |
+| → | La convierte en subtarea de la que tiene encima |
+| ← | La saca de serlo, un escalón hacia el margen |
+
+- **Se mueve el bloque entero**: una tarea con subtareas se lleva las suyas
+  consigo, y sangrarla las sangra a todas.
+- **No se cruza ningún encabezado**: subir la primera de un grupo no la pasa al
+  grupo de arriba. Cuando ya no puede ir más allá, no pasa nada y no salta
+  ningún aviso, igual que al llegar al final de una lista.
+- **La sangría es la del archivo**: si sangras con tabuladores, la subtarea
+  nueva lleva un tabulador; si no hay de qué fiarse, dos espacios.
+- La fila de flechas **se queda donde está** después de mover, así que se puede
+  pulsar varias veces seguidas sin volver a apuntar con el ratón.
 
 ---
 

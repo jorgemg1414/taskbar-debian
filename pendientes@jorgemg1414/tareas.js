@@ -34,6 +34,12 @@ import {
 // Grupo de las tareas que no tienen ningún encabezado por encima.
 export const SIN_ENCABEZADO = 'Sin encabezado';
 
+// Lo que devuelven mover y sangrar cuando la tarea ya no puede ir más allá:
+// es la primera de su grupo, la última, o está en el margen. No es un error
+// —el archivo está bien y no se ha tocado—, así que quien llama no avisa de
+// nada: llegar al final de una lista no es una avería.
+export const SIN_SITIO = 'sin sitio';
+
 // Extensiones que se miran al escanear una carpeta.
 const EXTENSIONES = ['.md', '.markdown', '.txt'];
 
@@ -506,6 +512,125 @@ export async function borrarTarea(tarea, cancellable = null) {
             return partes;
 
         lineas.splice(tarea.linea - 1, 1);
+        return lineas;
+    }, cancellable);
+}
+
+/**
+ * Sube o baja una tarea dentro de su grupo.
+ *
+ * Se mueve el bloque entero —la tarea y lo que cuelgue de ella— y se
+ * intercambia con la tarea hermana de al lado, la que está a su misma altura.
+ * No se cruza ningún encabezado: subir la primera de un grupo no la pasa al
+ * grupo de arriba, que sería mover una tarea a un sitio que no estás mirando.
+ *
+ * @param {object} tarea tarea tal como la leyó el escaneo
+ * @param {number} delta -1 para subirla, +1 para bajarla
+ * @param {Gio.Cancellable} cancellable cancelable
+ * @returns {Promise<string|null>} null si se movió, o el motivo por el que no
+ */
+export async function moverTarea(tarea, delta, cancellable = null) {
+    return reescribir(tarea.ruta, lineas => {
+        const partes = partesDe(lineas, tarea);
+        if (typeof partes === 'string')
+            return partes;
+
+        const inicio = tarea.linea - 1;
+        const fin = finDelBloque(lineas, inicio);
+        const propio = lineas.slice(inicio, fin);
+
+        const vecina = hermana(lineas, inicio, fin, partes[1].length, delta);
+        if (vecina < 0)
+            return SIN_SITIO;
+
+        const finVecina = finDelBloque(lineas, vecina);
+
+        if (delta < 0) {
+            // Las líneas en blanco que había entre las dos se quedan entre las
+            // dos: se cambian de sitio los bloques, no el hueco.
+            const bloque = lineas.slice(vecina, finVecina);
+            const enmedio = lineas.slice(finVecina, inicio);
+            lineas.splice(vecina, fin - vecina, ...propio, ...enmedio, ...bloque);
+        } else {
+            const bloque = lineas.slice(vecina, finVecina);
+            const enmedio = lineas.slice(fin, vecina);
+            lineas.splice(inicio, finVecina - inicio, ...bloque, ...enmedio, ...propio);
+        }
+
+        return lineas;
+    }, cancellable);
+}
+
+/**
+ * La sangría con la que se escriben las subtareas de un archivo.
+ *
+ * Se copia la que ya use: si sangras con tabuladores, la subtarea nueva lleva
+ * un tabulador. Sin nada de lo que fiarse, dos espacios.
+ *
+ * @param {string[]} lineas líneas del archivo
+ * @param {string} propia sangría de la tarea que se va a mover
+ * @returns {string} un escalón de sangría
+ */
+function unidadSangria(lineas, propia) {
+    if (propia.includes('\t'))
+        return '\t';
+
+    let minima = null;
+    for (const linea of lineas) {
+        const tarea = linea.match(TAREA);
+        if (!tarea || tarea[1] === '')
+            continue;
+        if (minima === null || tarea[1].length < minima.length)
+            minima = tarea[1];
+    }
+
+    if (minima === null)
+        return '  ';
+    return minima.includes('\t') ? '\t' : ' '.repeat(minima.length);
+}
+
+/**
+ * Sangra o desangra una tarea, y con ella todo lo que cuelgue.
+ *
+ * Sangrar es lo que convierte una tarea en subtarea de la de encima, que es
+ * para lo que había que abrir el editor.
+ *
+ * @param {object} tarea tarea tal como la leyó el escaneo
+ * @param {number} delta +1 para sangrarla, -1 para sacarla
+ * @param {Gio.Cancellable} cancellable cancelable
+ * @returns {Promise<string|null>} null si se cambió, o el motivo por el que no
+ */
+export async function sangrarTarea(tarea, delta, cancellable = null) {
+    return reescribir(tarea.ruta, lineas => {
+        const partes = partesDe(lineas, tarea);
+        if (typeof partes === 'string')
+            return partes;
+
+        const inicio = tarea.linea - 1;
+        const fin = finDelBloque(lineas, inicio);
+        const escalon = unidadSangria(lineas, partes[1]);
+
+        if (delta > 0) {
+            // Una subtarea lo es de algo: si no hay ninguna tarea encima a su
+            // altura, sangrarla solo dejaría una lista torcida.
+            if (hermana(lineas, inicio, fin, partes[1].length, -1) < 0)
+                return SIN_SITIO;
+
+            for (let i = inicio; i < fin; i++)
+                lineas[i] = escalon + lineas[i];
+        } else {
+            if (partes[1] === '')
+                return SIN_SITIO;
+
+            for (let i = inicio; i < fin; i++) {
+                const sangria = sangriaDe(lineas[i]);
+                lineas[i] = lineas[i].slice(
+                    lineas[i].startsWith(escalon)
+                        ? escalon.length
+                        : Math.min(escalon.length, sangria.length));
+            }
+        }
+
         return lineas;
     }, cancellable);
 }

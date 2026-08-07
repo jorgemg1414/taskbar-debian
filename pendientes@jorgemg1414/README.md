@@ -84,7 +84,7 @@ notification explains why.
 | Gesture | What it does |
 |---|---|
 | Click a task | Ticks or unticks it in the file |
-| Right click | **Editar**, **Añadir debajo**, **Copiar** and **Borrar** |
+| Right click | ↑ ↓ to move it, → ← to indent it, plus **Editar**, **Añadir debajo**, **Copiar** and **Borrar** |
 | **＋** on a heading | Jots a task down in that group |
 | ↓ / ↑ | Walk the list, including from the search field |
 | Enter in the search field | Ticks the first match |
@@ -119,6 +119,26 @@ the row itself: you type, Enter saves and Escape leaves everything as it was.
   the menu. It's written with the same heading level as the file's other groups.
 - **Borrar** takes the whole line, and is the only one that asks first: a ticked
   task can be unticked, but a deleted one is gone.
+
+### Reordering without opening the editor
+
+The four arrows in the right-click row move the task around the file:
+
+| Arrow | What it does |
+|---|---|
+| ↑ ↓ | Moves it up or down, swapping it with the task next to it |
+| → | Turns it into a subtask of the one above |
+| ← | Takes it back out, one step towards the margin |
+
+- **The whole block moves**: a task with subtasks takes them along, and
+  indenting it indents all of them.
+- **No heading is ever crossed**: moving the first task of a group up doesn't
+  push it into the group above. When it can't go any further nothing happens and
+  no notification pops up, the same as reaching the end of a list.
+- **The indentation is the file's own**: if you indent with tabs, the new
+  subtask gets a tab; with nothing to go by, two spaces.
+- The arrow row **stays put** after a move, so you can press it several times in
+  a row without aiming with the mouse again.
 
 ---
 
