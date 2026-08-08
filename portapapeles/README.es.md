@@ -53,8 +53,17 @@ personalizados.
 | `maxitem_size` | 512 KiB | Corta las capturas de pantalla enormes, no el texto |
 | `autostart` | sí | Arranca con la sesión, en el área de notificación |
 
-El icono de la bandeja sale porque ya tienes la extensión
-`appindicatorsupport` activada.
+El icono de la bandeja —unas tijeras— sale porque ya tienes la extensión
+`appindicatorsupport` activada. Si además pones
+[`portapapeles@jorgemg1414/`](../portapapeles@jorgemg1414/) sobra, porque tienes
+el mismo menú en la barra:
+
+```bash
+copyq config disable_tray true
+```
+
+CopyQ sigue funcionando igual: `Super+V` y `Super+Shift+V` no dependen del
+icono. Para recuperarlo, lo mismo con `false`.
 
 ## Lo que conviene saber antes de usarlo
 

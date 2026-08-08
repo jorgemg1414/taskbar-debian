@@ -69,6 +69,19 @@ CopyQ's own `Super+V` doesn't have that problem, because it never takes focus
 away from anyone. If what you want is fast pasting, that's the way; the top bar
 menu is for looking at the list.
 
+## Getting rid of the scissors in the tray
+
+With the extension in place, CopyQ's tray icon — a pair of scissors — shows the
+same menu twice:
+
+```bash
+copyq config disable_tray true
+```
+
+CopyQ carries on the same: neither `Super+V` nor this extension depends on that
+icon, because both talk to its server, not its window. To get it back, the same
+with `false`.
+
 ## Why there's no badge on the icon
 
 The other extensions carry a number next to the icon: how many machines are

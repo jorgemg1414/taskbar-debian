@@ -53,8 +53,17 @@ Shortcuts.
 | `maxitem_size` | 512 KiB | Cuts off huge screenshots, not text |
 | `autostart` | yes | Starts with the session, in the notification area |
 
-The tray icon shows up because you already have the `appindicatorsupport`
-extension enabled.
+The tray icon — a pair of scissors — shows up because you already have the
+`appindicatorsupport` extension enabled. If you also install
+[`portapapeles@jorgemg1414/`](../portapapeles@jorgemg1414/) it's redundant,
+since you have the same menu in the bar:
+
+```bash
+copyq config disable_tray true
+```
+
+CopyQ keeps working the same: `Super+V` and `Super+Shift+V` don't depend on the
+icon. To get it back, the same with `false`.
 
 ## Worth knowing before you use it
 

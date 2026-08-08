@@ -68,6 +68,19 @@ El `Super+V` de CopyQ no tiene ese problema, porque nunca le quita el foco a
 nadie. Si lo que quieres es pegar rápido, ese es el camino; el menú de la barra
 es para mirar la lista.
 
+## Quitar las tijeras de la bandeja
+
+Con la extensión puesta, el icono de bandeja de CopyQ —unas tijeras— enseña el
+mismo menú dos veces:
+
+```bash
+copyq config disable_tray true
+```
+
+CopyQ sigue igual: ni `Super+V` ni esta extensión dependen de ese icono, porque
+las dos hablan con su servidor, no con su ventana. Para recuperarlo, lo mismo
+con `false`.
+
 ## Por qué no hay contador en el icono
 
 Las otras extensiones llevan un número junto al icono: cuántos equipos no
