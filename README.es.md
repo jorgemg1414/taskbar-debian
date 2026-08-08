@@ -2,9 +2,11 @@
 
 *[Read this in English](README.md)*
 
-Personalizaciones para la barra superior de **GNOME Shell** en **Debian 13
-(trixie)**. Cada carpeta es una extensión independiente que se instala con su
-propio `install.sh`.
+Personalizaciones para **GNOME Shell** en **Debian 13 (trixie)**. Casi todas
+son extensiones de la barra superior, y cada carpeta es una independiente que
+se instala con su propio `install.sh`. Las dos últimas —`terminal/` y
+`portapapeles/`— no tocan la barra: son el resto del escritorio, y se instalan
+con `instalar.sh`.
 
 Todo el código está comentado en español y escrito con la API moderna de
 extensiones (ESM, GNOME 45+): `import ... from 'gi://…'`, clase que extiende
@@ -23,6 +25,8 @@ extensiones (ESM, GNOME 45+): `import ... from 'gi://…'`, clase que extiende
 | [`spotify-menu@jorgemg1414/`](spotify-menu@jorgemg1414/) | **Spotify** — la canción que está sonando, con su portada y sus controles |
 | [`concentracion@jorgemg1414/`](concentracion@jorgemg1414/) | **Concentración** — apagar de golpe lo que interrumpe, con temporizador |
 | [`pendientes@jorgemg1414/`](pendientes@jorgemg1414/) | **Pendientes** — las tareas sin hacer de tus archivos Markdown, y marcarlas desde la barra |
+| [`terminal/`](terminal/) | **Terminal** — sugerencias en gris, colores según escribes, `Ctrl+R` con búsqueda difusa y salto de carpetas con `z` |
+| [`portapapeles/`](portapapeles/) | **Portapapeles** — historial de todo lo que copias, en `Super+V` |
 | [`herramientas/`](herramientas/) | Scripts para convertir archivos `.vnc` en perfiles de Remmina y guardar su contraseña en el llavero de GNOME |
 | [`comun/`](comun/) | Los módulos que comparten varias extensiones. El original está aquí; cada `install.sh` copia los que necesita |
 | [`comprobar.sh`](comprobar.sh) | Repasa el repositorio: sintaxis, imports, instaladores, esquemas y estilos |
@@ -407,6 +411,8 @@ Si dice «no existe» después de instalarla, es que falta reiniciar la sesión.
 
 ```
 taskbar-debian/
+├── terminal/              Ajustes de zsh (ver su propio README)
+├── portapapeles/          Historial del portapapeles (ver su propio README)
 ├── herramientas/          Scripts auxiliares (ver arriba)
 ├── comun/                 Módulos compartidos (ver su propio README)
 │   ├── asyncgio.js        Envoltorios de Promise sobre las llamadas de Gio
