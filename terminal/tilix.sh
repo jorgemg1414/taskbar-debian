@@ -146,15 +146,23 @@ gsettings set org.gnome.desktop.default-applications.terminal exec-arg '-e'
 
 # Lo anterior vale para GNOME. Los programas que abren «x-terminal-emulator» a
 # secas van por las alternativas de Debian, que son del sistema y piden sudo.
-if [[ "$(readlink -f /etc/alternatives/x-terminal-emulator 2>/dev/null)" != "$(command -v tilix)" ]]; then
-    if sudo update-alternatives --set x-terminal-emulator "$(command -v tilix)" >/dev/null 2>&1; then
-        verde "Tilix es ya el terminal por omisión, también para x-terminal-emulator."
-    else
-        aviso "No se pudo cambiar x-terminal-emulator. Si te importa:"
-        aviso "    sudo update-alternatives --config x-terminal-emulator"
-    fi
-else
+#
+# Ojo con la ruta: lo que Debian registra no es /usr/bin/tilix sino
+# /usr/bin/tilix.wrapper, y update-alternatives --set rechaza cualquier ruta
+# que no esté en su lista. Por eso se saca de la lista en vez de darla por
+# supuesta; el nombre del wrapper es cosa del paquete y puede cambiar.
+ALTERNATIVA="$(update-alternatives --list x-terminal-emulator 2>/dev/null | grep -m1 '/tilix' || true)"
+
+if [[ -z "$ALTERNATIVA" ]]; then
+    aviso "Tilix no está registrado como alternativa de x-terminal-emulator."
+    aviso "Los programas que abran «una terminal» seguirán usando otra."
+elif [[ "$(readlink -f /etc/alternatives/x-terminal-emulator 2>/dev/null)" == "$ALTERNATIVA" ]]; then
     verde "Tilix es ya el terminal por omisión."
+elif sudo update-alternatives --set x-terminal-emulator "$ALTERNATIVA" >/dev/null 2>&1; then
+    verde "Tilix es ya el terminal por omisión, también para x-terminal-emulator."
+else
+    aviso "No se pudo cambiar x-terminal-emulator. A mano:"
+    aviso "    sudo update-alternatives --config x-terminal-emulator"
 fi
 
 echo
