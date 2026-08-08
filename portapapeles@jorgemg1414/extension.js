@@ -150,6 +150,13 @@ class IndicadorPortapapeles extends PanelMenu.Button {
             else
                 this._olvidarEstadoDelMenu();
         });
+
+        // Y aun así el menú tiene que nacer con algo dentro. PopupMenu.open()
+        // se da la vuelta si isEmpty(), o sea que un menú vacío no se abre; si
+        // no se abre, no salta «open-state-changed»; y si no salta, no hay
+        // quien lo llene. Un icono que no hace nada al pulsarlo, para siempre.
+        // Esta línea es la que rompe el círculo.
+        this._pintarEspera();
     }
 
     /* --------------------------- Leer y pintar ------------------------- */
@@ -174,11 +181,37 @@ class IndicadorPortapapeles extends PanelMenu.Button {
     }
 
     /**
+     * Lo que hay dentro del menú mientras no se sabe nada todavía.
+     *
+     * Dura lo que tarde CopyQ en contestar, que normalmente no se llega a ver.
+     * Su trabajo de verdad es que el menú nunca esté vacío.
+     */
+    _pintarEspera() {
+        this.menu.removeAll();
+        this.menu.addMenuItem(this._aviso(_('Leyendo el historial…')));
+    }
+
+    /**
+     * Rehace el menú entero y se asegura de que quede algo dentro.
+     *
+     * @param {object} historial lo devuelto por CopyQ.leerHistorial
+     */
+    _pintar(historial) {
+        this._pintarContenido(historial);
+
+        // Seguro de vida: cualquier camino que dejara el menú sin una sola fila
+        // visible lo dejaría también sin poder abrirse nunca más, y sin forma
+        // de arreglarlo salvo reiniciar el shell.
+        if (this.menu.isEmpty())
+            this.menu.addMenuItem(this._aviso(_('No hay nada que enseñar.')));
+    }
+
+    /**
      * Rehace el menú entero.
      *
      * @param {object} historial lo devuelto por CopyQ.leerHistorial
      */
-    _pintar({estado, total, elementos}) {
+    _pintarContenido({estado, total, elementos}) {
         this.menu.removeAll();
         this._items = [];
         this._buscador = null;
