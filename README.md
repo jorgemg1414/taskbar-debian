@@ -2,10 +2,15 @@
 
 *[Léeme en español](README.es.md)*
 
-Customizations for **GNOME Shell** on **Debian 13 (trixie)**. Most of them are
-top bar extensions, and each folder is a self-contained one with its own
-`install.sh`. The last two — `terminal/` and `portapapeles/` — don't touch the
-bar: they're the rest of the desktop, and they install with `instalar.sh`.
+Customizations for **GNOME Shell** on **Debian 13 (trixie)**. The folders
+ending in `@jorgemg1414` are top bar extensions, self-contained and independent
+of each other, each installed with its `install.sh`. The other two —
+`terminal/` and `portapapeles/` — don't touch the bar: they're the rest of the
+desktop, and they install with `instalar.sh`.
+
+Mind the similar names: `portapapeles/` installs **CopyQ**, which is what keeps
+the history, and `portapapeles@jorgemg1414/` is the extension that shows it in
+the bar. The second is useless without the first; the first works on its own.
 
 The code is written against the modern extension API (ESM, GNOME 45+):
 `import ... from 'gi://…'`, a class extending `Extension`, and full teardown in
@@ -24,8 +29,9 @@ The code is written against the modern extension API (ESM, GNOME 45+):
 | [`spotify-menu@jorgemg1414/`](spotify-menu@jorgemg1414/) | **Spotify** — the song that's playing, with its cover art and controls |
 | [`concentracion@jorgemg1414/`](concentracion@jorgemg1414/) | **Focus** — turning off everything that interrupts at once, on a timer |
 | [`pendientes@jorgemg1414/`](pendientes@jorgemg1414/) | **Pendientes** — the unfinished tasks in your Markdown files, ticked from the bar |
+| [`portapapeles@jorgemg1414/`](portapapeles@jorgemg1414/) | **Clipboard** — the last things you copied, in the bar. Reads CopyQ's history, keeps none of its own |
 | [`terminal/`](terminal/) | **Terminal** — grey suggestions, colouring as you type, fuzzy `Ctrl+R` and directory jumping with `z` |
-| [`portapapeles/`](portapapeles/) | **Clipboard** — a history of everything you copy, on `Super+V` |
+| [`portapapeles/`](portapapeles/) | **CopyQ** — the clipboard history and its shortcuts, `Super+V` and `Super+Shift+V`. It's what the extension above reads |
 | [`herramientas/`](herramientas/) | Helper scripts: turn `.vnc` files into Remmina profiles and store their password in the GNOME keyring |
 | [`comun/`](comun/) | Modules shared by several extensions. The original lives here; each `install.sh` copies the ones it needs |
 | [`comprobar.sh`](comprobar.sh) | Checks the repository: syntax, imports, installers, schemas and styles |
@@ -403,7 +409,7 @@ If it says it doesn't exist after installing, the session still needs a restart.
 ```
 taskbar-debian/
 ├── terminal/              zsh settings (see its own README)
-├── portapapeles/          Clipboard history (see its own README)
+├── portapapeles/          CopyQ and its shortcuts (see its own README)
 ├── herramientas/          Helper scripts (see above)
 ├── comun/                 Shared modules (see its own README)
 │   ├── asyncgio.js        Promise wrappers around Gio's async calls
@@ -418,6 +424,8 @@ taskbar-debian/
 ├── equipos-menu@jorgemg1414/  Machines (see its own README)
 ├── spotify-menu@jorgemg1414/  Spotify (see its own README)
 ├── concentracion@jorgemg1414/ Focus (see its own README)
+├── pendientes@jorgemg1414/ Pendientes (see its own README)
+├── portapapeles@jorgemg1414/ Clipboard (see its own README)
 └── vnc-menu@jorgemg1414/
     ├── extension.js       Indicator, menu, client launching, teardown in disable()
     ├── connections.js     Async folder scanning and connection file parsing

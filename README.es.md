@@ -2,11 +2,15 @@
 
 *[Read this in English](README.md)*
 
-Personalizaciones para **GNOME Shell** en **Debian 13 (trixie)**. Casi todas
-son extensiones de la barra superior, y cada carpeta es una independiente que
-se instala con su propio `install.sh`. Las dos últimas —`terminal/` y
-`portapapeles/`— no tocan la barra: son el resto del escritorio, y se instalan
-con `instalar.sh`.
+Personalizaciones para **GNOME Shell** en **Debian 13 (trixie)**. Las carpetas
+acabadas en `@jorgemg1414` son extensiones de la barra superior, independientes
+entre sí, y cada una se instala con su `install.sh`. Las otras dos —`terminal/`
+y `portapapeles/`— no tocan la barra: son el resto del escritorio, y se
+instalan con `instalar.sh`.
+
+Ojo con el parecido: `portapapeles/` instala **CopyQ**, que es quien guarda el
+historial, y `portapapeles@jorgemg1414/` es la extensión que lo enseña en la
+barra. La segunda no sirve de nada sin la primera; la primera funciona sola.
 
 Todo el código está comentado en español y escrito con la API moderna de
 extensiones (ESM, GNOME 45+): `import ... from 'gi://…'`, clase que extiende
@@ -25,8 +29,9 @@ extensiones (ESM, GNOME 45+): `import ... from 'gi://…'`, clase que extiende
 | [`spotify-menu@jorgemg1414/`](spotify-menu@jorgemg1414/) | **Spotify** — la canción que está sonando, con su portada y sus controles |
 | [`concentracion@jorgemg1414/`](concentracion@jorgemg1414/) | **Concentración** — apagar de golpe lo que interrumpe, con temporizador |
 | [`pendientes@jorgemg1414/`](pendientes@jorgemg1414/) | **Pendientes** — las tareas sin hacer de tus archivos Markdown, y marcarlas desde la barra |
+| [`portapapeles@jorgemg1414/`](portapapeles@jorgemg1414/) | **Portapapeles** — lo último que has copiado, en la barra. Lee el historial de CopyQ, no guarda uno propio |
 | [`terminal/`](terminal/) | **Terminal** — sugerencias en gris, colores según escribes, `Ctrl+R` con búsqueda difusa y salto de carpetas con `z` |
-| [`portapapeles/`](portapapeles/) | **Portapapeles** — historial de todo lo que copias, en `Super+V` |
+| [`portapapeles/`](portapapeles/) | **CopyQ** — el historial del portapapeles y sus atajos, `Super+V` y `Super+Shift+V`. Es lo que lee la extensión de arriba |
 | [`herramientas/`](herramientas/) | Scripts para convertir archivos `.vnc` en perfiles de Remmina y guardar su contraseña en el llavero de GNOME |
 | [`comun/`](comun/) | Los módulos que comparten varias extensiones. El original está aquí; cada `install.sh` copia los que necesita |
 | [`comprobar.sh`](comprobar.sh) | Repasa el repositorio: sintaxis, imports, instaladores, esquemas y estilos |
@@ -412,7 +417,7 @@ Si dice «no existe» después de instalarla, es que falta reiniciar la sesión.
 ```
 taskbar-debian/
 ├── terminal/              Ajustes de zsh (ver su propio README)
-├── portapapeles/          Historial del portapapeles (ver su propio README)
+├── portapapeles/          CopyQ y sus atajos (ver su propio README)
 ├── herramientas/          Scripts auxiliares (ver arriba)
 ├── comun/                 Módulos compartidos (ver su propio README)
 │   ├── asyncgio.js        Envoltorios de Promise sobre las llamadas de Gio
@@ -427,6 +432,8 @@ taskbar-debian/
 ├── equipos-menu@jorgemg1414/  Equipos (ver su propio README)
 ├── spotify-menu@jorgemg1414/  Spotify (ver su propio README)
 ├── concentracion@jorgemg1414/ Concentración (ver su propio README)
+├── pendientes@jorgemg1414/ Pendientes (ver su propio README)
+├── portapapeles@jorgemg1414/ Portapapeles (ver su propio README)
 └── vnc-menu@jorgemg1414/
     ├── extension.js       Indicador, menú, lanzamiento y limpieza en disable()
     ├── connections.js     Escaneo asíncrono de la carpeta y parser de conexiones
