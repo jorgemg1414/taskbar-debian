@@ -1,0 +1,9 @@
+{
+  "uuid": "portapapeles@jorgemg1414",
+  "name": "Portapapeles",
+  "description": "Indicador en la barra superior con lo último que has copiado. El historial es el de CopyQ, el mismo que abre Super+V: esta extensión no guarda nada por su cuenta, solo lo lee al abrir el menú y deja copiar, pegar o quitar cualquier elemento.",
+  "shell-version": ["48"],
+  "settings-schema": "org.gnome.shell.extensions.portapapeles",
+  "gettext-domain": "portapapeles",
+  "version": 1
+}

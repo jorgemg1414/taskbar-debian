@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.portapapeles"
+          path="/org/gnome/shell/extensions/portapapeles/">
+
+    <key name="max-items" type="i">
+      <default>25</default>
+      <range min="5" max="200"/>
+      <summary>Elementos que se piden a CopyQ</summary>
+      <description>
+        Cuántos elementos del historial se traen al abrir el menú. CopyQ guarda
+        muchos más; los que no caben aquí siguen estando en su ventana. Subirlo
+        mucho hace que el menú tarde en aparecer, porque hay que leerlos todos.
+      </description>
+    </key>
+
+    <key name="paste-on-select" type="b">
+      <default>false</default>
+      <summary>Pegar al elegir</summary>
+      <description>
+        Además de copiar el elemento, manda un Ctrl+V a la ventana que tuviera
+        el foco antes de abrirse el menú. Depende de que el foco haya vuelto ya
+        a esa ventana, así que no funciona igual de bien en todas partes;
+        desactivado, el elemento se queda en el portapapeles y lo pegas tú.
+      </description>
+    </key>
+
+    <key name="enable-search" type="b">
+      <default>true</default>
+      <summary>Buscador en el menú</summary>
+      <description>
+        Campo de filtro al principio del menú. Busca en el texto entero del
+        elemento, no solo en la línea que se ve.
+      </description>
+    </key>
+
+    <key name="search-threshold" type="i">
+      <default>10</default>
+      <range min="0" max="200"/>
+      <summary>Elementos a partir de los cuales aparece el buscador</summary>
+      <description>Con pocos elementos el buscador estorba más que ayuda.</description>
+    </key>
+
+    <key name="panel-icon" type="s">
+      <default>'edit-paste-symbolic'</default>
+      <summary>Icono del panel</summary>
+      <description>Nombre del icono simbólico que se muestra en la barra superior.</description>
+    </key>
+
+    <key name="panel-box" type="s">
+      <default>'right'</default>
+      <choices>
+        <choice value="left"/>
+        <choice value="center"/>
+        <choice value="right"/>
+      </choices>
+      <summary>Caja de la barra superior</summary>
+      <description>
+        En cuál de las tres zonas de la barra se pone el indicador: izquierda,
+        centro o derecha.
+      </description>
+    </key>
+
+    <key name="panel-position" type="i">
+      <default>5</default>
+      <range min="0" max="20"/>
+      <summary>Posición dentro de la caja</summary>
+      <description>
+        El hueco en el que se mete el indicador al colocarlo. No es una posición
+        fija: en la caja están también los indicadores del propio shell, y las
+        extensiones no se activan siempre en el mismo orden.
+      </description>
+    </key>
+
+  </schema>
+</schemalist>

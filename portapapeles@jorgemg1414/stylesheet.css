@@ -1,0 +1,30 @@
+/*
+ * stylesheet.css — lo propio del menú del Portapapeles.
+ *
+ * La lista, el buscador, la fila de acciones y los avisos están en
+ * comun/estilos.css con el prefijo «tb-», y install.sh lo pega delante de este
+ * archivo al instalar.
+ */
+
+/* El texto del elemento. El ancho máximo es lo que hace que una fila sea una
+ * fila: sin él, un párrafo copiado de un navegador estiraría el menú hasta el
+ * otro lado de la pantalla. Lo que no cabe se corta con puntos suspensivos. */
+.portapapeles-texto {
+    max-width: 460px;
+}
+
+/* Un elemento que no es texto —una imagen pegada, por ejemplo—. Se enseña para
+ * que la numeración cuadre con la de CopyQ, pero apagado: ahí no hay nada que
+ * leer. */
+.portapapeles-sin-texto {
+    color: rgba(255, 255, 255, 0.45);
+    font-style: italic;
+}
+
+/* Cuántas líneas tiene de verdad el elemento, a la derecha. Apagado y pequeño:
+ * es un dato de apoyo, no compite con el texto. */
+.portapapeles-medida {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.8em;
+    margin-left: 14px;
+}

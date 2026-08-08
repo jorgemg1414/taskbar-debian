@@ -65,9 +65,11 @@ Box. No es un defecto de CopyQ: es lo que hace un historial de portapapeles.
 
 Tres formas de convivir con ello:
 
-- **Vaciarlo cuando toque:** `copyq removeall`
-- **La pestaña de la papelera:** en la ventana de CopyQ, clic derecho sobre un
-  elemento → *Remove*, para lo puntual.
+- **Vaciarlo cuando toque:** en la ventana de CopyQ, `Ctrl+A` y `Supr`. O el
+  botón *Vaciar* del menú de la barra, si tienes puesta la extensión
+  [`portapapeles@jorgemg1414/`](../portapapeles@jorgemg1414/).
+- **De uno en uno:** en la ventana de CopyQ, clic derecho sobre un elemento →
+  *Remove*.
 - **Que no llegue a guardarse:** en CopyQ, *Preferencias → Comandos → Añadir →
   Ignorar contraseñas*. Trae una regla hecha que descarta lo copiado desde las
   ventanas de los gestores de contraseñas conocidos.

@@ -65,7 +65,9 @@ It isn't a flaw in CopyQ: it's what a clipboard history does.
 
 Three ways to live with it:
 
-- **Empty it when it's time:** `copyq removeall`
+- **Empty it when it's time:** in the CopyQ window, `Ctrl+A` and `Del`. Or the
+  *Vaciar* button in the top bar menu, if you have the
+  [`portapapeles@jorgemg1414/`](../portapapeles@jorgemg1414/) extension.
 - **One at a time:** in the CopyQ window, right-click an item → *Remove*.
 - **Stop it being stored at all:** in CopyQ, *Preferences → Commands → Add →
   Ignore passwords*. It ships a ready-made rule that discards anything copied

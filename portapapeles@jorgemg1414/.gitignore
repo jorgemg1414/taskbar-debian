@@ -1,0 +1,13 @@
+# Esquema compilado: lo genera install.sh con glib-compile-schemas
+schemas/gschemas.compiled
+
+# Empaquetado de la extensión
+*.shell-extension.zip
+
+# Traducciones compiladas
+*.mo
+
+# Basura de editores y del escritorio
+*~
+*.swp
+.DS_Store
