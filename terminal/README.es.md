@@ -131,9 +131,8 @@ comentando `setopt SHARE_HISTORY` en
 ## Tilix
 
 [`tilix.sh`](tilix.sh) es lo otro: el emulador, no la shell. Tilix guarda su
-configuración en dconf, así que el script no escribe ningún archivo —son
-llamadas a `gsettings` sobre tu perfil predeterminado— y `--desinstalar`
-devuelve cada clave a su valor de fábrica.
+configuración en dconf, así que el script no escribe ningún archivo de
+configuración: son llamadas a `gsettings` sobre tu perfil predeterminado.
 
 | Qué | A qué queda |
 |---|---|
@@ -145,6 +144,12 @@ devuelve cada clave a su valor de fábrica.
 | Al terminar algo largo | Aviso del escritorio si no estabas mirando esa terminal |
 | Tirador entre paneles | Más ancho: acertarle deja de ser puntería |
 | Terminal por omisión | Tilix, también para lo que abre `x-terminal-emulator` |
+
+**Antes de tocar nada guarda tu configuración de Tilix** en
+`~/.config/tilix-antes-de-taskbar-debian.dconf`, y `--desinstalar` la vuelve a
+cargar tal cual. No es lo mismo que devolver las claves a sus valores de
+fábrica: si llevabas la transparencia al 27 y de fábrica es otra cosa, un
+«reset» te la cambiaría sin avisar y encima parecería que ha funcionado.
 
 Los esquemas de color se cambian sin repetir lo demás:
 

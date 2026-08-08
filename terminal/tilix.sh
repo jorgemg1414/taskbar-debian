@@ -23,6 +23,12 @@ error() { printf '\033[1;31m%s\033[0m\n' "$*" >&2; }
 
 ESQUEMAS='/usr/share/tilix/schemes'
 
+# Copia de tu configuración de Tilix antes de tocarla. Sin esto, deshacer solo
+# puede devolver las claves a los valores DE FÁBRICA, que no son «como lo tenías
+# tú»: si llevabas la transparencia al 27 y el valor de fábrica es otro, un
+# «reset» te la cambia sin avisar y encima parece que ha funcionado.
+COPIA="${HOME}/.config/tilix-antes-de-taskbar-debian.dconf"
+
 # Lo que se cambia. Está aquí arriba y no repartido por el script para que se
 # vea de un vistazo y se pueda tocar sin buscar.
 FUENTE='JetBrains Mono 11'
@@ -60,20 +66,32 @@ PERFIL="com.gexperts.Tilix.Profile:/com/gexperts/Tilix/profiles/${UUID}/"
 
 # ------------------------- Desinstalación ------------------------------
 if [[ "${1:-}" == "--desinstalar" ]]; then
-    for clave in font use-system-font cell-height-scale use-theme-colors \
-                 foreground-color background-color palette \
-                 background-transparency-percent scrollback-lines \
-                 scrollback-unlimited cursor-shape cursor-blink-mode; do
-        gsettings reset "$PERFIL" "$clave" 2>/dev/null || true
-    done
-    for clave in enable-transparency copy-on-select notify-on-process-complete \
-                 enable-wide-handle; do
-        gsettings reset com.gexperts.Tilix.Settings "$clave" 2>/dev/null || true
-    done
+    if [[ -f "$COPIA" ]]; then
+        # Se borra el árbol entero y se vuelve a cargar el de antes. Así vuelve
+        # exactamente lo que tenías, incluido lo que ya habías configurado tú y
+        # este script no llegó a tocar.
+        dconf reset -f /com/gexperts/Tilix/
+        dconf load /com/gexperts/Tilix/ < "$COPIA"
+        verde "Tilix restaurado tal y como estaba, desde ${COPIA}"
+    else
+        aviso "No hay copia previa: se devuelven las claves a los valores de fábrica,"
+        aviso "que pueden no ser los que tú tenías."
+        for clave in font use-system-font cell-height-scale use-theme-colors \
+                     foreground-color background-color palette \
+                     background-transparency-percent scrollback-lines \
+                     scrollback-unlimited cursor-shape cursor-blink-mode; do
+            gsettings reset "$PERFIL" "$clave" 2>/dev/null || true
+        done
+        for clave in enable-transparency copy-on-select notify-on-process-complete \
+                     enable-wide-handle; do
+            gsettings reset com.gexperts.Tilix.Settings "$clave" 2>/dev/null || true
+        done
+    fi
+
     gsettings reset org.gnome.desktop.default-applications.terminal exec 2>/dev/null || true
     gsettings reset org.gnome.desktop.default-applications.terminal exec-arg 2>/dev/null || true
 
-    verde "Tilix devuelto a sus valores de fábrica. Abre una ventana nueva."
+    verde "Abre una ventana nueva de Tilix para verlo."
     aviso "La fuente sigue instalada. Para quitarla:  sudo apt remove ${PAQUETES[*]}"
     exit 0
 fi
@@ -91,6 +109,14 @@ if (( ${#faltan[@]} )); then
     fc-cache -f >/dev/null 2>&1 || true
 else
     verde "La fuente ya estaba instalada."
+fi
+
+# --------------------------- Copia de seguridad -------------------------
+# Solo la primera vez: la segunda, «lo de antes» ya sería lo que puso esto.
+if [[ ! -f "$COPIA" ]]; then
+    dconf dump /com/gexperts/Tilix/ > "$COPIA"
+    verde "Tu configuración de Tilix, guardada en ${COPIA}"
+    verde "«./tilix.sh --desinstalar» la devuelve tal cual."
 fi
 
 # ------------------------------ Colores --------------------------------

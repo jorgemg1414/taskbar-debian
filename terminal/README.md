@@ -129,9 +129,8 @@ up arrow gives you everyone's commands, not just this window's. Comment out
 ## Tilix
 
 [`tilix.sh`](tilix.sh) is the other half: the emulator, not the shell. Tilix
-keeps its configuration in dconf, so the script writes no files — they're
-`gsettings` calls against your default profile — and `--desinstalar` returns
-every key to its factory value.
+keeps its configuration in dconf, so the script writes no configuration files:
+they're `gsettings` calls against your default profile.
 
 | What | What it becomes |
 |---|---|
@@ -143,6 +142,12 @@ every key to its factory value.
 | When something long finishes | A desktop notification if you weren't looking at that terminal |
 | Split-pane handle | Wider: hitting it stops being a test of aim |
 | Default terminal | Tilix, including for anything that opens `x-terminal-emulator` |
+
+**Before touching anything it saves your Tilix configuration** to
+`~/.config/tilix-antes-de-taskbar-debian.dconf`, and `--desinstalar` loads it
+back verbatim. That isn't the same as returning the keys to their factory
+values: if you had transparency at 27 and the factory value is something else,
+a reset would change it without telling you and still look like it worked.
 
 Colour schemes can be changed without redoing the rest:
 
