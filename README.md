@@ -4,9 +4,9 @@
 
 Customizations for **GNOME Shell** on **Debian 13 (trixie)**. The folders
 ending in `@jorgemg1414` are top bar extensions, self-contained and independent
-of each other, each installed with its `install.sh`. The other two —
-`terminal/` and `portapapeles/` — don't touch the bar: they're the rest of the
-desktop, and they install with `instalar.sh`.
+of each other, each installed with its `install.sh`. The other three —
+`terminal/`, `portapapeles/` and `actualizaciones/` — don't touch the bar:
+they're the rest of the desktop, and they install with `instalar.sh`.
 
 Mind the similar names: `portapapeles/` installs **CopyQ**, which is what keeps
 the history, and `portapapeles@jorgemg1414/` is the extension that shows it in
@@ -32,6 +32,7 @@ The code is written against the modern extension API (ESM, GNOME 45+):
 | [`portapapeles@jorgemg1414/`](portapapeles@jorgemg1414/) | **Clipboard** — the last things you copied, in the bar. Reads CopyQ's history, keeps none of its own |
 | [`terminal/`](terminal/) | **Terminal** — grey suggestions, colouring as you type, fuzzy `Ctrl+R` and directory jumping with `z` |
 | [`portapapeles/`](portapapeles/) | **CopyQ** — the clipboard history and its shortcuts, `Super+V` and `Super+Shift+V`. It's what the extension above reads |
+| [`actualizaciones/`](actualizaciones/) | **Updates** — letting security patches install themselves, and only those |
 | [`herramientas/`](herramientas/) | Helper scripts: turn `.vnc` files into Remmina profiles and store their password in the GNOME keyring |
 | [`comun/`](comun/) | Modules shared by several extensions. The original lives here; each `install.sh` copies the ones it needs |
 | [`comprobar.sh`](comprobar.sh) | Checks the repository: syntax, imports, installers, schemas and styles |
@@ -410,6 +411,7 @@ If it says it doesn't exist after installing, the session still needs a restart.
 taskbar-debian/
 ├── terminal/              zsh settings (see its own README)
 ├── portapapeles/          CopyQ and its shortcuts (see its own README)
+├── actualizaciones/       Automatic security patches (see its own README)
 ├── herramientas/          Helper scripts (see above)
 ├── comun/                 Shared modules (see its own README)
 │   ├── asyncgio.js        Promise wrappers around Gio's async calls
