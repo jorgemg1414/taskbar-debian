@@ -16,6 +16,12 @@ Son dos cosas distintas y se instalan por separado:
 ./tilix.sh           # el emulador: fuente, colores y comportamiento
 ```
 
+¿Solo los colores del comando, sin nada más? Esa parte va suelta:
+
+```bash
+./instalar.sh --solo-colores
+```
+
 Y para dejarlo como estaba, cada uno lo suyo:
 
 ```bash
@@ -110,6 +116,23 @@ Tres cosas, y nada más:
   carpeta solo, así que no hace falta ningún `source` en el `.zshrc`.
 - **`~/.config/starship.toml`** — el prompt. Si ya tenías uno, se guarda una vez
   en `starship.toml.anterior` antes de pisarlo.
+
+## Solo los colores
+
+`./instalar.sh --solo-colores` pone únicamente
+[`colores.zsh`](colores.zsh) en `~/.oh-my-zsh/custom/`: el comando en verde si
+existe y en rojo si no, y los paréntesis y comillas sin cerrar marcados. Nada
+más. **No toca el `.zshrc`**, así que tu tema y tu lista de plugins se quedan
+exactamente como estén.
+
+Ojo con una cosa que no es evidente: el paquete de Debian **solo trae el rojo**.
+De fábrica define `unknown-token` y deja `command`, `builtin`, `function` y
+`alias` sin color, o sea que te avisa cuando te equivocas pero no confirma
+cuando aciertas. El verde lo pone `colores.zsh` a mano, después del `source`,
+porque el array lo crea el propio plugin al cargarse.
+
+Los dos archivos no pueden convivir —`terminal.zsh` ya trae los colores
+dentro—, así que cada modo quita el del otro al instalarse.
 
 ## El historial
 

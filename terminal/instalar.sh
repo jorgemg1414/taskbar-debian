@@ -42,9 +42,35 @@ PAQUETES=(
     starship                    # el prompt: rama, duración, código de error, aviso de SSH
 )
 
+# --------------------------- Solo colores --------------------------
+# La parte más barata de todo esto —el comando en verde o en rojo según lo
+# escribes— sin nada más: sin prompt nuevo, sin sugerencias, sin tocar el
+# .zshrc. Solo hace falta un paquete, y si ya está no pide ni contraseña.
+if [[ "${1:-}" == "--solo-colores" ]]; then
+    if ! dpkg -s zsh-syntax-highlighting >/dev/null 2>&1; then
+        verde "Instalando zsh-syntax-highlighting"
+        sudo apt-get update -qq
+        sudo apt-get install -y zsh-syntax-highlighting
+    fi
+
+    mkdir -p "$CUSTOM"
+    # terminal.zsh ya trae los colores dentro: los dos juntos cargarían el
+    # plugin dos veces y duplicarían los widgets de la línea.
+    if [[ -f "${CUSTOM}/terminal.zsh" ]]; then
+        rm -f "${CUSTOM}/terminal.zsh"
+        aviso "Quitado terminal.zsh: los colores ya iban dentro, y no pueden estar los dos."
+        aviso "Lo demás que traía —sugerencias, Ctrl+R, z, el prompt— ya no está."
+    fi
+    install -m 644 "${ORIGEN}/colores.zsh" "${CUSTOM}/colores.zsh"
+
+    verde "Puesto. Abre una terminal nueva (o ejecuta: exec zsh)."
+    verde "Tu tema y tu lista de plugins se quedan como están; el .zshrc no se toca."
+    exit 0
+fi
+
 # ------------------------- Desinstalación -------------------------
 if [[ "${1:-}" == "--desinstalar" ]]; then
-    rm -f "${CUSTOM}/terminal.zsh"
+    rm -f "${CUSTOM}/terminal.zsh" "${CUSTOM}/colores.zsh"
     # El prompt de antes vuelve solo con el .zshrc, que es donde estaba el tema.
     if [[ -f "${HOME}/.config/starship.toml.anterior" ]]; then
         mv "${HOME}/.config/starship.toml.anterior" "${HOME}/.config/starship.toml"
@@ -145,6 +171,9 @@ verde "Copiado starship.toml a ${CONFIG_PROMPT}"
 
 # ------------------------- Ajustes propios ------------------------
 mkdir -p "$CUSTOM"
+# Al revés que en --solo-colores: si estaba puesta la parte suelta, se quita,
+# porque terminal.zsh ya la trae dentro.
+rm -f "${CUSTOM}/colores.zsh"
 install -m 644 "${ORIGEN}/terminal.zsh" "${CUSTOM}/terminal.zsh"
 verde "Copiado terminal.zsh a ${CUSTOM}/"
 

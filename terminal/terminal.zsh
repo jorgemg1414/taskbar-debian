@@ -68,7 +68,19 @@ fi
 # ---------------------- Colores en la línea (el último) ----------------
 # El comando se pone verde cuando existe y rojo cuando no, antes de darle a
 # Intro. Las comillas sin cerrar y los paréntesis descuadrados se ven igual.
+#
+# Este bloque está repetido, tal cual, en colores.zsh, que es esto mismo suelto
+# para quien no quiera nada más. Cada archivo tiene que funcionar solo, y solo
+# se instala uno de los dos: sacarlo a un tercero no ahorraría nada y
+# obligaría a controlar en qué orden se cargan.
 if [[ -r /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
     ZSH_HIGHLIGHT_HIGHLIGHTERS=(main brackets)
     source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+    # La versión de Debian solo define «unknown-token» (rojo): avisa cuando te
+    # equivocas, pero no dice nada cuando aciertas. El verde hay que pedirlo.
+    ZSH_HIGHLIGHT_STYLES[command]='fg=green'        # un programa del PATH
+    ZSH_HIGHLIGHT_STYLES[builtin]='fg=green'        # cd, echo, set…
+    ZSH_HIGHLIGHT_STYLES[function]='fg=green'       # una función tuya
+    ZSH_HIGHLIGHT_STYLES[alias]='fg=green'          # parrot, ll…
 fi
