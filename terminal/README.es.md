@@ -3,17 +3,24 @@
 *[Read this in English](README.md)*
 
 La terminal de fábrica te deja escribir. Esta la recuerda, la corrige y la
-adivina. Son cuatro programas de los repositorios de Debian y un archivo de
-ajustes: nada compilado a mano, nada de repositorios de terceros.
+adivina. Todo sale de los repositorios de Debian: nada compilado a mano, nada
+de repositorios de terceros.
+
+Son dos cosas distintas y se instalan por separado:
 
 ```bash
-./instalar.sh
+./instalar.sh        # la shell: zsh, sus plugins y el prompt
 ```
 
-Y para dejarlo como estaba:
+```bash
+./tilix.sh           # el emulador: fuente, colores y comportamiento
+```
+
+Y para dejarlo como estaba, cada uno lo suyo:
 
 ```bash
 ./instalar.sh --desinstalar
+./tilix.sh --desinstalar
 ```
 
 ---
@@ -46,21 +53,63 @@ si te equivocas de nombre te dice con qué paquete se instala lo que buscabas.
 | `fd-find` | Buscar archivos por nombre, mucho más rápido que `find`. En Debian el binario se llama `fdfind`; el instalador deja el alias `fd` |
 | `command-not-found` | «No existe `htop`, instálalo con `apt install htop`» |
 | `xclip` | `cat notas.txt \| xclip -sel c` y ya lo tienes en el portapapeles |
+| `starship` | El prompt (ver abajo) |
 
 De los plugins que ya trae Oh My Zsh se activan además `sudo`,
 `colored-man-pages`, `command-not-found`, `extract`, `systemd` y `safe-paste`.
 Este último es el que evita que un comando pegado con un salto de línea dentro
 se ejecute solo antes de que lo hayas leído.
 
+## El prompt
+
+Lo pone **starship**, que está empaquetado en Debian 13. Son dos líneas: arriba
+el contexto y abajo, sola, la que escribes. Un prompt de una línea con una ruta
+larga y una rama larga deja el cursor a mitad de pantalla.
+
+Lo que aparece, y solo cuando hay algo que decir:
+
+| Se ve | Cuándo |
+|---|---|
+| `usuario@equipo` en amarillo | **Solo dentro de un SSH.** Es lo que evita ejecutar en la sucursal lo que ibas a ejecutar aquí |
+| La rama, en morado | En un repositorio de git |
+| `!3 +2 ?1 ^2` | Tres cambiados, dos en el índice, uno sin seguir, dos commits por delante |
+| `1.4s` | El comando anterior tardó más de medio segundo |
+| `✗127` | Falló, y con qué código. El 127 es «no existe ese comando»; el 130, un `Ctrl+C` |
+| El nombre del contenedor | Dentro de tu `parrot` de podman, por ejemplo |
+| `❯` verde o rojo | Verde si lo anterior salió bien |
+
+En tu propio equipo, sin git y sin errores, el prompt es solo la ruta y el
+`❯`. Se llena cuando pasa algo.
+
+### Nada de iconos
+
+Debian no empaqueta ninguna Nerd Font, y un prompt lleno de cuadraditos vacíos
+es peor que uno sin adornos. Todo lo que se ve son caracteres que tiene
+cualquier fuente monoespaciada, así que se ve igual aquí que en un `tmux` de un
+servidor ajeno.
+
+Si algún día quieres los iconos, hace falta bajarse una Nerd Font a mano
+—no están en los repositorios— y cambiar los símbolos de
+[`starship.toml`](starship.toml).
+
+### El tema de Oh My Zsh se apaga
+
+No pueden convivir. Oh My Zsh carga su tema **después** de
+`~/.oh-my-zsh/custom/`, así que pondría su `PROMPT` encima del de starship y no
+verías nada de lo de arriba. El instalador deja `ZSH_THEME=""`, y te dice cuál
+tenías puesto —`af-magic`, en tu caso— por si quieres volver.
+
 ## Qué toca de tu carpeta
 
-Dos cosas, y nada más:
+Tres cosas, y nada más:
 
-- **`~/.zshrc`** — solo la línea `plugins=(...)`. Antes de tocarla guarda el
-  archivo entero en `~/.zshrc.antes-de-terminal`, que es de donde lo recupera
-  `--desinstalar`.
+- **`~/.zshrc`** — solo dos líneas: `plugins=(...)` y `ZSH_THEME`. Antes de
+  tocarlas guarda el archivo entero en `~/.zshrc.antes-de-terminal`, que es de
+  donde lo recupera `--desinstalar`.
 - **`~/.oh-my-zsh/custom/terminal.zsh`** — todo lo demás. Oh My Zsh recorre esa
   carpeta solo, así que no hace falta ningún `source` en el `.zshrc`.
+- **`~/.config/starship.toml`** — el prompt. Si ya tenías uno, se guarda una vez
+  en `starship.toml.anterior` antes de pisarlo.
 
 ## El historial
 
@@ -78,6 +127,41 @@ Eso último es lo único que puede chirriar: si tienes cuatro terminales abierta
 y esperas que la flecha arriba te dé lo tuyo, te dará lo de todas. Se quita
 comentando `setopt SHARE_HISTORY` en
 `~/.oh-my-zsh/custom/terminal.zsh`.
+
+## Tilix
+
+[`tilix.sh`](tilix.sh) es lo otro: el emulador, no la shell. Tilix guarda su
+configuración en dconf, así que el script no escribe ningún archivo —son
+llamadas a `gsettings` sobre tu perfil predeterminado— y `--desinstalar`
+devuelve cada clave a su valor de fábrica.
+
+| Qué | A qué queda |
+|---|---|
+| Fuente | **JetBrains Mono 11**, con un 10% más de aire entre líneas. Distingue la `O` de la `0` y la `l` de la `1`, que en una terminal importa |
+| Colores | El esquema **material**, de los nueve que trae Tilix |
+| Transparencia | **10%**. Venía al 27, y con un fondo de pantalla claro el texto salía peleado |
+| Historial | 100 000 líneas hacia atrás por terminal |
+| Marcar con el ratón | **Copia directamente.** `Ctrl+Shift+C` sigue estando |
+| Al terminar algo largo | Aviso del escritorio si no estabas mirando esa terminal |
+| Tirador entre paneles | Más ancho: acertarle deja de ser puntería |
+| Terminal por omisión | Tilix, también para lo que abre `x-terminal-emulator` |
+
+Los esquemas de color se cambian sin repetir lo demás:
+
+```bash
+./tilix.sh --listar
+./tilix.sh solarized-dark
+```
+
+Y la transparencia, sin tocar nada más:
+
+```bash
+gsettings set com.gexperts.Tilix.Profile:/com/gexperts/Tilix/profiles/TU-UUID/ background-transparency-percent 20
+```
+
+El UUID sale de `gsettings get com.gexperts.Tilix.ProfilesList default`. Los
+demás valores —fuente, tamaño, historial— están como variables al principio de
+`tilix.sh`, para tocarlos sin buscar.
 
 ## El orden importa
 

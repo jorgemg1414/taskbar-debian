@@ -1,0 +1,114 @@
+# starship.toml — El prompt.
+#
+# Se instala en ~/.config/starship.toml.
+#
+# Dos líneas: arriba el contexto —dónde estás, en qué rama, cuánto tardó lo
+# anterior— y abajo, sola, la que escribes. Un prompt de una línea con una ruta
+# larga y una rama larga deja el cursor a mitad de pantalla y la línea se parte
+# por donde no toca.
+#
+# No se usa ningún icono de Nerd Font. Debian no empaqueta ninguna, y un prompt
+# con cuadraditos vacíos es peor que uno sin adornos. Todo lo de aquí son
+# caracteres que tiene cualquier fuente monoespaciada.
+
+add_newline = true
+
+format = """
+$username\
+$hostname\
+$directory\
+$git_branch\
+$git_status\
+$container\
+$cmd_duration\
+$line_break\
+$status\
+$character"""
+
+# ------------------------------ Dónde estás -----------------------------
+# Lo más importante del prompt para quien pasa el día entrando en equipos
+# ajenos: que se vea, sin buscarlo, que esta terminal NO es la tuya.
+#
+# Sin SSH y sin root no sale nada: en tu propio equipo ya sabes quién eres.
+
+[username]
+show_always = false
+style_user = "bold yellow"
+style_root = "bold red"
+format = "[$user]($style)"
+
+[hostname]
+ssh_only = true
+style = "bold yellow"
+format = "[@$hostname]($style) "
+
+[directory]
+truncation_length = 3
+truncate_to_repo = true
+style = "bold cyan"
+read_only = " [ro]"
+read_only_style = "red"
+format = "[$path]($style)[$read_only]($read_only_style) "
+
+# ---------------------------------- Git ---------------------------------
+
+[git_branch]
+symbol = ""
+style = "bold purple"
+format = "[$branch]($style) "
+
+# Los símbolos son de teclado a propósito, por lo de las Nerd Fonts.
+#   !3  tres archivos cambiados sin añadir      +2  dos en el índice
+#   ?1  uno sin seguir                          x1  uno borrado
+#   ^2  dos commits por delante del remoto      v1  uno por detrás
+[git_status]
+style = "bold red"
+format = "([$all_status$ahead_behind]($style)) "
+conflicted = "="
+ahead = "^${count}"
+behind = "v${count}"
+diverged = "^${ahead_count}v${behind_count}"
+untracked = "?${count}"
+stashed = "$"
+modified = "!${count}"
+staged = "+${count}"
+renamed = "»${count}"
+deleted = "x${count}"
+
+# ------------------------------ Lo de antes -----------------------------
+
+# Cuánto tardó el comando anterior, pero solo si tardó lo bastante como para
+# que te hayas ido a mirar otra cosa.
+[cmd_duration]
+min_time = 500
+style = "yellow"
+format = "[$duration]($style) "
+
+# Con qué código falló. De fábrica esto viene apagado y el prompt solo cambia
+# de color; el número es lo que dice si fue un «no existe» (127) o un Ctrl+C
+# (130).
+[status]
+disabled = false
+style = "bold red"
+symbol = "✗"
+format = "[$symbol$status]($style) "
+
+# Dentro de un contenedor —el «parrot» de podman, por ejemplo— se ve.
+[container]
+style = "bold blue"
+format = "[$name]($style) "
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
+
+# --------------------------- Lo que estorba más que ayuda ---------------
+# Módulos que se consultan en cada prompt y que aquí no dicen nada útil.
+[package]
+disabled = true
+
+[aws]
+disabled = true
+
+[gcloud]
+disabled = true

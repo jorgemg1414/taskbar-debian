@@ -56,6 +56,15 @@ if [[ -r /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
     bindkey '^ ' autosuggest-accept
 fi
 
+# ------------------------------ El prompt ------------------------------
+# Va aquí y no en el .zshrc porque Oh My Zsh carga esta carpeta antes que su
+# tema (oh-my-zsh.sh, líneas 209 y 222): si el tema siguiera puesto, pondría su
+# PROMPT encima del de starship y no se vería nada de esto. Por eso el
+# instalador deja ZSH_THEME vacío. Los dos a la vez no puede ser.
+if (( $+commands[starship] )); then
+    eval "$(starship init zsh)"
+fi
+
 # ---------------------- Colores en la línea (el último) ----------------
 # El comando se pone verde cuando existe y rojo cuando no, antes de darle a
 # Intro. Las comillas sin cerrar y los paréntesis descuadrados se ven igual.

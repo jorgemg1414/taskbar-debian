@@ -39,11 +39,19 @@ PAQUETES=(
     fd-find                     # buscar archivos por nombre, rápido (binario: fdfind)
     command-not-found           # «no existe htop, instálalo con apt install htop»
     xclip                       # copiar la salida de un comando al portapapeles
+    starship                    # el prompt: rama, duración, código de error, aviso de SSH
 )
 
 # ------------------------- Desinstalación -------------------------
 if [[ "${1:-}" == "--desinstalar" ]]; then
     rm -f "${CUSTOM}/terminal.zsh"
+    # El prompt de antes vuelve solo con el .zshrc, que es donde estaba el tema.
+    if [[ -f "${HOME}/.config/starship.toml.anterior" ]]; then
+        mv "${HOME}/.config/starship.toml.anterior" "${HOME}/.config/starship.toml"
+        verde "Restaurado tu starship.toml de antes."
+    else
+        rm -f "${HOME}/.config/starship.toml"
+    fi
     if [[ -f "$COPIA" ]]; then
         cp "$COPIA" "$ZSHRC"
         verde "Restaurado el .zshrc de antes de instalar."
@@ -107,6 +115,34 @@ else
     exit 1
 fi
 
+# ---------------------------- El prompt ---------------------------
+# El tema de Oh My Zsh y starship no pueden convivir: el tema se carga después
+# de esta carpeta y pondría su PROMPT encima. Vaciando ZSH_THEME, Oh My Zsh no
+# toca el prompt y lo pone starship desde terminal.zsh.
+if grep -qE '^ZSH_THEME="[^"]*"$' "$ZSHRC"; then
+    tema_actual="$(sed -n 's/^ZSH_THEME="\(.*\)"$/\1/p' "$ZSHRC")"
+    if [[ -n "$tema_actual" ]]; then
+        sed -i 's/^ZSH_THEME=".*"$/ZSH_THEME=""/' "$ZSHRC"
+        verde "Tema de Oh My Zsh «${tema_actual}» apagado: el prompt lo pone starship."
+    fi
+else
+    aviso "No encuentro la línea ZSH_THEME=\"...\"; si tenías un tema puesto, se"
+    aviso "comerá el prompt de starship. Déjala en ZSH_THEME=\"\" a mano."
+fi
+
+mkdir -p "${HOME}/.config"
+CONFIG_PROMPT="${HOME}/.config/starship.toml"
+# Un starship.toml que no sea el nuestro se guarda antes de pisarlo, y solo la
+# primera vez: la segunda, «el anterior» ya sería el nuestro.
+if [[ -f "$CONFIG_PROMPT" ]] \
+   && ! cmp -s "${ORIGEN}/starship.toml" "$CONFIG_PROMPT" \
+   && [[ ! -f "${CONFIG_PROMPT}.anterior" ]]; then
+    cp "$CONFIG_PROMPT" "${CONFIG_PROMPT}.anterior"
+    aviso "Tu starship.toml de antes está en ${CONFIG_PROMPT}.anterior"
+fi
+install -m 644 "${ORIGEN}/starship.toml" "$CONFIG_PROMPT"
+verde "Copiado starship.toml a ${CONFIG_PROMPT}"
+
 # ------------------------- Ajustes propios ------------------------
 mkdir -p "$CUSTOM"
 install -m 644 "${ORIGEN}/terminal.zsh" "${CUSTOM}/terminal.zsh"
@@ -123,5 +159,9 @@ cat <<'FIN'
     →           aceptar el comando que sale en gris
     z nombre    saltar a una carpeta que ya hayas visitado
     x archivo   descomprimir sea cual sea el formato
+
+El prompt ahora dice la rama, lo que tardó el comando anterior si pasó de
+medio segundo, y con qué código falló si falló. Al entrar por SSH sale
+delante «usuario@equipo» en amarillo, para que no te confundas de máquina.
 
 FIN
