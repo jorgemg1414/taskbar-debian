@@ -24,12 +24,9 @@ compiles the GSettings schema and enables the extension.
 Then reload the shell:
 
 - **X11:** `Alt+F2` → type `r` → Enter.
-- **Wayland:** log out and back in. If you only changed the extension's code,
-  disabling and re-enabling is enough:
-
-```bash
-gnome-extensions disable vnc-menu@jorgemg1414 && gnome-extensions enable vnc-menu@jorgemg1414
-```
+- **Wayland:** log out and back in. Disabling and re-enabling the extension
+  isn't enough to load new code: the shell keeps the modules it has already
+  imported and would carry on with the old ones.
 
 Uninstall:
 

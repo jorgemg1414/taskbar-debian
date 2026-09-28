@@ -60,6 +60,18 @@ fi
 # ---------------------------- Copia -------------------------------
 mkdir -p "$DESTINO/schemas"
 
+# Los módulos que ya no están en ninguna de las dos listas se quitan: un .js
+# viejo que se quedara ahí no lo importaría nadie, pero sería código muerto
+# instalado, y confunde al comparar lo instalado con el repositorio.
+for instalado in "$DESTINO"/*.js; do
+    [[ -e "$instalado" ]] || continue
+    nombre="$(basename "$instalado")"
+    if [[ ! " ${PROPIOS[*]} ${COMUNES[*]} " == *" ${nombre} "* ]]; then
+        rm -f "$instalado"
+        aviso "Quitado ${nombre}, que ya no forma parte de la extensión."
+    fi
+done
+
 for archivo in "${PROPIOS[@]}"; do
     install -m 644 "${ORIGEN}/${archivo}" "${DESTINO}/${archivo}"
 done
@@ -96,8 +108,9 @@ echo
 echo "Para que GNOME Shell vea los cambios:"
 if [[ "${XDG_SESSION_TYPE:-}" == "wayland" ]]; then
     aviso "  Estás en Wayland: hay que cerrar sesión y volver a entrar."
-    echo  "  (Alternativa rápida sin cerrar sesión, recarga solo la extensión:)"
-    echo  "     gnome-extensions disable ${UUID} && gnome-extensions enable ${UUID}"
+    # Desactivar y volver a activar no sirve para esto: GNOME guarda los
+    # módulos ya importados y seguiría ejecutando el código de antes.
+    echo  "  Desactivarla y activarla no basta: el shell sigue con el código viejo."
 else
     echo  "  Pulsa Alt+F2, escribe 'r' y Enter (X11), o cierra sesión y vuelve a entrar."
 fi

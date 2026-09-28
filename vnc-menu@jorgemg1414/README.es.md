@@ -24,12 +24,9 @@ compila el esquema de GSettings y activa la extensión.
 Después hay que recargar el shell:
 
 - **X11:** `Alt+F2` → escribe `r` → Enter.
-- **Wayland:** cerrar sesión y volver a entrar. Si solo has tocado el código de
-  la extensión, basta con desactivar y volver a activar:
-
-```bash
-gnome-extensions disable vnc-menu@jorgemg1414 && gnome-extensions enable vnc-menu@jorgemg1414
-```
+- **Wayland:** cerrar sesión y volver a entrar. Desactivar y volver a activar la
+  extensión no basta para cargar código nuevo: el shell guarda los módulos ya
+  importados y seguiría con los de antes.
 
 Desinstalar:
 
