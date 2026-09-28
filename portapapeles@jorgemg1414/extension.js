@@ -130,6 +130,7 @@ class IndicadorPortapapeles extends PanelMenu.Button {
         this._itemConAcciones = null;
         this._confirmandoVaciado = false;
         this._idEspera = 0;
+        this._idFoco = 0;
 
         this._icono = new St.Icon({
             icon_name: this._settings.get_string('panel-icon'),
@@ -279,7 +280,13 @@ class IndicadorPortapapeles extends PanelMenu.Button {
 
         // El foco al campo en cuanto el menú termine de abrirse: hacerlo ahora
         // no sirve, porque el menú todavía se está montando.
-        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+        //
+        // Se guarda el id para poder soltarlo en destroy(): GNOME exige que
+        // una extensión desactivada no deje fuentes de GLib pendientes.
+        if (this._idFoco !== 0)
+            GLib.source_remove(this._idFoco);
+        this._idFoco = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            this._idFoco = 0;
             if (!this._destruido && this.menu.isOpen)
                 this._buscador?.enfocar();
             return GLib.SOURCE_REMOVE;
@@ -529,6 +536,10 @@ class IndicadorPortapapeles extends PanelMenu.Button {
         if (this._idEspera !== 0) {
             GLib.source_remove(this._idEspera);
             this._idEspera = 0;
+        }
+        if (this._idFoco !== 0) {
+            GLib.source_remove(this._idFoco);
+            this._idFoco = 0;
         }
 
         for (const id of this._idsSettings)

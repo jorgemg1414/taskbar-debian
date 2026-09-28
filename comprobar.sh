@@ -128,6 +128,17 @@ for ext in ./*@jorgemg1414; do
         fallo "ESTILO    $(basename "$ext") usa clases «tb-» y su install.sh no pone ESTILOS_COMUNES=si"
 done
 
+# ------------------ 5b. Temporizadores que no se pueden soltar ---------------
+#
+# Un GLib.timeout_add o idle_add cuyo id no se guarda no se puede quitar en
+# disable(), y GNOME pide que una extensión desactivada no deje ninguno
+# pendiente: si vence después, corre código de una extensión que ya no está.
+while IFS= read -r linea; do
+    [[ -n "$linea" ]] || continue
+    fallo "TEMPORIZ  ${linea%%:*}:$(cut -d: -f2 <<<"$linea") crea un temporizador sin guardar su id"
+done < <(grep -nE 'GLib\.(timeout_add|timeout_add_seconds|idle_add)\(' ./*@jorgemg1414/*.js comun/*.js |
+         grep -vE '=[[:space:]]*GLib\.(timeout_add|timeout_add_seconds|idle_add)\(')
+
 # ------------------- 6. Lo instalado, frente al repositorio ------------------
 #
 # Arreglar algo aquí no cambia nada hasta que se reinstala: GNOME carga la copia
