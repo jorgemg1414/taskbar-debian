@@ -20,6 +20,12 @@ import {comunicar} from './asyncgio.js';
 
 const PROGRAMA = 'copyq';
 
+// Segundos que puede tardar una orden de copyq. Lo normal son milésimas; si
+// el servidor se ha quedado colgado, sin esto el menú se quedaría para siempre
+// en «Leyendo el historial…». Al agotarse, el proceso se mata y se da CopyQ
+// por parado, que es lo que el usuario puede arreglar arrancándolo otra vez.
+const LIMITE_S = 10;
+
 // Caracteres del principio de cada elemento que se piden para pintarlo. La
 // fila es de una línea y se corta con «…»: más no se vería.
 const LARGO_AVANCE = 300;
@@ -106,7 +112,7 @@ async function lanzar(argv, cancellable) {
     // devolver un código de salida; de ahí que la comprobación vaya antes.
     const proceso = Gio.Subprocess.new(
         argv, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE);
-    return comunicar(proceso, cancellable);
+    return comunicar(proceso, cancellable, LIMITE_S);
 }
 
 /**

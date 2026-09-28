@@ -202,22 +202,47 @@ export function replaceContents(file, bytes, etag, cancellable) {
  * no contesta seguiría vivo hasta agotar su propio plazo, o para siempre si lo
  * que se cuelga es la orden remota.
  *
+ * Con «limite», además, el proceso se mata si tarda más de esos segundos, y la
+ * promesa falla con Gio.IOErrorEnum.TIMED_OUT. Es un fallo y no una
+ * cancelación a propósito: quien llama tiene que poder decir «no contestó»,
+ * no tratarlo como si alguien hubiera cerrado el menú.
+ *
  * @param {Gio.Subprocess} proceso proceso lanzado con las tuberías abiertas
  * @param {Gio.Cancellable} cancellable cancelable
+ * @param {number} [limite] segundos como mucho; 0 para esperar lo que haga falta
  * @returns {Promise<{salida: string, error: string, codigo: number}>} resultado
  */
-export function comunicar(proceso, cancellable) {
+export function comunicar(proceso, cancellable, limite = 0) {
     // Si ya estaba cancelado, connect() llama al momento: el proceso no llega
     // a quedarse suelto.
     const idCancelar = cancellable?.connect(() => proceso.force_exit()) ?? 0;
+
+    let agotado = false;
+    let idPlazo = 0;
+    if (limite > 0) {
+        idPlazo = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, limite, () => {
+            idPlazo = 0;
+            agotado = true;
+            // Matarlo cierra sus tuberías, y eso termina la espera de abajo.
+            proceso.force_exit();
+            return GLib.SOURCE_REMOVE;
+        });
+    }
 
     return new Promise((resolve, reject) => {
         proceso.communicate_utf8_async(null, cancellable, (obj, res) => {
             if (idCancelar)
                 cancellable.disconnect(idCancelar);
+            if (idPlazo)
+                GLib.source_remove(idPlazo);
 
             try {
                 const [, salida, error] = obj.communicate_utf8_finish(res);
+                if (agotado) {
+                    reject(new GLib.Error(Gio.IOErrorEnum, Gio.IOErrorEnum.TIMED_OUT,
+                        `no terminó en ${limite} s`));
+                    return;
+                }
                 resolve({
                     salida: salida ?? '',
                     error: error ?? '',

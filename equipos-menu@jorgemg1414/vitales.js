@@ -606,38 +606,14 @@ export class MonitorVitales {
      * @param {Gio.Cancellable} cancellable cancelable
      * @returns {Promise<{salida: string, error: string, codigo: number}>} resultado
      */
-    async ejecutarCrudo(host, orden, cancellable = null) {
+    ejecutarCrudo(host, orden, cancellable = null) {
         const proceso = Gio.Subprocess.new(
             argvSsh(host, orden, this._conexion),
             Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE);
 
-        // Un cancelable propio, colgado del de fuera, para poder cortar por
-        // plazo sin tocar el de quien llama. Cancelarlo mata el ssh.
-        const propio = new Gio.Cancellable();
-        const idFuera = cancellable?.connect(() => propio.cancel()) ?? 0;
-
-        let agotado = false;
-        let idPlazo = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, LIMITE_ORDEN_S, () => {
-            idPlazo = 0;
-            agotado = true;
-            propio.cancel();
-            return GLib.SOURCE_REMOVE;
-        });
-
-        try {
-            return await comunicar(proceso, propio);
-        } catch (e) {
-            // Por plazo no es una cancelación: es un fallo, y así se tiene que
-            // ver en el menú, no quedarse en «consultando».
-            if (agotado && !cancellable?.is_cancelled())
-                throw new Error(`no terminó en ${LIMITE_ORDEN_S} s`);
-            throw e;
-        } finally {
-            if (idPlazo)
-                GLib.source_remove(idPlazo);
-            if (idFuera)
-                cancellable.disconnect(idFuera);
-        }
+        // Con plazo: si se agota, el ssh se mata y esto falla con «no terminó
+        // en N s», que se ve en el menú como el motivo del fallo.
+        return comunicar(proceso, cancellable, LIMITE_ORDEN_S);
     }
 
     /**
