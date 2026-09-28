@@ -29,6 +29,12 @@ ESQUEMAS='/usr/share/tilix/schemes'
 # «reset» te la cambia sin avisar y encima parece que ha funcionado.
 COPIA="${HOME}/.config/tilix-antes-de-taskbar-debian.dconf"
 
+# Lo mismo para la terminal por omisión, que no es de Tilix sino de GNOME y de
+# Debian: la orden que abre GNOME y la alternativa x-terminal-emulator, con su
+# modo (auto o elegida a mano). Tres líneas «clave=valor».
+COPIA_TERMINAL="${HOME}/.config/terminal-antes-de-taskbar-debian"
+TERMINAL_GNOME='org.gnome.desktop.default-applications.terminal'
+
 # Lo que se cambia. Está aquí arriba y no repartido por el script para que se
 # vea de un vistazo y se pueda tocar sin buscar.
 FUENTE='JetBrains Mono 11'
@@ -88,8 +94,32 @@ if [[ "${1:-}" == "--desinstalar" ]]; then
         done
     fi
 
-    gsettings reset org.gnome.desktop.default-applications.terminal exec 2>/dev/null || true
-    gsettings reset org.gnome.desktop.default-applications.terminal exec-arg 2>/dev/null || true
+    if [[ -f "$COPIA_TERMINAL" ]]; then
+        exec_antes="$(sed -n 's/^exec=//p' "$COPIA_TERMINAL")"
+        arg_antes="$(sed -n 's/^exec-arg=//p' "$COPIA_TERMINAL")"
+        modo_antes="$(sed -n 's/^modo=//p' "$COPIA_TERMINAL")"
+        alternativa_antes="$(sed -n 's/^alternativa=//p' "$COPIA_TERMINAL")"
+
+        # Los valores se guardaron como los escribe gsettings get, con sus
+        # comillas: vuelven tal cual.
+        [[ -n "$exec_antes" ]] && gsettings set "$TERMINAL_GNOME" exec "$exec_antes"
+        [[ -n "$arg_antes" ]] && gsettings set "$TERMINAL_GNOME" exec-arg "$arg_antes"
+
+        # Solo se toca la alternativa si sigue apuntando a Tilix: si la has
+        # cambiado tú después, manda lo tuyo.
+        if [[ "$(readlink -f /etc/alternatives/x-terminal-emulator 2>/dev/null)" == */tilix* ]]; then
+            if [[ "$modo_antes" == "auto" ]]; then
+                sudo update-alternatives --auto x-terminal-emulator >/dev/null 2>&1 || true
+            elif [[ -n "$alternativa_antes" ]]; then
+                sudo update-alternatives --set x-terminal-emulator "$alternativa_antes" >/dev/null 2>&1 || true
+            fi
+        fi
+        rm -f "$COPIA_TERMINAL"
+        verde "Terminal por omisión devuelta a como estaba."
+    else
+        gsettings reset "$TERMINAL_GNOME" exec 2>/dev/null || true
+        gsettings reset "$TERMINAL_GNOME" exec-arg 2>/dev/null || true
+    fi
 
     verde "Abre una ventana nueva de Tilix para verlo."
     aviso "La fuente sigue instalada. Para quitarla:  sudo apt remove ${PAQUETES[*]}"
@@ -167,8 +197,19 @@ gsettings set com.gexperts.Tilix.Settings enable-wide-handle true
 verde "Copiar al marcar, aviso al terminar, tirador ancho."
 
 # -------------------------- Terminal por omisión -----------------------
-gsettings set org.gnome.desktop.default-applications.terminal exec 'tilix'
-gsettings set org.gnome.desktop.default-applications.terminal exec-arg '-e'
+# Cómo estaba, antes de cambiarlo, y solo la primera vez: igual que con la
+# copia de Tilix, la segunda «lo de antes» ya sería Tilix.
+if [[ ! -f "$COPIA_TERMINAL" ]]; then
+    {
+        echo "exec=$(gsettings get "$TERMINAL_GNOME" exec)"
+        echo "exec-arg=$(gsettings get "$TERMINAL_GNOME" exec-arg)"
+        echo "modo=$(update-alternatives --query x-terminal-emulator 2>/dev/null | sed -n 's/^Status: //p')"
+        echo "alternativa=$(readlink -f /etc/alternatives/x-terminal-emulator 2>/dev/null || true)"
+    } > "$COPIA_TERMINAL"
+fi
+
+gsettings set "$TERMINAL_GNOME" exec 'tilix'
+gsettings set "$TERMINAL_GNOME" exec-arg '-e'
 
 # Lo anterior vale para GNOME. Los programas que abren «x-terminal-emulator» a
 # secas van por las alternativas de Debian, que son del sistema y piden sudo.

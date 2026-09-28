@@ -175,6 +175,11 @@ cargar tal cual. No es lo mismo que devolver las claves a sus valores de
 fábrica: si llevabas la transparencia al 27 y de fábrica es otra cosa, un
 «reset» te la cambiaría sin avisar y encima parecería que ha funcionado.
 
+Con la terminal por omisión pasa lo mismo, y se guarda aparte, en
+`~/.config/terminal-antes-de-taskbar-debian`: la orden que abre GNOME y la
+alternativa `x-terminal-emulator` que había, en automático o elegida a mano.
+`--desinstalar` las devuelve; la alternativa, solo si sigue apuntando a Tilix.
+
 Los esquemas de color se cambian sin repetir lo demás:
 
 ```bash

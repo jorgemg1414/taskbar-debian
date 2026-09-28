@@ -173,6 +173,12 @@ back verbatim. That isn't the same as returning the keys to their factory
 values: if you had transparency at 27 and the factory value is something else,
 a reset would change it without telling you and still look like it worked.
 
+The same goes for the default terminal, saved separately in
+`~/.config/terminal-antes-de-taskbar-debian`: the command GNOME opens and the
+`x-terminal-emulator` alternative you had, automatic or picked by hand.
+`--desinstalar` puts them back; the alternative, only if it still points to
+Tilix.
+
 Colour schemes can be changed without redoing the rest:
 
 ```bash
