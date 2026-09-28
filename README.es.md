@@ -35,7 +35,7 @@ extensiones (ESM, GNOME 45+): `import ... from 'gi://…'`, clase que extiende
 | [`actualizaciones/`](actualizaciones/) | **Actualizaciones** — que los parches de seguridad entren solos, y solo ellos |
 | [`herramientas/`](herramientas/) | Scripts para convertir archivos `.vnc` en perfiles de Remmina y guardar su contraseña en el llavero de GNOME |
 | [`comun/`](comun/) | Los módulos que comparten varias extensiones. El original está aquí; cada `install.sh` copia los que necesita |
-| [`comprobar.sh`](comprobar.sh) | Repasa el repositorio: sintaxis, imports, instaladores, esquemas y estilos |
+| [`comprobar.sh`](comprobar.sh) | Repasa el repositorio: sintaxis, imports, instaladores, esquemas y estilos, y avisa de lo instalado que se ha quedado atrás |
 
 ---
 

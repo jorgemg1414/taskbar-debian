@@ -6,7 +6,8 @@
 # sino las cosas que se rompen al mover archivos de sitio, que es lo que más se
 # hace aquí: que todo parsee, que cada import exista, que el instalador copie lo
 # que se importa, que los esquemas compilen y que no haya clases de estilo
-# huérfanas.
+# huérfanas. Y avisa de las extensiones instaladas que no coinciden con el
+# repositorio, que son las que siguen ejecutando código de antes.
 #
 # Uso:
 #   ./comprobar.sh
@@ -113,6 +114,55 @@ for ext in ./*@jorgemg1414; do
     grep -q '^ESTILOS_COMUNES=si$' "$ext/install.sh" ||
         fallo "ESTILO    $(basename "$ext") usa clases «tb-» y su install.sh no pone ESTILOS_COMUNES=si"
 done
+
+# ------------------- 6. Lo instalado, frente al repositorio ------------------
+#
+# Arreglar algo aquí no cambia nada hasta que se reinstala: GNOME carga la copia
+# de ~/.local/share/gnome-shell/extensions/. Una copia vieja no es un error del
+# repositorio —lo normal es ir por delante mientras se trabaja—, así que se
+# avisa y no cuenta como problema. Las que no están instaladas no se miran.
+INSTALADAS="${HOME}/.local/share/gnome-shell/extensions"
+desfasadas=()
+for ext in ./*@jorgemg1414; do
+    uuid="$(basename "$ext")"
+    destino="${INSTALADAS}/${uuid}"
+    [[ -d "$destino" ]] || continue
+
+    instalador="$ext/install.sh"
+    distintos=()
+
+    # Lo que el instalador copia, comparado con lo que hay en el destino.
+    for archivo in $(sed -n 's/^PROPIOS=(\(.*\))$/\1/p' "$instalador"); do
+        cmp -s "$ext/$archivo" "$destino/$archivo" || distintos+=("$archivo")
+    done
+    for archivo in $(sed -n 's/^COMUNES=(\(.*\))$/\1/p' "$instalador"); do
+        cmp -s "comun/$archivo" "$destino/$archivo" || distintos+=("$archivo")
+    done
+
+    # La hoja instalada es la común pegada delante de la propia, si la pide.
+    if grep -q '^ESTILOS_COMUNES=si$' "$instalador"; then
+        cmp -s <(cat comun/estilos.css "$ext/stylesheet.css") "$destino/stylesheet.css" ||
+            distintos+=(stylesheet.css)
+    else
+        cmp -s "$ext/stylesheet.css" "$destino/stylesheet.css" || distintos+=(stylesheet.css)
+    fi
+
+    esquema="org.gnome.shell.extensions.${uuid%@*}.gschema.xml"
+    cmp -s "$ext/schemas/$esquema" "$destino/schemas/$esquema" || distintos+=("$esquema")
+
+    if (( ${#distintos[@]} )); then
+        aviso "INSTALADA $uuid no coincide con el repositorio: ${distintos[*]}"
+        desfasadas+=("$uuid")
+    fi
+done
+
+if (( ${#desfasadas[@]} )); then
+    aviso "          Para ponerlas al día:"
+    for uuid in "${desfasadas[@]}"; do
+        aviso "              ./${uuid}/install.sh"
+    done
+    aviso "          y después cerrar sesión: el shell no carga código nuevo en marcha."
+fi
 
 # ------------------------------- Resultado -----------------------------------
 echo

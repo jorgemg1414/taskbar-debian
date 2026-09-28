@@ -35,7 +35,7 @@ The code is written against the modern extension API (ESM, GNOME 45+):
 | [`actualizaciones/`](actualizaciones/) | **Updates** — letting security patches install themselves, and only those |
 | [`herramientas/`](herramientas/) | Helper scripts: turn `.vnc` files into Remmina profiles and store their password in the GNOME keyring |
 | [`comun/`](comun/) | Modules shared by several extensions. The original lives here; each `install.sh` copies the ones it needs |
-| [`comprobar.sh`](comprobar.sh) | Checks the repository: syntax, imports, installers, schemas and styles |
+| [`comprobar.sh`](comprobar.sh) | Checks the repository: syntax, imports, installers, schemas and styles, and flags installed copies that have fallen behind |
 
 ---
 
