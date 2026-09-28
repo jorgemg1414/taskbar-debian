@@ -8,7 +8,7 @@
 #
 # Uso:
 #   ./instalar.sh              instala
-#   ./instalar.sh --desinstalar  deja el .zshrc como estaba
+#   ./instalar.sh --desinstalar  devuelve los plugins y el tema de antes
 #
 # No toca ningún archivo sin guardar antes una copia: la primera vez que se
 # ejecuta, el .zshrc original queda en ~/.zshrc.antes-de-terminal.
@@ -79,8 +79,23 @@ if [[ "${1:-}" == "--desinstalar" ]]; then
         rm -f "${HOME}/.config/starship.toml"
     fi
     if [[ -f "$COPIA" ]]; then
-        cp "$COPIA" "$ZSHRC"
-        verde "Restaurado el .zshrc de antes de instalar."
+        # Solo se devuelven las dos líneas que cambió la instalación. Copiar
+        # la copia entera encima se llevaría todo lo que hayas añadido al
+        # .zshrc desde entonces: un PATH, un alias, lo que sea.
+        cp "$ZSHRC" "${ZSHRC}.antes-de-desinstalar"
+        for patron in '^plugins=\(.*\)[[:space:]]*$' '^ZSH_THEME="[^"]*"$'; do
+            original="$(grep -m1 -E "$patron" "$COPIA" || true)"
+            [[ -n "$original" ]] || continue
+            # Con awk y por el entorno, no con sed ni con -v: así la línea
+            # original va tal cual, sin que sus «/», «&» o «\» signifiquen nada.
+            PATRON="$patron" ORIGINAL="$original" awk \
+                '!hecho && $0 ~ ENVIRON["PATRON"] { print ENVIRON["ORIGINAL"]; hecho = 1; next } { print }' \
+                "$ZSHRC" > "${ZSHRC}.tmp"
+            cat "${ZSHRC}.tmp" > "$ZSHRC"
+            rm -f "${ZSHRC}.tmp"
+        done
+        verde "Devueltas la lista de plugins y el tema de antes de instalar."
+        verde "Lo demás del .zshrc se queda como está (copia en ${ZSHRC}.antes-de-desinstalar)."
     else
         aviso "No hay copia del .zshrc original; la lista de plugins se queda como está."
     fi

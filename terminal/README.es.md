@@ -110,8 +110,9 @@ tenías puesto —`af-magic`, en tu caso— por si quieres volver.
 Tres cosas, y nada más:
 
 - **`~/.zshrc`** — solo dos líneas: `plugins=(...)` y `ZSH_THEME`. Antes de
-  tocarlas guarda el archivo entero en `~/.zshrc.antes-de-terminal`, que es de
-  donde lo recupera `--desinstalar`.
+  tocarlas guarda el archivo entero en `~/.zshrc.antes-de-terminal`, y de ahí
+  saca `--desinstalar` esas dos líneas como estaban. Solo esas: lo que hayas
+  añadido al `.zshrc` después se queda.
 - **`~/.oh-my-zsh/custom/terminal.zsh`** — todo lo demás. Oh My Zsh recorre esa
   carpeta solo, así que no hace falta ningún `source` en el `.zshrc`.
 - **`~/.config/starship.toml`** — el prompt. Si ya tenías uno, se guarda una vez

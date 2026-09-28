@@ -109,8 +109,9 @@ above. The installer sets `ZSH_THEME=""`, and tells you which one you had —
 Three things, and nothing else:
 
 - **`~/.zshrc`** — only two lines: `plugins=(...)` and `ZSH_THEME`. Before
-  touching them, the whole file is saved to `~/.zshrc.antes-de-terminal`, which
-  is where `--desinstalar` gets it back from.
+  touching them, the whole file is saved to `~/.zshrc.antes-de-terminal`, and
+  `--desinstalar` takes those two lines back from there as they were. Only
+  those: whatever you've added to `.zshrc` since stays.
 - **`~/.oh-my-zsh/custom/terminal.zsh`** — everything else. Oh My Zsh walks
   that directory on its own, so no `source` line is needed in `.zshrc`.
 - **`~/.config/starship.toml`** — the prompt. If you already had one, it's saved
