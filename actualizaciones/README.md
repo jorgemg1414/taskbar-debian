@@ -51,25 +51,30 @@ goes in a `52`, with a higher number so it wins; and separately, so that an
 update to the package can't wipe it out — the `50` is theirs and they can
 rewrite it whenever they like.
 
-## The empty line that isn't redundant
+## The «#clear» that isn't redundant
 
 Inside `52parches-seguridad` there's this, and it's the only tricky part of the
 file:
 
 ```
-Unattended-Upgrade::Origins-Pattern "";
+#clear Unattended-Upgrade::Origins-Pattern;
 Unattended-Upgrade::Origins-Pattern {
     "origin=Debian,codename=${distro_codename}-security,label=Debian-Security";
 };
 ```
 
-The first line looks like junk and it's the important one. In a block with the
-same name, APT **appends** to the list rather than replacing it. Without
-emptying it first, the factory list — which includes ordinary stable updates —
-would still be in there and none of this would do anything. Check it with:
+The first line looks like a comment and it's the important one. In a block
+with the same name, APT **appends** to the list rather than replacing it.
+Without emptying it first, the factory list — which includes ordinary stable
+updates — would still be in there and none of this would do anything.
+
+And it has to be `#clear`. Assigning an empty string
+(`Origins-Pattern "";`) looks like it empties the list and doesn't: it only
+sets the node's own value, and the list hanging from it stays whole. Check it
+with:
 
 ```bash
-apt-config dump | grep -i origins-pattern
+apt-config dump | grep -i 'origins-pattern::'
 ```
 
 You should get **one single line**, with `-security` in it.

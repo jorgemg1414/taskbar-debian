@@ -98,14 +98,15 @@ sudo tee "$NUESTRO" >/dev/null <<'FIN'
 
 // Solo los parches de seguridad, y solo los de Debian.
 //
-// La línea vacía de arriba no sobra: en un bloque con el mismo nombre, APT
-// AÑADE a la lista en vez de sustituirla. Sin vaciarla primero, la lista de
-// fábrica —que incluye las actualizaciones normales de la estable— seguiría
-// dentro y esto no serviría de nada.
+// El «#clear» no sobra: en un bloque con el mismo nombre, APT AÑADE a la
+// lista en vez de sustituirla. Sin vaciarla primero, la lista de fábrica —que
+// incluye las actualizaciones normales de la estable— seguiría dentro y esto
+// no serviría de nada. Y tiene que ser «#clear»: asignarle una cadena vacía
+// solo cambia el valor del nodo, y la lista que cuelga de él se queda entera.
 //
 // Como el patrón exige origin=Debian, los repositorios de terceros que tengas
 // (Steam, Spotify, Claude…) quedan fuera por construcción, sin nombrarlos.
-Unattended-Upgrade::Origins-Pattern "";
+#clear Unattended-Upgrade::Origins-Pattern;
 Unattended-Upgrade::Origins-Pattern {
     "origin=Debian,codename=${distro_codename}-security,label=Debian-Security";
 };

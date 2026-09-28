@@ -52,24 +52,28 @@ un `52`, con número más alto, para que gane; y aparte, para que una
 actualización del paquete no se lo lleve por delante, que el `50` es suyo y lo
 puede reescribir cuando quiera.
 
-## La línea vacía que no sobra
+## El «#clear» que no sobra
 
 Dentro de `52parches-seguridad` hay esto, y es lo único con truco del archivo:
 
 ```
-Unattended-Upgrade::Origins-Pattern "";
+#clear Unattended-Upgrade::Origins-Pattern;
 Unattended-Upgrade::Origins-Pattern {
     "origin=Debian,codename=${distro_codename}-security,label=Debian-Security";
 };
 ```
 
-La primera línea parece basura y es la importante. En un bloque con el mismo
-nombre, APT **añade** a la lista en vez de sustituirla. Sin vaciarla antes, la
-lista de fábrica —que incluye las actualizaciones normales de la estable—
-seguiría dentro, y todo esto no serviría de nada. Se comprueba con:
+La primera línea parece un comentario y es la importante. En un bloque con el
+mismo nombre, APT **añade** a la lista en vez de sustituirla. Sin vaciarla
+antes, la lista de fábrica —que incluye las actualizaciones normales de la
+estable— seguiría dentro, y todo esto no serviría de nada.
+
+Y tiene que ser `#clear`. Asignarle una cadena vacía
+(`Origins-Pattern "";`) parece que la vacía y no: solo cambia el valor del
+nodo, y la lista que cuelga de él se queda entera. Se comprueba con:
 
 ```bash
-apt-config dump | grep -i origins-pattern
+apt-config dump | grep -i 'origins-pattern::'
 ```
 
 Debe salir **una sola línea**, y con `-security` dentro.
