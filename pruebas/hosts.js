@@ -105,6 +105,94 @@ Host *
     igual(de(r, 'b').usuario, 'propio', 'lo del bloque gana a Host *');
 });
 
+prueba('manda el primer bloque que coincide: un Host * de arriba gana al propio', async () => {
+    const r = await escanear({config: `
+Host *
+    User de-arriba
+Host a
+    User propio
+    Port 2222
+`});
+    igual([de(r, 'a').usuario, de(r, 'a').port], ['de-arriba', 2222]);
+});
+
+prueba('los patrones también dan valores, y un «!» los excluye', async () => {
+    const r = await escanear({config: `
+Host nas.casa.lan tele.casa.lan
+Host *.casa.lan !tele.casa.lan
+    User casero
+    Port 2200
+Host otro
+`});
+    igual([de(r, 'nas.casa.lan').usuario, de(r, 'nas.casa.lan').port], ['casero', 2200]);
+    igual([de(r, 'tele.casa.lan').usuario, de(r, 'tele.casa.lan').port], ['', 22], 'el negado no la aplica');
+    igual(de(r, 'otro').usuario, '');
+});
+
+prueba('los patrones admiten «?» y distinguen mayúsculas, como ssh', async () => {
+    // Comprobado con «ssh -G SRV1»: aplica «Host SRV?» y no «Host srv?».
+    const r = await escanear({config: 'Host SRV1\nHost srv?\n  User minus\nHost SRV?\n  User mayus\n'});
+    igual(de(r, 'SRV1').usuario, 'mayus');
+});
+
+prueba('ProxyCommand y ProxyJump en bloques distintos: manda el primero', async () => {
+    const r = await escanear({config: `
+Host *.interno
+    ProxyCommand nc -X 5 -x proxy:1080 %h %p
+Host db.interno
+    ProxyJump bastion
+`});
+    igual(de(r, 'db.interno').salto, 'nc');
+});
+
+prueba('lee lo mismo que ssh: se compara con «ssh -G» equipo por equipo', async () => {
+    if (!GLib.find_program_in_path('ssh'))
+        return;     // sin cliente ssh no hay con qué comparar
+
+    const r = await escanear({config: `
+Host *
+    User de-arriba
+Host a
+    User propio
+    Port 2222
+Host nas.casa.lan tele.casa.lan
+Host *.casa.lan !tele.casa.lan
+    User casero
+    Port 2200
+Host SRV1 srv2
+Host srv?
+    Port 2201
+Host SRV?
+    HostName mayusculas
+Host *.interno
+    ProxyCommand nc -X 5 -x proxy:1080 %h %p
+Host db.interno
+    ProxyJump bastion
+    HostName 10.9.9.9
+Host nas
+    HostName %h.lan
+    ProxyJump none
+Host a
+    Port 9999
+`});
+
+    const archivo = GLib.build_filenamev([SSH, `config-${vuelta}`]);
+    for (const h of r.hosts) {
+        // -G imprime la configuración resuelta sin conectar a nada.
+        const proceso = Gio.Subprocess.new(['ssh', '-F', archivo, '-G', h.alias],
+            Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE);
+        const [, salida] = proceso.communicate_utf8(null, null);
+        const g = Object.fromEntries(salida.split('\n').map(l => [l.split(' ')[0], l.slice(l.indexOf(' ') + 1)]));
+
+        const salto = g.proxyjump ??
+            (g.proxycommand ? GLib.path_get_basename(g.proxycommand.split(' ')[0]) : '');
+        // ssh pasa el HostName a minúsculas; el menú lo deja como está, que
+        // para el DNS es lo mismo.
+        igual([h.host.toLowerCase(), h.port, h.usuario, h.salto],
+            [g.hostname, Number(g.port), g.user, salto], h.alias);
+    }
+});
+
 prueba('un Match cierra el bloque de antes', async () => {
     const r = await escanear({config: 'Host a\n  HostName uno\nMatch user root\n  HostName otro\n'});
     igual(de(r, 'a').host, 'uno');

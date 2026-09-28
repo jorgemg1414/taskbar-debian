@@ -9,9 +9,10 @@
  *         User usuario
  *         Port 2222
  *
- * De cada bloque «Host» sale una entrada del menú. Los patrones con comodines
- * (`Host *`, `Host *.ejemplo.net`) no son equipos concretos: el bloque `Host *`
- * se guarda como valores por omisión y el resto se descarta.
+ * De cada alias de un bloque «Host» sale una entrada del menú. Los patrones con
+ * comodines (`Host *`, `Host *.ejemplo.net`) no son equipos concretos y no
+ * salen, pero sí dan valores: cada opción de un equipo sale del primer bloque
+ * del archivo que se le aplica, como en ssh.
  *
  * También se siguen las directivas `Include`, que es como se suele partir la
  * configuración en varios archivos.
@@ -184,29 +185,51 @@ async function listarArchivos(ruta, cancellable) {
 }
 
 /**
- * Guarda un bloque Host terminado en el acumulador, una entrada por alias.
+ * ¿Se aplica un bloque Host a un alias?
+ *
+ * Como en ssh: se aplica si alguno de sus patrones coincide y ninguno de los
+ * negados («!algo») coincide. Los comodines son «*» y «?», y las mayúsculas
+ * cuentan: con «ssh SRV1», ssh aplica «Host SRV?» y no «Host srv?». Comprobado
+ * con «ssh -G» en OpenSSH 10.
+ *
+ * @param {string[]} patrones lo que va detrás de «Host»
+ * @param {string} alias alias del equipo
+ * @returns {boolean} si el bloque cuenta para ese equipo
+ */
+function bloqueCoincide(patrones, alias) {
+    let alguno = false;
+    for (const patron of patrones) {
+        const negado = patron.startsWith('!');
+        if (!patronARegExp(negado ? patron.slice(1) : patron).test(alias))
+            continue;
+        if (negado)
+            return false;
+        alguno = true;
+    }
+    return alguno;
+}
+
+/**
+ * Guarda un bloque Host terminado en el acumulador.
+ *
+ * Todos los bloques se guardan, en el orden en que aparecen, porque de todos
+ * pueden salir valores: ssh recorre el archivo de arriba abajo y, para cada
+ * opción, se queda con el primer bloque que coincide y la da. Además, cada
+ * alias concreto —no un patrón— es una entrada del menú.
  *
  * @param {object} bloque bloque recién cerrado
  * @param {string} ruta archivo del que salió
  * @param {object} acc acumulador del escaneo
  */
 function emitirBloque(bloque, ruta, acc) {
-    for (const alias of bloque.alias) {
-        // `Host *` son los valores por omisión de todos los equipos.
-        if (alias === '*') {
-            for (const [clave, valor] of bloque.claves) {
-                if (!acc.globales.has(clave))
-                    acc.globales.set(clave, valor);
-            }
-            continue;
-        }
+    acc.bloques.push({patrones: bloque.alias, claves: bloque.claves});
 
+    for (const alias of bloque.alias) {
         if (esPatron(alias))
             continue;
 
         acc.brutos.push({
             alias,
-            claves: bloque.claves,
             grupo: bloque.grupo,
             ruta,
             linea: bloque.linea,
@@ -390,20 +413,20 @@ async function leerConfig(ruta, grupoBase, profundidad, cancellable, acc) {
  * Con `ProxyJump` es el equipo intermedio; con `ProxyCommand`, el programa que
  * hace de túnel (cloudflared, nc, otro ssh…). En los dos casos la conexión no
  * es directa y sondear el puerto desde aquí daría un rojo falso. `none` es la
- * forma de apagar lo que viniera de `Host *`.
+ * forma de apagar lo que viniera de un bloque más general.
  *
  * Las dos directivas se excluyen, y en ssh gana la que aparece antes: por eso
- * se mira primero el bloque del equipo entero, y solo después `Host *`. Un
- * `ProxyCommand` propio no lo tapa un `ProxyJump` de `Host *`.
+ * se recorren los bloques en orden y manda el primero que diga cualquiera de
+ * las dos.
  *
- * @param {Map<string, string>} propias claves del bloque del equipo
- * @param {Map<string, string>} globales claves de `Host *`
+ * @param {Map<string, string>[]} claves claves de los bloques que se aplican
+ *   al equipo, en el orden del archivo
  * @returns {string} lo que se enseña tras «⇢», o cadena vacía si es directo
  */
-function saltoDe(propias, globales) {
-    for (const claves of [propias, globales]) {
-        const salto = claves.get('proxyjump');
-        const orden = claves.get('proxycommand');
+function saltoDe(claves) {
+    for (const mapa of claves) {
+        const salto = mapa.get('proxyjump');
+        const orden = mapa.get('proxycommand');
 
         if (salto !== undefined)
             return salto.toLowerCase() === 'none' ? '' : salto;
@@ -418,20 +441,27 @@ function saltoDe(propias, globales) {
 }
 
 /**
- * Convierte un bloque en el objeto que consume el menú.
+ * Convierte un alias en el objeto que consume el menú.
  *
- * @param {object} bruto bloque acumulado durante el escaneo
- * @param {Map<string, string>} globales claves del bloque `Host *`
+ * Cada opción sale del primer bloque, en el orden del archivo, que se aplica
+ * al equipo y la da: su propio bloque, un `Host *` o un patrón como
+ * `Host *.casa.lan`. Es la regla de ssh. Un `Host *` puesto al principio, por
+ * tanto, gana al bloque del equipo, igual que en ssh.
+ *
+ * @param {object} bruto alias acumulado durante el escaneo
+ * @param {object[]} bloques todos los bloques Host, en orden
  * @returns {object} host listo para pintar
  */
-function construirHost(bruto, globales) {
-    // Los valores propios del bloque mandan; los de `Host *` son el respaldo.
-    const conRespaldo = clave => bruto.claves.get(clave) ?? globales.get(clave) ?? '';
+function construirHost(bruto, bloques) {
+    const aplicables = bloques
+        .filter(b => bloqueCoincide(b.patrones, bruto.alias))
+        .map(b => b.claves);
+    const valor = clave => aplicables.find(c => c.has(clave))?.get(clave) ?? '';
 
     // HostName admite %h, que es el alias tal cual se escribió.
-    const nombreReal = (bruto.claves.get('hostname') || bruto.alias).replace(/%h/g, bruto.alias);
+    const nombreReal = (valor('hostname') || bruto.alias).replace(/%h/g, bruto.alias);
 
-    let port = parseInt(conRespaldo('port'), 10);
+    let port = parseInt(valor('port'), 10);
     if (!Number.isFinite(port) || port <= 0 || port > 65535)
         port = PUERTO_SSH;
 
@@ -442,9 +472,9 @@ function construirHost(bruto, globales) {
         alias: bruto.alias,
         host: nombreReal.trim(),
         port,
-        usuario: conRespaldo('user'),
+        usuario: valor('user'),
         // Si hay salto, la conexión no es directa: el punto de estado no vale.
-        salto: saltoDe(bruto.claves, globales),
+        salto: saltoDe(aplicables),
         // De los comentarios «# MAC:» y «# Difusión:», para encenderlo.
         mac: bruto.mac ?? '',
         difusion: bruto.difusion ?? '',
@@ -477,7 +507,7 @@ export async function escanearHosts(rutaConfig, cancellable) {
         return {ok: false, motivo: 'inexistente', hosts: [], archivos: []};
     }
 
-    const acc = {brutos: [], archivos: [], globales: new Map(), vistos: new Set()};
+    const acc = {brutos: [], bloques: [], archivos: [], vistos: new Set()};
     await leerConfig(ruta, '', 0, cancellable, acc);
 
     if (cancellable?.is_cancelled())
@@ -490,7 +520,7 @@ export async function escanearHosts(rutaConfig, cancellable) {
         if (vistos.has(bruto.alias))
             continue;
         vistos.add(bruto.alias);
-        hosts.push(construirHost(bruto, acc.globales));
+        hosts.push(construirHost(bruto, acc.bloques));
     }
 
     // Orden alfabético por grupo y, dentro del grupo, por alias.

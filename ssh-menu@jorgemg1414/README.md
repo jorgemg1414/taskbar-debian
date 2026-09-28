@@ -108,10 +108,13 @@ in a file in another folder.
 | `ProxyJump` | Marks the machine as "through another one" and skips its check |
 | `ProxyCommand` | The same: the connection goes through that program, not directly. Its name is shown |
 
-Wildcard patterns aren't concrete machines, so they don't show up in the menu:
-`Host *` is used as defaults for the rest (typically `User` and `Port`) and
-anything else (`Host *.example.net`, `Host !something`) is dropped. `Match`
-blocks are ignored entirely, since they are conditional.
+Wildcard patterns aren't concrete machines, so they don't show up in the menu,
+but their values do count, by the same rule ssh uses: **each option comes from
+the first block in the file that applies to the machine**. A `Host *` at the
+end provides defaults (typically `User` and `Port`); one at the top beats the
+machine's own block. `Host *.home.lan` applies to anything ending that way, and
+`!something` excludes. As in ssh, case matters: `SRV1` matches `SRV?`, not
+`srv?`. `Match` blocks are ignored entirely, since they are conditional.
 
 No credential key is read: the extension never opens `IdentityFile`, never talks
 to the agent, and stores no passwords anywhere.
@@ -126,7 +129,7 @@ machines are therefore **not checked**: the dot stays grey and `⇢ <jump>` appe
 next to the alias as a reminder of the route. `ProxyCommand` gets the same
 treatment, and what appears is the program doing the tunnelling
 (`⇢ cloudflared`). `ProxyJump none` or `ProxyCommand none` cancel whatever comes
-from `Host *`.
+from a more general block.
 
 The terminal session works normally, because `ssh` opens it with your config.
 SFTP may not mount: GVfs runs its own `ssh` against the real host, without going

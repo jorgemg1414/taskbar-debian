@@ -109,9 +109,12 @@ ruta relativa en un `Include` se busca en `~/.ssh`, como hace `ssh`, aunque el
 | `ProxyCommand` | Lo mismo: la conexión va por ese programa, no directa. Se enseña su nombre |
 
 Los patrones con comodines no son equipos concretos, así que no salen en el
-menú: `Host *` se usa como valores por omisión de los demás (típicamente `User`
-y `Port`) y el resto (`Host *.ejemplo.net`, `Host !algo`) se descarta. Los
-bloques `Match` se ignoran enteros, porque son condicionales.
+menú, pero sus valores sí cuentan, con la misma regla que ssh: **cada opción sale
+del primer bloque del archivo que se aplica al equipo**. Un `Host *` al final da
+los valores por omisión (típicamente `User` y `Port`); uno al principio gana al
+bloque del propio equipo. `Host *.casa.lan` se aplica a los que acaben así, y
+`!algo` excluye. Como en ssh, las mayúsculas cuentan: `SRV1` casa con `SRV?`,
+no con `srv?`. Los bloques `Match` se ignoran enteros, porque son condicionales.
 
 Ninguna clave de credenciales se lee: la extensión no abre `IdentityFile`, ni
 habla con el agente, ni guarda contraseñas en ningún sitio.
@@ -125,7 +128,7 @@ comprobar su puerto diría que está caído aunque funcione perfectamente. Por e
 esos equipos **no se comprueban**: el punto se queda gris y a la derecha del
 alias aparece `⇢ <salto>` para recordarte por dónde va. Con `ProxyCommand` pasa
 lo mismo, y lo que aparece es el programa que hace de túnel (`⇢ cloudflared`).
-`ProxyJump none` o `ProxyCommand none` anulan lo que venga de `Host *`.
+`ProxyJump none` o `ProxyCommand none` anulan lo que venga de un bloque más general.
 
 La sesión de terminal sí funciona con normalidad, porque la abre `ssh` con tu
 configuración. El SFTP puede no montar: GVfs lanza su propio `ssh` contra el
