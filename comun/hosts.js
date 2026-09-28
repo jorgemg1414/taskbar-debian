@@ -569,9 +569,13 @@ export function crearConfigSiFalta(rutaConfig) {
     if (file.query_exists(null))
         return false;
 
+    // La carpeta con 700, que es como la quiere ssh: con los permisos por
+    // omisión (755), la carpeta con tus claves queda legible para cualquiera
+    // del equipo. Solo se aplica a las carpetas que se crean ahora; una que ya
+    // existía se queda como estaba.
     const carpeta = file.get_parent();
     if (carpeta && !carpeta.query_exists(null))
-        carpeta.make_directory_with_parents(null);
+        GLib.mkdir_with_parents(carpeta.get_path(), 0o700);
 
     file.replace_contents(
         new TextEncoder().encode(PLANTILLA_CONFIG),

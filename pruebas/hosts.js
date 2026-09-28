@@ -5,10 +5,13 @@
  * cosa, conecta a un sitio y pinta el punto de otro.
  */
 
+import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 
 import {prueba, igual, ejecutar, escribir} from './marco.js';
-import {escanearHosts, agruparHosts, uriSftp, destinoSsh, GRUPO_SIN_NOMBRE} from '../comun/hosts.js';
+import {
+    escanearHosts, agruparHosts, uriSftp, destinoSsh, crearConfigSiFalta, GRUPO_SIN_NOMBRE,
+} from '../comun/hosts.js';
 
 const SSH = GLib.build_filenamev([GLib.get_home_dir(), '.ssh']);
 let vuelta = 0;
@@ -188,6 +191,22 @@ prueba('uriSftp: usuario escapado, IPv6 entre corchetes, puerto y carpeta', () =
 prueba('destinoSsh', () => {
     igual(destinoSsh({usuario: 'ana', host: 'h'}), 'ana@h');
     igual(destinoSsh({usuario: '', host: 'h'}), 'h');
+});
+
+prueba('la configuración de ejemplo nace con 700 en la carpeta y 600 en el archivo', async () => {
+    const permisos = ruta => Gio.File.new_for_path(ruta)
+        .query_info('unix::mode', Gio.FileQueryInfoFlags.NONE, null)
+        .get_attribute_uint32('unix::mode') & 0o777;
+
+    const carpeta = GLib.build_filenamev([GLib.get_home_dir(), 'nueva', '.ssh']);
+    const archivo = GLib.build_filenamev([carpeta, 'config']);
+    igual(crearConfigSiFalta(archivo), true);
+    igual([permisos(carpeta).toString(8), permisos(archivo).toString(8)], ['700', '600']);
+
+    // La segunda vez no toca nada.
+    igual(crearConfigSiFalta(archivo), false);
+    const r = await escanearHosts(archivo, null);
+    igual(r.hosts.map(h => h.alias), ['servidor-ejemplo'], 'la plantilla se lee');
 });
 
 ejecutar();
