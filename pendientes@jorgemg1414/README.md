@@ -121,8 +121,10 @@ the row itself: you type, Enter saves and Escape leaves everything as it was.
 - **Grupo** asks two things, the name and the first task, because in the file
   they belong together: a heading with no checkbox under it wouldn't show up in
   the menu. It's written with the same heading level as the file's other groups.
-- **Borrar** takes the whole line, and is the only one that asks first: a ticked
-  task can be unticked, but a deleted one is gone.
+- **Borrar** takes the task along with whatever hangs from it — its subtasks
+  and notes — just like moving it does, and is the only one that asks first: a
+  ticked task can be unticked, but a deleted one is gone. If it has subtasks,
+  the question says how many.
 
 ### Sweeping the done ones
 

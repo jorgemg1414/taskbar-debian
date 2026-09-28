@@ -120,8 +120,10 @@ mismo hacen **Tarea** y **Grupo** al final de la lista.
   archivo van juntas: un encabezado sin ninguna casilla debajo no saldría en el
   menú. Se escribe con el mismo nivel de almohadillas que los demás grupos del
   archivo.
-- **Borrar** se lleva la línea entera y es lo único que pregunta antes: una
-  tarea marcada se desmarca, pero una borrada ya no está.
+- **Borrar** se lleva la tarea con lo que cuelga de ella —sus subtareas y sus
+  notas—, igual que al moverla, y es lo único que pregunta antes: una tarea
+  marcada se desmarca, pero una borrada ya no está. Si tiene subtareas, la
+  pregunta dice cuántas.
 
 ### Barrer las hechas
 

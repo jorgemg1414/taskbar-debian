@@ -27,7 +27,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {
     escanearTareas, agruparTareas, alternarTarea, editarTexto, anadirTarea,
-    anadirGrupo, borrarTarea, moverTarea, sangrarTarea, limpiarHechas,
+    anadirGrupo, borrarTarea, contarSubtareas, moverTarea, sangrarTarea, limpiarHechas,
     crearArchivoSiFalta, expandirRuta, SIN_SITIO,
 } from './tareas.js';
 import {SitioEnLaBarra} from './barra.js';
@@ -1078,16 +1078,21 @@ class IndicadorPendientes extends PanelMenu.Button {
      */
     _pedirBorrar(item) {
         const tarea = item.tarea;
+        // Las subtareas se van con ella, así que la pregunta lo tiene que decir.
+        const subtareas = contarSubtareas(this._tareas, tarea);
+        const coletilla = subtareas === 0 ? ''
+            : subtareas === 1 ? ` ${_('y su subtarea')}`
+                : ` ${_('y sus')} ${subtareas} ${_('subtareas')}`;
 
         this._abrirFilaBajo(item, new ItemConfirmacion({
-            pregunta: `¿${_('Borrar')} «${tarea.texto}»?`,
+            pregunta: `¿${_('Borrar')} «${tarea.texto}»${coletilla}?`,
             textoSi: _('Sí'),
             textoNo: _('No'),
             alCancelar: () => this._cerrarContexto(),
             alConfirmar: () => {
                 this._cerrarContexto();
                 this._aplicar(
-                    borrarTarea(tarea, this._cancellableAcciones),
+                    borrarTarea(tarea, subtareas, this._cancellableAcciones),
                     _('No se pudo borrar la tarea'));
             },
         }));

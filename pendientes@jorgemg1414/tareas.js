@@ -496,22 +496,59 @@ export async function editarTexto(tarea, nuevoTexto, cancellable = null) {
 }
 
 /**
- * Borra la línea de una tarea.
+ * Cuántas subtareas cuelgan de una tarea, según el escaneo.
  *
- * Se lleva la línea entera, que es lo que se espera de borrar una tarea; lo
- * demás del archivo se queda igual.
+ * Son las que la siguen en el mismo archivo más sangradas que ella, hasta la
+ * primera que no lo está. Es lo que se le enseña al usuario antes de borrar, y
+ * lo que borrarTarea() comprueba que sigue siendo verdad.
+ *
+ * @param {object[]} tareas todas las tareas del escaneo, en su orden
+ * @param {object} tarea tarea de la que se cuentan
+ * @returns {number} subtareas, a cualquier profundidad
+ */
+export function contarSubtareas(tareas, tarea) {
+    const inicio = tareas.indexOf(tarea);
+    if (inicio < 0)
+        return 0;
+
+    let cuantas = 0;
+    for (let i = inicio + 1; i < tareas.length; i++) {
+        const otra = tareas[i];
+        if (otra.ruta !== tarea.ruta || otra.sangria <= tarea.sangria)
+            break;
+        cuantas++;
+    }
+    return cuantas;
+}
+
+/**
+ * Borra una tarea y lo que cuelga de ella.
+ *
+ * Se lleva el bloque entero —sus subtareas y sus notas—, igual que al moverla:
+ * borrar solo su línea dejaría a las suyas sangradas bajo la tarea de encima,
+ * que pasaría a tener unas subtareas que nunca fueron suyas.
+ *
+ * Como borra más de una línea, se comprueba antes que las subtareas que hay
+ * son las que se contaron al preguntar: si no, no se toca nada.
  *
  * @param {object} tarea tarea tal como la leyó el escaneo
+ * @param {number} subtareas cuántas se contaron con contarSubtareas()
  * @param {Gio.Cancellable} cancellable cancelable
  * @returns {Promise<string|null>} null si se borró, o el motivo por el que no
  */
-export async function borrarTarea(tarea, cancellable = null) {
+export async function borrarTarea(tarea, subtareas = 0, cancellable = null) {
     return reescribir(tarea.ruta, lineas => {
         const partes = partesDe(lineas, tarea);
         if (typeof partes === 'string')
             return partes;
 
-        lineas.splice(tarea.linea - 1, 1);
+        const inicio = tarea.linea - 1;
+        const fin = finDelBloque(lineas, inicio);
+        const dentro = lineas.slice(inicio + 1, fin).filter(l => TAREA.test(l)).length;
+        if (dentro !== subtareas)
+            return 'lo que cuelga de la tarea no es lo que se contó: bórrala desde el editor';
+
+        lineas.splice(inicio, fin - inicio);
         return lineas;
     }, cancellable);
 }
