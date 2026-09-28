@@ -45,7 +45,7 @@ const ItemElemento = GObject.registerClass({
     Signals: {'contexto': {}},
 }, class ItemElemento extends PopupMenu.PopupBaseMenuItem {
     /**
-     * @param {object} elemento elemento leído de CopyQ (fila, texto, vacio)
+     * @param {object} elemento elemento leído de CopyQ (fila, avance, busqueda, lineas, vacio)
      */
     _init(elemento) {
         super._init();
@@ -55,7 +55,7 @@ const ItemElemento = GObject.registerClass({
         // en una fila de menú eso solo sirve para que no se lea nada. Se pinta
         // en una línea, con los espacios de sobra recogidos; el original no se
         // toca, que es lo que se copia luego.
-        const enUnaLinea = elemento.texto.replace(/\s+/g, ' ').trim();
+        const enUnaLinea = elemento.avance.replace(/\s+/g, ' ').trim();
 
         this._etiqueta = new St.Label({
             text: elemento.vacio ? _('(sin texto: imagen u otro formato)') : enUnaLinea,
@@ -70,7 +70,7 @@ const ItemElemento = GObject.registerClass({
 
         // A la derecha, cuánto hay de verdad detrás de esa línea: es la única
         // forma de distinguir un párrafo entero de la frase que se ve.
-        const lineas = elemento.texto.split('\n').length;
+        const lineas = elemento.lineas;
         if (lineas > 1) {
             this.add_child(new St.Label({
                 text: `${lineas} ${_('líneas')}`,
@@ -81,10 +81,10 @@ const ItemElemento = GObject.registerClass({
 
         this.accessible_name = elemento.vacio ? _('Elemento sin texto') : enUnaLinea;
 
-        // Para el buscador: se compara contra el texto entero, no contra lo
-        // que se ve. Buscar una palabra que estaba en la tercera línea tiene
-        // que encontrarla.
-        this.comparable = normalizar(elemento.texto);
+        // Para el buscador: se compara contra mucho más de lo que se ve.
+        // Buscar una palabra que estaba en la tercera línea tiene que
+        // encontrarla.
+        this.comparable = normalizar(elemento.busqueda);
     }
 
     /**
@@ -237,7 +237,7 @@ class IndicadorPortapapeles extends PanelMenu.Button {
 
         for (const elemento of elementos) {
             const item = new ItemElemento(elemento);
-            item.connect('activate', () => this._usar(elemento.fila));
+            item.connect('activate', () => this._usar(elemento));
             item.connect('contexto', () => this._mostrarAcciones(item, seccion));
             seccion.addMenuItem(item);
             this._items.push(item);
@@ -269,7 +269,7 @@ class IndicadorPortapapeles extends PanelMenu.Button {
             alAceptar: () => {
                 const primero = this._items.find(item => item.visible);
                 if (primero)
-                    this._usar(primero.elemento.fila);
+                    this._usar(primero.elemento);
             },
             alNavegar: delta => moverFoco({
                 items: this._items, delta, scroll: this._scroll,
@@ -399,12 +399,12 @@ class IndicadorPortapapeles extends PanelMenu.Button {
     /**
      * Copia un elemento y, si está pedido, lo pega donde estuviera el cursor.
      *
-     * @param {number} fila posición del elemento en el historial
+     * @param {object} elemento elemento tal como se leyó del historial
      */
-    async _usar(fila) {
+    async _usar(elemento) {
         this.menu.close();
 
-        const copiado = await CopyQ.elegir(fila, this._cancellable).catch(() => false);
+        const copiado = await CopyQ.elegir(elemento, this._cancellable).catch(() => false);
         if (!copiado || this._destruido)
             return;
 
@@ -446,7 +446,7 @@ class IndicadorPortapapeles extends PanelMenu.Button {
                 texto: _('Copiar'),
                 alPulsar: () => {
                     this.menu.close();
-                    CopyQ.elegir(item.elemento.fila, this._cancellable).catch(() => {});
+                    CopyQ.elegir(item.elemento, this._cancellable).catch(() => {});
                 },
             },
             {
@@ -454,7 +454,7 @@ class IndicadorPortapapeles extends PanelMenu.Button {
                 texto: _('Quitar'),
                 peligrosa: true,
                 alPulsar: async () => {
-                    await CopyQ.quitar(item.elemento.fila, this._cancellable).catch(() => {});
+                    await CopyQ.quitar(item.elemento, this._cancellable).catch(() => {});
                     if (!this._destruido && this.menu.isOpen)
                         this._refrescar();
                 },

@@ -36,7 +36,7 @@ vigilancia del portapapeles. Se lee al abrir el menú, y ya.
 |---|---|
 | **Clic en un elemento** | Lo copia al portapapeles y cierra el menú. Con *Pegar al elegir* activado, además lo pega donde estuvieras |
 | **Clic derecho en un elemento** | Abre debajo sus dos acciones: **Copiar** (sin pegar) y **Quitar** |
-| **Escribir en el buscador** | Filtra por el **texto entero** del elemento, no solo por la línea que se ve. `↓`/`↑` recorren la lista e `Intro` usa el primero |
+| **Escribir en el buscador** | Filtra por el **texto del elemento** —sus primeros 20 000 caracteres—, no solo por la línea que se ve. `↓`/`↑` recorren la lista e `Intro` usa el primero |
 | **Abrir CopyQ** | La ventana entera, para lo que no cabe en el menú |
 | **Vaciar** | Borra el historial. Pregunta antes, en el propio menú |
 

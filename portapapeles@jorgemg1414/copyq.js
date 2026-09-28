@@ -20,6 +20,63 @@ import {comunicar} from './asyncgio.js';
 
 const PROGRAMA = 'copyq';
 
+// Caracteres del principio de cada elemento que se piden para pintarlo. La
+// fila es de una línea y se corta con «…»: más no se vería.
+const LARGO_AVANCE = 300;
+
+// Caracteres que se piden para el buscador. CopyQ guarda elementos de hasta
+// medio mega, y pedirlos enteros cada vez que se abre el menú era pasar
+// megas por la tubería y meterlos en etiquetas que no enseñan casi nada.
+// Con esto se sigue encontrando una palabra de la tercera línea de un párrafo;
+// la del final de un log de medio mega, no.
+const LARGO_BUSQUEDA = 20000;
+
+/**
+ * Convierte un texto en un literal de cadena para meterlo en un guion.
+ *
+ * JSON sirve de literal JavaScript salvo por dos caracteres, los separadores
+ * de línea y párrafo de Unicode, que el motor de CopyQ no acepta dentro de una
+ * cadena.
+ *
+ * @param {string} texto texto a meter
+ * @returns {string} literal listo para el guion
+ */
+function literal(texto) {
+    return JSON.stringify(texto)
+        .replace(/\u2028/g, '\\u2028')
+        .replace(/\u2029/g, '\\u2029');
+}
+
+/**
+ * Trozo de guion que localiza un elemento por lo que se leyó de él.
+ *
+ * Las filas se mueven: copiar algo con el menú abierto mete una fila arriba y
+ * empuja las demás. Así que antes de elegir o quitar se mira que en esa fila
+ * siga estando lo mismo; si no, se busca dónde ha ido a parar. Si ya no está,
+ * «fila» queda en -1 y no se toca nada.
+ *
+ * @param {{fila: number, avance: string}} elemento elemento tal como se leyó
+ * @returns {string} guion que deja la posición buena en la variable «fila»
+ */
+function guionLocalizar({fila, avance}) {
+    return `
+        var avance = ${literal(avance)};
+        var de = function (i) {
+            return str(read('text/plain', i)).substring(0, ${LARGO_AVANCE});
+        };
+        var fila = ${Math.max(0, Math.trunc(fila))};
+        if (fila >= size() || de(fila) !== avance) {
+            fila = -1;
+            for (var i = 0; i < size(); ++i) {
+                if (de(i) === avance) {
+                    fila = i;
+                    break;
+                }
+            }
+        }
+    `;
+}
+
 /** En qué situación está CopyQ cuando se le pregunta. */
 export const ESTADO = {
     LISTO: 'listo',                 // contesta y ha devuelto el historial
@@ -82,14 +139,23 @@ export async function leerHistorial({maximo}, cancellable) {
     if (!estaInstalado())
         return {estado: ESTADO.SIN_PROGRAMA, total: 0, elementos: []};
 
+    // Se devuelve ya recortado: el avance para pintar, el número de líneas del
+    // texto entero y un trozo largo para buscar. Lo pesado se queda en CopyQ.
     const guion = `
         var maximo = ${Math.max(1, maximo)};
         var total = size();
         var n = Math.min(total, maximo);
-        var textos = [];
-        for (var i = 0; i < n; ++i)
-            textos.push(str(read('text/plain', i)));
-        print(JSON.stringify({total: total, textos: textos}));
+        var elementos = [];
+        for (var i = 0; i < n; ++i) {
+            var texto = str(read('text/plain', i));
+            elementos.push({
+                avance: texto.substring(0, ${LARGO_AVANCE}),
+                busqueda: texto.substring(0, ${LARGO_BUSQUEDA}),
+                lineas: texto.split('\\n').length,
+                vacio: texto.length === 0
+            });
+        }
+        print(JSON.stringify({total: total, elementos: elementos}));
     `;
 
     let resultado;
@@ -107,10 +173,12 @@ export async function leerHistorial({maximo}, cancellable) {
 
     try {
         const datos = JSON.parse(resultado.salida);
-        const elementos = datos.textos.map((texto, fila) => ({
+        const elementos = datos.elementos.map((e, fila) => ({
             fila,
-            texto,
-            vacio: texto.length === 0,
+            avance: e.avance,
+            busqueda: e.busqueda,
+            lineas: e.lineas,
+            vacio: e.vacio,
         }));
         return {estado: ESTADO.LISTO, total: datos.total, elementos};
     } catch {
@@ -126,16 +194,19 @@ export async function leerHistorial({maximo}, cancellable) {
  * Si esta versión no lo tuviera, queda el texto, que es lo que se ve en el
  * menú y lo que el usuario espera.
  *
- * @param {number} fila posición en el historial, empezando por 0
+ * @param {{fila: number, avance: string}} elemento elemento tal como se leyó
  * @param {Gio.Cancellable} cancellable cancelable
  * @returns {Promise<boolean>} si se pudo
  */
-export async function elegir(fila, cancellable) {
+export async function elegir(elemento, cancellable) {
     const guion = `
+        ${guionLocalizar(elemento)}
+        if (fila < 0)
+            fail();
         try {
-            select(${fila});
+            select(fila);
         } catch (e) {
-            copy(str(read('text/plain', ${fila})));
+            copy(str(read('text/plain', fila)));
         }
     `;
     const {codigo} = await evaluar(guion, cancellable);
@@ -159,12 +230,18 @@ export async function pegar(cancellable) {
 /**
  * Borra un elemento del historial.
  *
- * @param {number} fila posición en el historial
+ * @param {{fila: number, avance: string}} elemento elemento tal como se leyó
  * @param {Gio.Cancellable} cancellable cancelable
  * @returns {Promise<boolean>} si se pudo
  */
-export async function quitar(fila, cancellable) {
-    const {codigo} = await evaluar(`remove(${fila});`, cancellable);
+export async function quitar(elemento, cancellable) {
+    const guion = `
+        ${guionLocalizar(elemento)}
+        if (fila < 0)
+            fail();
+        remove(fila);
+    `;
+    const {codigo} = await evaluar(guion, cancellable);
     return codigo === 0;
 }
 

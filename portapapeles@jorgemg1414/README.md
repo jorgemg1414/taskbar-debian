@@ -38,7 +38,7 @@ It reads when the menu opens, and that's it.
 |---|---|
 | **Click an item** | Copies it to the clipboard and closes the menu. With *Pegar al elegir* on, it also pastes it where you were |
 | **Right-click an item** | Opens its two actions underneath: **Copiar** (without pasting) and **Quitar** |
-| **Typing in the search box** | Filters on the item's **whole text**, not just the line you can see. `↓`/`↑` walk the list and `Enter` uses the first one |
+| **Typing in the search box** | Filters on the **item's text** — its first 20,000 characters — not just the line you can see. `↓`/`↑` walk the list and `Enter` uses the first one |
 | **Abrir CopyQ** | The full window, for what doesn't fit in the menu |
 | **Vaciar** | Clears the history. It asks first, in the menu itself |
 
