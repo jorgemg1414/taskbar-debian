@@ -41,7 +41,9 @@ $udp = New-Object System.Net.Sockets.UdpClient
 try {
     # Sin esto Windows rechaza el envio a una direccion de difusion.
     $udp.EnableBroadcast = $true
-    $udp.Send($paquete, $paquete.Length, $Destino, $Puerto) | Out-Null
+    # Tres veces, como la extension: es UDP sin respuesta, y uno perdido es un
+    # equipo que no se enciende sin que nada lo diga.
+    1..3 | ForEach-Object { $udp.Send($paquete, $paquete.Length, $Destino, $Puerto) | Out-Null }
 } finally {
     $udp.Close()
 }

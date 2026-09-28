@@ -40,7 +40,10 @@ s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 # Sin esto el núcleo rechaza el envío a una dirección de difusión.
 s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 try:
-    s.sendto(paquete, (destino, puerto))
+    # Tres veces, como la extensión: es UDP sin respuesta, y uno perdido es un
+    # equipo que no se enciende sin que nada lo diga.
+    for _ in range(3):
+        s.sendto(paquete, (destino, puerto))
 finally:
     s.close()
 

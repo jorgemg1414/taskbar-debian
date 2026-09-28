@@ -3,9 +3,11 @@
  * sale la MAC con la que se enciende cada equipo.
  */
 
+import Gio from 'gi://Gio';
+
 import {prueba, igual, ejecutar} from './marco.js';
 import {
-    parsearMac, formatearMac, parsearSonda, parsearTablaArp, datosWolDe, esIPv4,
+    despertar, parsearMac, formatearMac, parsearSonda, parsearTablaArp, datosWolDe, esIPv4,
     PUERTO_POR_DEFECTO, PUERTO_SONDA,
 } from '../comun/wol.js';
 
@@ -60,6 +62,38 @@ prueba('manda la MAC del propio bloque, luego la de Wake on LAN, luego la aprend
 prueba('en Wake on LAN también se empareja por el host, no solo por el alias', () => {
     const equipos = [{nombre: '10.0.0.9', mac: '44:44:44:44:44:44', destino: '', puerto: 9}];
     igual(datosWolDe({nombre: 'servidor', host: '10.0.0.9', mac: ''}, equipos)?.mac, '44:44:44:44:44:44');
+});
+
+prueba('el paquete mágico: 102 bytes, y se manda tres veces', async () => {
+    // Un socket en la máquina propia hace de tarjeta de red dormida.
+    const oido = Gio.Socket.new(Gio.SocketFamily.IPV4, Gio.SocketType.DATAGRAM, Gio.SocketProtocol.UDP);
+    oido.bind(Gio.InetSocketAddress.new_from_string('127.0.0.1', 0), false);
+    const puerto = oido.get_local_address().get_port();
+
+    igual(await despertar({mac: '01:02:03:04:05:06', destino: '127.0.0.1', puerto}), null);
+
+    const recibidos = [];
+    for (;;) {
+        let bytes;
+        try {
+            bytes = oido.receive_bytes(1024, 200000, null);
+        } catch {
+            break;          // se agotó la espera: no llegan más
+        }
+        recibidos.push(bytes.toArray());
+    }
+    oido.close();
+
+    igual(recibidos.length, 3, 'paquetes que llegaron');
+    const paquete = [...recibidos[0]];
+    igual(paquete.length, 102);
+    igual(paquete.slice(0, 6), [255, 255, 255, 255, 255, 255]);
+    igual(paquete.slice(6, 12), [1, 2, 3, 4, 5, 6]);
+    igual(paquete.slice(96), [1, 2, 3, 4, 5, 6], 'la MAC, dieciséis veces');
+});
+
+prueba('una MAC mala no manda nada y dice por qué', async () => {
+    igual(await despertar({mac: 'zz', destino: '127.0.0.1', puerto: 9}), 'MAC no válida: «zz»');
 });
 
 ejecutar();

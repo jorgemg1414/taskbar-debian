@@ -44,6 +44,9 @@ const FRESCURA_MAC_S = 3600;
 // Cuántas MAC aprendidas se recuerdan. Al pasarse, se olvidan las más viejas.
 const MAX_MACS = 200;
 
+// Cuántas veces se manda el paquete mágico en cada encendido.
+const REPETICIONES = 3;
+
 // Puerto habitual del paquete mágico. El 7 (echo) también se usa.
 export const PUERTO_POR_DEFECTO = 9;
 
@@ -154,8 +157,14 @@ export async function despertar({mac, destino, puerto}, cancellable = null) {
         // Sin esto el núcleo rechaza el envío a una dirección de difusión.
         socket.set_broadcast(true);
 
-        socket.send_to(
-            Gio.InetSocketAddress.new(inet, numero), construirPaquete(bytes), cancellable);
+        // Varias veces: es UDP a una tarjeta dormida, sin respuesta ni
+        // reintento, y un paquete perdido en un conmutador ocupado es un
+        // equipo que no se enciende sin que nada lo diga. Repetirlo no hace
+        // daño: una tarjeta ya despierta ignora el resto.
+        const direccion = Gio.InetSocketAddress.new(inet, numero);
+        const paquete = construirPaquete(bytes);
+        for (let i = 0; i < REPETICIONES; i++)
+            socket.send_to(direccion, paquete, cancellable);
         return null;
     } catch (e) {
         return e.message;

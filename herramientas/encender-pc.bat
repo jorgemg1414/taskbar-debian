@@ -62,7 +62,7 @@ echo.
 echo   Encendiendo %NOMBRE% (%MAC%)...
 echo.
 
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$h = $env:MAC.Trim().Replace(':','').Replace('-','').Replace('.',''); if ($h.Length -ne 12) { Write-Host '  MAC no valida' -ForegroundColor Red; exit 1 }; $u = New-Object System.Net.Sockets.UdpClient; $u.EnableBroadcast = $true; try { $b = @(); for ($i=0; $i -lt 12; $i+=2) { $b += [byte]::Parse($h.Substring($i,2),'HexNumber') }; $m = @(); 1..6 | ForEach-Object { $m += [byte]255 }; 1..16 | ForEach-Object { $m += $b }; $u.Send([byte[]]$m, $m.Count, '%DESTINO%', %PUERTO%) | Out-Null; Write-Host ('  Paquete enviado: ' + $m.Count + ' bytes a %DESTINO%:%PUERTO%') -ForegroundColor Green } catch { Write-Host ('  Fallo: ' + $_.Exception.Message) -ForegroundColor Red } finally { $u.Close() }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$h = $env:MAC.Trim().Replace(':','').Replace('-','').Replace('.',''); if ($h.Length -ne 12) { Write-Host '  MAC no valida' -ForegroundColor Red; exit 1 }; $u = New-Object System.Net.Sockets.UdpClient; $u.EnableBroadcast = $true; try { $b = @(); for ($i=0; $i -lt 12; $i+=2) { $b += [byte]::Parse($h.Substring($i,2),'HexNumber') }; $m = @(); 1..6 | ForEach-Object { $m += [byte]255 }; 1..16 | ForEach-Object { $m += $b }; 1..3 | ForEach-Object { $u.Send([byte[]]$m, $m.Count, '%DESTINO%', %PUERTO%) | Out-Null }; Write-Host ('  Paquete enviado: ' + $m.Count + ' bytes a %DESTINO%:%PUERTO%') -ForegroundColor Green } catch { Write-Host ('  Fallo: ' + $_.Exception.Message) -ForegroundColor Red } finally { $u.Close() }"
 
 echo.
 echo   El protocolo no responde: esto confirma que el paquete salio,
