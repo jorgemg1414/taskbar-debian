@@ -257,7 +257,9 @@ export function parsearVitales(texto) {
 
         const clave = linea.slice(0, corte).trim();
         const valor = linea.slice(corte + 1).trim();
-        const numeros = valor.split(/\s+/).map(Number);
+        // Un valor vacío no es un cero: Number('') da 0, y un «arranque=» sin
+        // nada detrás pintaría el equipo como recién encendido.
+        const numeros = valor === '' ? [] : valor.split(/\s+/).map(Number);
 
         switch (clave) {
         case 'so':
@@ -271,7 +273,7 @@ export function parsearVitales(texto) {
                 datos.arranque = numeros[0];
             break;
         case 'carga':
-            if (numeros.every(n => Number.isFinite(n)))
+            if (numeros.length === 3 && numeros.every(n => Number.isFinite(n)))
                 datos.carga = numeros;
             break;
         case 'cpu':
