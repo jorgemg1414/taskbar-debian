@@ -37,6 +37,9 @@ valor_de() {
 
 creados=0
 omitidos=0
+# Perfiles escritos en esta pasada: dos .vnc con el mismo nombre en carpetas
+# distintas irían al mismo .remmina, y el segundo borraría el primero.
+declare -A escritos=()
 
 while IFS= read -r -d '' vnc; do
     nombre="$(basename "$vnc")"
@@ -62,6 +65,21 @@ while IFS= read -r -d '' vnc; do
 
     destino="$DESTINO/${nombre}.remmina"
 
+    if [[ -n "${escritos[$destino]:-}" ]]; then
+        aviso "Nombre repetido, se omite: $relativa (ya salió de ${escritos[$destino]})"
+        omitidos=$((omitidos + 1))
+        continue
+    fi
+    escritos[$destino]="$relativa"
+
+    # «password=.» es la marca de Remmina para «la contraseña está en el
+    # llavero», y la pone guardar-password.sh. Si el perfil ya la tenía, se
+    # conserva: sin ella, Remmina deja de mirar el llavero y la vuelve a pedir.
+    clave=''
+    if [[ -f "$destino" ]] && grep -qx 'password=\.' "$destino"; then
+        clave='.'
+    fi
+
     cat > "$destino" <<EOF
 [remmina]
 name=$nombre
@@ -69,7 +87,7 @@ protocol=VNC
 server=$servidor
 username=$usuario
 group=$grupo
-password=
+password=$clave
 colordepth=32
 quality=9
 viewmode=1
@@ -85,7 +103,7 @@ done < <(find "$ORIGEN" -type f -iname '*.vnc' -print0 | sort -z)
 
 echo
 verde "Perfiles creados: $creados en $DESTINO"
-[[ $omitidos -gt 0 ]] && aviso "Omitidos por no tener Host=: $omitidos"
+[[ $omitidos -gt 0 ]] && aviso "Omitidos (sin Host= o con el nombre repetido): $omitidos"
 
 cat <<'FIN'
 

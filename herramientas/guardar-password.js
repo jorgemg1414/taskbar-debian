@@ -14,6 +14,11 @@
  * «org.remmina.Password» y los atributos:
  *     filename = ruta absoluta del perfil
  *     key      = "password"
+ *
+ * Pero solo la busca si el perfil lleva «password=.»: ese punto es la marca
+ * de «está en el llavero». Con el campo vacío, Remmina no pregunta al llavero
+ * y pide la contraseña al conectar. Por eso, tras guardar cada una, se pone la
+ * marca en su perfil.
  */
 
 import GLib from 'gi://GLib';
@@ -29,6 +34,34 @@ const ESQUEMA = new Secret.Schema(
         'filename': Secret.SchemaAttributeType.STRING,
         'key': Secret.SchemaAttributeType.STRING,
     });
+
+/**
+ * Pone la marca «password=.» en un perfil, para que Remmina vaya al llavero.
+ *
+ * Se toca solo esa línea; si el perfil no la tiene, se añade detrás de la
+ * cabecera [remmina]. El resto del archivo se queda como estaba.
+ *
+ * @param {string} ruta ruta absoluta del perfil
+ */
+function marcarEnLlavero(ruta) {
+    const file = Gio.File.new_for_path(ruta);
+    const [, contenido] = file.load_contents(null);
+    const texto = new TextDecoder().decode(contenido);
+
+    let nuevo;
+    if (/^password=[^\r\n]*/m.test(texto))
+        nuevo = texto.replace(/^password=[^\r\n]*/m, 'password=.');
+    else if (/^\[remmina\][ \t]*$/m.test(texto))
+        nuevo = texto.replace(/^\[remmina\][ \t]*$/m, '[remmina]\npassword=.');
+    else
+        throw new Error('no tiene la sección [remmina]');
+
+    if (nuevo !== texto) {
+        // PRIVATE: el perfil se queda con permisos 600, como lo deja Remmina.
+        file.replace_contents(new TextEncoder().encode(nuevo), null, false,
+            Gio.FileCreateFlags.PRIVATE, null);
+    }
+}
 
 /**
  * Lee toda la entrada estándar sin mostrarla.
@@ -76,6 +109,7 @@ for (const perfil of perfiles) {
             `Remmina: ${nombre} - password`,
             clave,
             null);
+        marcarEnLlavero(ruta);
         guardados++;
     } catch (e) {
         printerr(`No se pudo guardar «${nombre}»: ${e.message}`);
