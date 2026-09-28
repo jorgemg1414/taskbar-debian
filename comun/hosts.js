@@ -242,18 +242,19 @@ function emitirBloque(bloque, ruta, acc) {
 /**
  * Resuelve una directiva `Include` y lee los archivos que apunta.
  *
- * Las rutas relativas van contra la carpeta del archivo que incluye (que es lo
- * que hace OpenSSH con la configuración del usuario), y se admiten comodines
- * en el último tramo de la ruta.
+ * Las rutas relativas van contra ~/.ssh, que es lo que hace OpenSSH con la
+ * configuración del usuario: no contra la carpeta del archivo que incluye. Un
+ * `Include otro.conf` dentro de ~/.ssh/config.d/trabajo.conf busca
+ * ~/.ssh/otro.conf, no ~/.ssh/config.d/otro.conf. Se admiten comodines en el
+ * último tramo de la ruta.
  *
  * @param {string} patrones valor de la directiva (puede llevar varios patrones)
- * @param {string} rutaPadre archivo que contiene el Include
  * @param {number} profundidad nivel actual de anidamiento
  * @param {Gio.Cancellable} cancellable cancelable
  * @param {object} acc acumulador del escaneo
  * @returns {Promise<void>} promesa resuelta al terminar
  */
-async function resolverInclude(patrones, rutaPadre, profundidad, cancellable, acc) {
+async function resolverInclude(patrones, profundidad, cancellable, acc) {
     for (const trozo of patrones.split(/\s+/)) {
         if (!trozo)
             continue;
@@ -262,7 +263,7 @@ async function resolverInclude(patrones, rutaPadre, profundidad, cancellable, ac
         if (ruta.startsWith('~'))
             ruta = expandirRuta(ruta);
         else if (!GLib.path_is_absolute(ruta))
-            ruta = GLib.build_filenamev([GLib.path_get_dirname(rutaPadre), ruta]);
+            ruta = GLib.build_filenamev([GLib.get_home_dir(), '.ssh', ruta]);
 
         if (!/[*?]/.test(ruta)) {
             await leerConfig(ruta, grupoDeArchivo(ruta), profundidad + 1, cancellable, acc);
@@ -395,7 +396,7 @@ async function leerConfig(ruta, grupoBase, profundidad, cancellable, acc) {
             cerrarBloque();
         } else if (clave === 'include') {
             cerrarBloque();
-            await resolverInclude(valor, canonica, profundidad, cancellable, acc);
+            await resolverInclude(valor, profundidad, cancellable, acc);
         } else if (bloque && !bloque.claves.has(clave)) {
             // ssh se queda con el primer valor de cada clave, no con el último.
             bloque.claves.set(clave, valor);
@@ -403,6 +404,31 @@ async function leerConfig(ruta, grupoBase, profundidad, cancellable, acc) {
     }
 
     cerrarBloque();
+}
+
+/**
+ * Por dónde se llega a un equipo que no está a un salto directo.
+ *
+ * Con `ProxyJump` es el equipo intermedio; con `ProxyCommand`, el programa que
+ * hace de túnel (cloudflared, nc, otro ssh…). En los dos casos la conexión no
+ * es directa y sondear el puerto desde aquí daría un rojo falso. `none` es la
+ * forma de apagar lo que viniera de `Host *`.
+ *
+ * @param {Function} conRespaldo lee una clave del bloque o de `Host *`
+ * @returns {string} lo que se enseña tras «⇢», o cadena vacía si es directo
+ */
+function saltoDe(conRespaldo) {
+    const salto = conRespaldo('proxyjump');
+    if (salto && salto.toLowerCase() !== 'none')
+        return salto;
+
+    const orden = conRespaldo('proxycommand');
+    if (orden && orden.toLowerCase() !== 'none') {
+        const programa = orden.trim().split(/\s+/)[0];
+        return GLib.path_get_basename(programa);
+    }
+
+    return '';
 }
 
 /**
@@ -432,7 +458,7 @@ function construirHost(bruto, globales) {
         port,
         usuario: conRespaldo('user'),
         // Si hay salto, la conexión no es directa: el punto de estado no vale.
-        salto: bruto.claves.get('proxyjump') ?? '',
+        salto: saltoDe(conRespaldo),
         // De los comentarios «# MAC:» y «# Difusión:», para encenderlo.
         mac: bruto.mac ?? '',
         difusion: bruto.difusion ?? '',

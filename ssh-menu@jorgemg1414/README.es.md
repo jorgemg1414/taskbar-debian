@@ -91,7 +91,9 @@ Es un comentario normal: `ssh` lo ignora, así que no rompe nada.
 
 Si tienes la configuración partida con `Include`, los equipos de cada archivo
 incluido se agrupan por el nombre del archivo sin extensión (`clientes.conf` →
-grupo *clientes*), salvo que el propio archivo traiga sus líneas de grupo.
+grupo *clientes*), salvo que el propio archivo traiga sus líneas de grupo. Una
+ruta relativa en un `Include` se busca en `~/.ssh`, como hace `ssh`, aunque el
+`Include` esté dentro de un archivo de otra carpeta.
 
 ---
 
@@ -104,6 +106,7 @@ grupo *clientes*), salvo que el propio archivo traiga sus líneas de grupo.
 | `Port` | Puerto de la comprobación y del SFTP; se muestra si no es el 22 |
 | `User` | Usuario que se muestra y que va en la URL de SFTP |
 | `ProxyJump` | Marca el equipo como «a través de otro» y se salta su comprobación |
+| `ProxyCommand` | Lo mismo: la conexión va por ese programa, no directa. Se enseña su nombre |
 
 Los patrones con comodines no son equipos concretos, así que no salen en el
 menú: `Host *` se usa como valores por omisión de los demás (típicamente `User`
@@ -120,7 +123,9 @@ habla con el agente, ni guarda contraseñas en ningún sitio.
 Un equipo con `ProxyJump` no acepta conexión directa desde tu máquina, así que
 comprobar su puerto diría que está caído aunque funcione perfectamente. Por eso
 esos equipos **no se comprueban**: el punto se queda gris y a la derecha del
-alias aparece `⇢ <salto>` para recordarte por dónde va.
+alias aparece `⇢ <salto>` para recordarte por dónde va. Con `ProxyCommand` pasa
+lo mismo, y lo que aparece es el programa que hace de túnel (`⇢ cloudflared`).
+`ProxyJump none` o `ProxyCommand none` anulan lo que venga de `Host *`.
 
 La sesión de terminal sí funciona con normalidad, porque la abre `ssh` con tu
 configuración. El SFTP puede no montar: GVfs lanza su propio `ssh` contra el
@@ -330,7 +335,7 @@ journalctl -f -o cat /usr/bin/gnome-shell
 ```
 
 Si un equipo sale gris con las comprobaciones activadas, mira si tiene
-`ProxyJump`: esos no se comprueban a propósito.
+`ProxyJump` o `ProxyCommand`: esos no se comprueban a propósito.
 
 Si el SFTP no monta, prueba lo mismo a mano para ver el error de verdad:
 

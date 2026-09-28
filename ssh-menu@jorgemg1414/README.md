@@ -91,7 +91,9 @@ It's an ordinary comment: `ssh` ignores it, so nothing breaks.
 
 If your config is split with `Include`, machines from each included file are
 grouped by the file name without its extension (`clients.conf` → *clients*
-group), unless that file brings its own group lines.
+group), unless that file brings its own group lines. A relative path in an
+`Include` is looked up in `~/.ssh`, as `ssh` does, even when the `Include` sits
+in a file in another folder.
 
 ---
 
@@ -104,6 +106,7 @@ group), unless that file brings its own group lines.
 | `Port` | Port for the check and for SFTP; shown when it isn't 22 |
 | `User` | User shown in the row and used in the SFTP URL |
 | `ProxyJump` | Marks the machine as "through another one" and skips its check |
+| `ProxyCommand` | The same: the connection goes through that program, not directly. Its name is shown |
 
 Wildcard patterns aren't concrete machines, so they don't show up in the menu:
 `Host *` is used as defaults for the rest (typically `User` and `Port`) and
@@ -120,7 +123,10 @@ to the agent, and stores no passwords anywhere.
 A machine with `ProxyJump` doesn't accept a direct connection from yours, so
 checking its port would report it down even when it works perfectly. Those
 machines are therefore **not checked**: the dot stays grey and `⇢ <jump>` appears
-next to the alias as a reminder of the route.
+next to the alias as a reminder of the route. `ProxyCommand` gets the same
+treatment, and what appears is the program doing the tunnelling
+(`⇢ cloudflared`). `ProxyJump none` or `ProxyCommand none` cancel whatever comes
+from `Host *`.
 
 The terminal session works normally, because `ssh` opens it with your config.
 SFTP may not mount: GVfs runs its own `ssh` against the real host, without going
@@ -330,8 +336,8 @@ Extension errors:
 journalctl -f -o cat /usr/bin/gnome-shell
 ```
 
-If a machine shows grey with checks enabled, look for `ProxyJump`: those are
-skipped on purpose.
+If a machine shows grey with checks enabled, look for `ProxyJump` or
+`ProxyCommand`: those are skipped on purpose.
 
 If SFTP won't mount, try the same thing by hand to see the real error:
 
