@@ -24,6 +24,7 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 
 import {queryInfo, enumerateChildren, nextFiles, closeEnumerator, loadContents} from './asyncgio.js';
+import {expandirRuta} from './rutas.js';
 
 // Etiqueta usada cuando un host no pertenece a ningún grupo.
 export const GRUPO_SIN_NOMBRE = 'Sin grupo';
@@ -63,29 +64,6 @@ Host *
     ServerAliveInterval 60
     ServerAliveCountMax 3
 `;
-
-/**
- * Expande '~' al directorio personal y normaliza la ruta.
- *
- * @param {string} ruta ruta tal cual viene de GSettings
- * @returns {string} ruta absoluta
- */
-export function expandirRuta(ruta) {
-    if (!ruta)
-        return '';
-
-    let r = ruta.trim();
-    if (r === '~')
-        r = GLib.get_home_dir();
-    else if (r.startsWith('~/'))
-        r = GLib.build_filenamev([GLib.get_home_dir(), r.slice(2)]);
-
-    // Permite rutas relativas al home por comodidad (p. ej. ".ssh/config").
-    if (!GLib.path_is_absolute(r))
-        r = GLib.build_filenamev([GLib.get_home_dir(), r]);
-
-    return r;
-}
 
 /**
  * Quita las comillas que OpenSSH admite alrededor de un valor.

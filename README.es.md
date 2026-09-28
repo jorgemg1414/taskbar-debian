@@ -443,7 +443,9 @@ taskbar-debian/
 │   ├── barraprefs.js      Las dos filas de preferencias que lo eligen
 │   ├── checker.js         Comprobación de puertos, asíncrona y cancelable
 │   ├── hosts.js           Lectura y parseo de ~/.ssh/config
+│   ├── lanzar.js          Abrir un programa desde una orden de los ajustes
 │   ├── mpris.js           Qué suena, control del reproductor y pausar todo
+│   ├── rutas.js           Rutas de los ajustes, pasadas a absolutas
 │   └── wol.js             Paquete mágico, equipos y MAC aprendidas del ARP
 ├── ssh-menu@jorgemg1414/  SSH Menu (ver su propio README)
 ├── wol-menu@jorgemg1414/  Wake on LAN (ver su propio README)

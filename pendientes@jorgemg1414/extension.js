@@ -28,8 +28,10 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {
     escanearTareas, agruparTareas, alternarTarea, editarTexto, anadirTarea,
     anadirGrupo, borrarTarea, contarSubtareas, moverTarea, sangrarTarea, limpiarHechas,
-    crearArchivoSiFalta, expandirRuta, SIN_SITIO,
+    crearArchivoSiFalta, SIN_SITIO,
 } from './tareas.js';
+import {expandirRuta} from './rutas.js';
+import {lanzarPrimera, ALTERNATIVAS_EDITOR} from './lanzar.js';
 import {SitioEnLaBarra} from './barra.js';
 import {
     ItemAcciones, ItemBuscador, ItemConfirmacion, crearInsignia, pintarInsignia,
@@ -39,14 +41,6 @@ import {
 // Milisegundos que se espera tras un cambio en los archivos antes de recargar
 // (los editores guardan en varios pasos).
 const RETARDO_RECARGA_MS = 700;
-
-// Editores alternativos, por si el configurado no está instalado.
-const ALTERNATIVAS_EDITOR = [
-    'gnome-text-editor %f',
-    'gedit %f',
-    'kate %f',
-    'xdg-open %f',
-];
 
 /* -------------------------------------------------------------------------
  * Elemento de menú de una tarea: casilla + texto + archivo
@@ -1301,7 +1295,7 @@ class IndicadorPendientes extends PanelMenu.Button {
         }
 
         const configurado = this._settings.get_string('editor-command');
-        if (this._lanzar([configurado, ...ALTERNATIVAS_EDITOR], {'%f': archivo}))
+        if (lanzarPrimera([configurado, ...ALTERNATIVAS_EDITOR], {'%f': archivo}, 'pendientes'))
             return;
 
         // Reserva: la aplicación predeterminada del sistema.
@@ -1311,45 +1305,6 @@ class IndicadorPendientes extends PanelMenu.Button {
         } catch (e) {
             Main.notifyError('Pendientes', `${_('No se pudo abrir')} ${archivo}: ${e.message}`);
         }
-    }
-
-    /**
-     * Ejecuta la primera plantilla cuyo programa esté instalado.
-     *
-     * La sustitución se hace DESPUÉS de trocear la orden, de modo que una ruta
-     * con espacios no pueda convertirse en argumentos extra.
-     *
-     * @param {string[]} plantillas órdenes candidatas, en orden de preferencia
-     * @param {object} valores marcadores de sustitución
-     * @returns {boolean} si se pudo lanzar alguna
-     */
-    _lanzar(plantillas, valores) {
-        for (const plantilla of plantillas) {
-            if (!plantilla)
-                continue;
-
-            let argv;
-            try {
-                const [ok, troceado] = GLib.shell_parse_argv(plantilla);
-                if (!ok || troceado.length === 0)
-                    continue;
-                argv = troceado.map(arg => arg.replace(/%[f]/g, marca => valores[marca] ?? marca));
-            } catch (e) {
-                console.warn(`[pendientes] Comando mal escrito «${plantilla}»: ${e.message}`);
-                continue;
-            }
-
-            if (!GLib.find_program_in_path(argv[0]))
-                continue;
-
-            try {
-                Gio.Subprocess.new(argv, Gio.SubprocessFlags.NONE);
-                return true;
-            } catch (e) {
-                console.warn(`[pendientes] Falló «${argv.join(' ')}»: ${e.message}`);
-            }
-        }
-        return false;
     }
 
     /* --------------------------- Limpieza ---------------------------- */

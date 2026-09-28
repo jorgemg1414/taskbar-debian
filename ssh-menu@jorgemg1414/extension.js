@@ -22,9 +22,11 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as BoxPointer from 'resource:///org/gnome/shell/ui/boxpointer.js';
 
 import {
-    escanearHosts, agruparHosts, expandirRuta, destinoSsh, uriSftp,
+    escanearHosts, agruparHosts, destinoSsh, uriSftp,
     crearConfigSiFalta, GRUPO_SIN_NOMBRE, PUERTO_SSH,
 } from './hosts.js';
+import {expandirRuta} from './rutas.js';
+import {lanzarPrimera, ALTERNATIVAS_EDITOR} from './lanzar.js';
 import {ComprobadorPuertos, ESTADO} from './checker.js';
 import {listarMontajesSftp, idsMontados, uriDeMontaje, desmontar} from './montajes.js';
 import {SitioEnLaBarra} from './barra.js';
@@ -83,14 +85,6 @@ const ALTERNATIVAS_GESTOR = [
     'thunar %s',
     'dolphin %s',
     'pcmanfm %s',
-];
-
-// Editores alternativos para «Editar config».
-const ALTERNATIVAS_EDITOR = [
-    'gnome-text-editor %f',
-    'gedit %f',
-    'kate %f',
-    'xdg-open %f',
 ];
 
 /* -------------------------------------------------------------------------
@@ -1146,36 +1140,10 @@ class IndicadorSsh extends PanelMenu.Button {
     /* -------------------------- Lanzamiento -------------------------- */
 
     /**
-     * Sustituye los marcadores de la plantilla y devuelve el argv.
-     *
-     * La sustitución se hace DESPUÉS de trocear la orden, de modo que un alias
-     * o una ruta con espacios no puede convertirse en argumentos extra.
-     *
-     * @param {string} plantilla orden con marcadores (%n, %h, %p, %u, %d, %f, %s)
-     * @param {object} valores valores de sustitución ya calculados
-     * @returns {string[]|null} argv listo para Gio.Subprocess, o null si no parsea
-     */
-    _construirArgv(plantilla, valores) {
-        let troceado;
-        try {
-            const [ok, argv] = GLib.shell_parse_argv(plantilla);
-            if (!ok || argv.length === 0)
-                return null;
-            troceado = argv;
-        } catch (e) {
-            console.warn(`[ssh-menu] Comando mal escrito «${plantilla}»: ${e.message}`);
-            return null;
-        }
-
-        return troceado.map(arg =>
-            arg.replace(/%[nhpudfs]/g, marca => valores[marca] ?? marca));
-    }
-
-    /**
      * Valores de sustitución de un equipo.
      *
      * @param {object} host equipo seleccionado
-     * @returns {object} marcadores listos para _construirArgv()
+     * @returns {object} marcadores listos para lanzarPrimera()
      */
     _valoresDe(host) {
         return {
@@ -1197,26 +1165,7 @@ class IndicadorSsh extends PanelMenu.Button {
      * @returns {boolean} si se pudo lanzar alguna
      */
     _lanzar(plantillas, valores) {
-        for (const plantilla of plantillas) {
-            if (!plantilla)
-                continue;
-
-            const argv = this._construirArgv(plantilla, valores);
-            if (!argv)
-                continue;
-
-            // Si el binario no está instalado se pasa a la siguiente alternativa.
-            if (!GLib.find_program_in_path(argv[0]))
-                continue;
-
-            try {
-                Gio.Subprocess.new(argv, Gio.SubprocessFlags.NONE);
-                return true;
-            } catch (e) {
-                console.warn(`[ssh-menu] Falló «${argv.join(' ')}»: ${e.message}`);
-            }
-        }
-        return false;
+        return lanzarPrimera(plantillas, valores, 'ssh-menu');
     }
 
     /**

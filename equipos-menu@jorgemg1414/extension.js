@@ -28,8 +28,9 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {
-    escanearHosts, agruparHosts, expandirRuta, GRUPO_SIN_NOMBRE,
+    escanearHosts, agruparHosts, GRUPO_SIN_NOMBRE,
 } from './hosts.js';
+import {expandirRuta} from './rutas.js';
 import {ComprobadorPuertos, ESTADO, esperarArranque} from './checker.js';
 import {SitioEnLaBarra} from './barra.js';
 import {ajustesWol, leerEquipos, datosWolDe, despertar, CacheMacs} from './wol.js';

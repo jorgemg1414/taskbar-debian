@@ -14,7 +14,7 @@ set -euo pipefail
 
 UUID="vnc-menu@jorgemg1414"
 PROPIOS=(metadata.json extension.js prefs.js connections.js ventanas.js)
-COMUNES=(asyncgio.js barra.js barraprefs.js checker.js menu.js wol.js)
+COMUNES=(asyncgio.js barra.js barraprefs.js checker.js lanzar.js menu.js rutas.js wol.js)
 ESTILOS_COMUNES=si
 
 

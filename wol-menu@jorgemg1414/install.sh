@@ -14,7 +14,7 @@ set -euo pipefail
 
 UUID="wol-menu@jorgemg1414"
 PROPIOS=(metadata.json extension.js prefs.js)
-COMUNES=(asyncgio.js barra.js barraprefs.js checker.js hosts.js wol.js)
+COMUNES=(asyncgio.js barra.js barraprefs.js checker.js hosts.js rutas.js wol.js)
 ESTILOS_COMUNES=si
 
 

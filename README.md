@@ -435,7 +435,9 @@ taskbar-debian/
 │   ├── barraprefs.js      The two preference rows that pick it
 │   ├── checker.js         Port checks, asynchronous and cancellable
 │   ├── hosts.js           Reads and parses ~/.ssh/config
+│   ├── lanzar.js          Opens a program from a command in the settings
 │   ├── mpris.js           What's playing, player control, and pausing everything
+│   ├── rutas.js           Paths from the settings, made absolute
 │   └── wol.js             Magic packet, machine list, MACs learned from ARP
 ├── ssh-menu@jorgemg1414/  SSH Menu (see its own README)
 ├── wol-menu@jorgemg1414/  Wake on LAN (see its own README)

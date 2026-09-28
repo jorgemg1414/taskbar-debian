@@ -24,7 +24,9 @@ repository holds exactly one copy of each file.
 | `menu.js` | Menu pieces: action row, confirmation row, search field, scrolling list, badge and focus handling | VNC, SSH, Machines |
 | `estilos.css` | The rules that look the same in every menu, prefixed `tb-` | VNC, SSH, WoL, Machines |
 | `instalar.sh` | The installer: requirements, copying, schema and messages | all six extensions |
+| `lanzar.js` | Opens a program from a command in the settings (`remmina -c vnc://%h:%p`), trying alternatives | VNC, SSH, Pendientes |
 | `mpris.js` | What is playing and player control over D-Bus; and pausing everything at once | Spotify, Focus |
+| `rutas.js` | Paths from the settings (`~/.ssh/config`, `Documentos/VNC`) turned into absolute ones | VNC, SSH, WoL, Machines, Pendientes |
 | `wol.js` | Magic packet, machine list, and MACs learned from the ARP table | WoL, SSH, VNC |
 
 ---
@@ -87,7 +89,7 @@ it, and keeps only what differs between them.
 ```bash
 UUID="ssh-menu@jorgemg1414"
 PROPIOS=(metadata.json extension.js prefs.js montajes.js)
-COMUNES=(asyncgio.js barra.js checker.js hosts.js menu.js wol.js)
+COMUNES=(asyncgio.js barra.js barraprefs.js checker.js hosts.js lanzar.js menu.js rutas.js wol.js)
 ESTILOS_COMUNES=si
 
 requisitos() { ... }        # optional: whatever only this one needs

@@ -25,7 +25,9 @@ hay un solo archivo de cada cosa.
 | `menu.js` | Piezas de menú: fila de acciones, confirmación, buscador, lista con desplazamiento, insignia y foco | VNC, SSH, Equipos |
 | `estilos.css` | Las reglas que se ven igual en todos los menús, con el prefijo `tb-` | VNC, SSH, WoL, Equipos |
 | `instalar.sh` | El instalador: requisitos, copia, esquema y mensajes | las seis extensiones |
+| `lanzar.js` | Abrir un programa desde una orden de los ajustes (`remmina -c vnc://%h:%p`), probando alternativas | VNC, SSH, Pendientes |
 | `mpris.js` | Qué está sonando y control del reproductor, por D-Bus; y pausar todo de golpe | Spotify, Concentración |
+| `rutas.js` | Rutas de los ajustes (`~/.ssh/config`, `Documentos/VNC`) pasadas a absolutas | VNC, SSH, WoL, Equipos, Pendientes |
 | `wol.js` | Paquete mágico, lista de equipos y MAC aprendidas de la tabla ARP | WoL, SSH, VNC |
 
 ---
@@ -88,7 +90,7 @@ extensión, que se queda solo con lo que cambia de una a otra.
 ```bash
 UUID="ssh-menu@jorgemg1414"
 PROPIOS=(metadata.json extension.js prefs.js montajes.js)
-COMUNES=(asyncgio.js barra.js checker.js hosts.js menu.js wol.js)
+COMUNES=(asyncgio.js barra.js barraprefs.js checker.js hosts.js lanzar.js menu.js rutas.js wol.js)
 ESTILOS_COMUNES=si
 
 requisitos() { ... }        # opcional: lo que solo le hace falta a esta

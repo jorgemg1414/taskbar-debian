@@ -30,6 +30,7 @@ import {
     queryInfo, enumerateChildren, nextFiles, closeEnumerator,
     loadContentsWithEtag, replaceContents,
 } from './asyncgio.js';
+import {expandirRuta} from './rutas.js';
 
 // Grupo de las tareas que no tienen ningún encabezado por encima.
 export const SIN_ENCABEZADO = 'Sin encabezado';
@@ -72,28 +73,6 @@ pulses. Todo lo demás —texto, listas, notas— se queda como esté.
 Los encabezados agrupan lo que viene debajo, así que las tres de arriba salen
 bajo «Ejemplos».
 `;
-
-/**
- * Expande '~' al directorio personal y normaliza la ruta.
- *
- * @param {string} ruta ruta tal cual viene de GSettings
- * @returns {string} ruta absoluta
- */
-export function expandirRuta(ruta) {
-    if (!ruta)
-        return '';
-
-    let r = ruta.trim();
-    if (r === '~')
-        r = GLib.get_home_dir();
-    else if (r.startsWith('~/'))
-        r = GLib.build_filenamev([GLib.get_home_dir(), r.slice(2)]);
-
-    if (!GLib.path_is_absolute(r))
-        r = GLib.build_filenamev([GLib.get_home_dir(), r]);
-
-    return r;
-}
 
 /**
  * Nombre del archivo sin extensión, que es como se le llama en el menú.

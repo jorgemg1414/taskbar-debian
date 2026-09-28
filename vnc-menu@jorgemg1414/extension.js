@@ -20,7 +20,9 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as BoxPointer from 'resource:///org/gnome/shell/ui/boxpointer.js';
 
-import {escanearConexiones, agruparConexiones, expandirRuta, GRUPO_SIN_NOMBRE} from './connections.js';
+import {escanearConexiones, agruparConexiones, GRUPO_SIN_NOMBRE} from './connections.js';
+import {expandirRuta} from './rutas.js';
+import {lanzarPrimera} from './lanzar.js';
 import {ComprobadorPuertos, ESTADO} from './checker.js';
 import {listarSesiones} from './ventanas.js';
 import {ajustesWol, leerEquipos, datosWolDe, despertar, CacheMacs} from './wol.js';
@@ -891,37 +893,19 @@ class IndicadorVnc extends PanelMenu.Button {
     /* -------------------------- Lanzamiento -------------------------- */
 
     /**
-     * Sustituye los marcadores de la plantilla y devuelve el argv.
+     * Marcadores de una conexión para las plantillas de órdenes.
      *
-     * La sustitución se hace DESPUÉS de trocear la orden, de modo que un host
-     * o una ruta con espacios no puede convertirse en argumentos extra.
-     *
-     * @param {string} plantilla orden con marcadores (%h, %p, %u, %n, %f)
      * @param {object} conexion conexión de la que salen los valores
-     * @returns {string[]|null} argv listo para Gio.Subprocess, o null si no parsea
+     * @returns {object} marcador -> valor
      */
-    _construirArgv(plantilla, conexion) {
-        let troceado;
-        try {
-            const [ok, argv] = GLib.shell_parse_argv(plantilla);
-            if (!ok || argv.length === 0)
-                return null;
-            troceado = argv;
-        } catch (e) {
-            console.warn(`[vnc-menu] Comando mal escrito «${plantilla}»: ${e.message}`);
-            return null;
-        }
-
-        const valores = {
+    _valoresDe(conexion) {
+        return {
             '%h': conexion.host,
             '%p': String(conexion.port),
             '%u': conexion.usuario ?? '',
             '%n': conexion.nombre,
             '%f': conexion.ruta,
         };
-
-        return troceado.map(arg =>
-            arg.replace(/%[hpunf]/g, marca => valores[marca] ?? marca));
     }
 
     /**
@@ -944,22 +928,8 @@ class IndicadorVnc extends PanelMenu.Button {
         // La plantilla configurada primero; después los clientes alternativos.
         const candidatas = [configurada, ...(esRemmina ? ALTERNATIVAS_REMMINA : ALTERNATIVAS_VNC)];
 
-        for (const plantilla of candidatas) {
-            const argv = this._construirArgv(plantilla, conexion);
-            if (!argv)
-                continue;
-
-            // Si el binario no está instalado se pasa a la siguiente alternativa.
-            if (!GLib.find_program_in_path(argv[0]))
-                continue;
-
-            try {
-                Gio.Subprocess.new(argv, Gio.SubprocessFlags.NONE);
-                return;
-            } catch (e) {
-                console.warn(`[vnc-menu] Falló «${argv.join(' ')}»: ${e.message}`);
-            }
-        }
+        if (lanzarPrimera(candidatas, this._valoresDe(conexion), 'vnc-menu'))
+            return;
 
         Main.notifyError(
             'VNC Menu',
@@ -974,18 +944,8 @@ class IndicadorVnc extends PanelMenu.Button {
     _abrirCarpeta(ruta = null) {
         const carpeta = ruta ?? this._carpeta;
         const plantilla = this._settings.get_string('file-manager-command');
-        const argv = this._construirArgv(plantilla, {
-            host: '', port: '', usuario: '', nombre: '', ruta: carpeta,
-        });
-
-        if (argv && GLib.find_program_in_path(argv[0])) {
-            try {
-                Gio.Subprocess.new(argv, Gio.SubprocessFlags.NONE);
-                return;
-            } catch (e) {
-                console.warn(`[vnc-menu] No se pudo abrir la carpeta: ${e.message}`);
-            }
-        }
+        if (lanzarPrimera([plantilla], {'%f': carpeta}, 'vnc-menu'))
+            return;
 
         // Reserva: el gestor de archivos predeterminado del sistema.
         try {

@@ -14,7 +14,7 @@ set -euo pipefail
 
 UUID="pendientes@jorgemg1414"
 PROPIOS=(metadata.json extension.js prefs.js tareas.js)
-COMUNES=(asyncgio.js barra.js barraprefs.js menu.js)
+COMUNES=(asyncgio.js barra.js barraprefs.js lanzar.js menu.js rutas.js)
 ESTILOS_COMUNES=si
 
 # --------------------- Requisitos de esta extensión ---------------------
