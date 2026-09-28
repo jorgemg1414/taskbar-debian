@@ -41,6 +41,13 @@ export const VITALES = {
 // cuatro a la vez se nota en el arranque del menú y no se gana nada.
 const MAX_PARALELO = 4;
 
+// Segundos que puede tardar una orden entera, conexión incluida. El
+// ConnectTimeout de ssh solo cubre el saludo: una orden que se cuelga después
+// —la búsqueda de Windows Update, o un disco que no responde a df— dejaría la
+// consulta ocupando un hueco para siempre. Va holgado a propósito: lo lento
+// que es normal (Windows Update tarda sus buenos segundos) tiene que caber.
+const LIMITE_ORDEN_S = 90;
+
 /**
  * Script POSIX que imprime las vitales en líneas «clave=valor».
  *
@@ -91,7 +98,9 @@ function scriptWindows(conActualizaciones) {
         // TotalVisibleMemorySize y FreePhysicalMemory ya vienen en KiB.
         '"memoria=" + $so.TotalVisibleMemorySize + " " + ($so.TotalVisibleMemorySize - $so.FreePhysicalMemory)',
         '$d = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID=\'C:\'"',
-        '"disco=" + [int]($d.Size / 1024) + " " + [int](($d.Size - $d.FreeSpace) / 1024)',
+        // [long] y no [int]: en KiB, un disco de 2 TiB ya no cabe en 32 bits,
+        // y el fallo de conversión se callaría y el disco desaparecería.
+        '"disco=" + [long]($d.Size / 1024) + " " + [long](($d.Size - $d.FreeSpace) / 1024)',
         // Windows no tiene carga media: lo más parecido es el uso de CPU.
         '"cpu=" + (Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average',
     ];
@@ -595,12 +604,38 @@ export class MonitorVitales {
      * @param {Gio.Cancellable} cancellable cancelable
      * @returns {Promise<{salida: string, error: string, codigo: number}>} resultado
      */
-    ejecutarCrudo(host, orden, cancellable = null) {
+    async ejecutarCrudo(host, orden, cancellable = null) {
         const proceso = Gio.Subprocess.new(
             argvSsh(host, orden, this._conexion),
             Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE);
 
-        return comunicar(proceso, cancellable);
+        // Un cancelable propio, colgado del de fuera, para poder cortar por
+        // plazo sin tocar el de quien llama. Cancelarlo mata el ssh.
+        const propio = new Gio.Cancellable();
+        const idFuera = cancellable?.connect(() => propio.cancel()) ?? 0;
+
+        let agotado = false;
+        let idPlazo = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, LIMITE_ORDEN_S, () => {
+            idPlazo = 0;
+            agotado = true;
+            propio.cancel();
+            return GLib.SOURCE_REMOVE;
+        });
+
+        try {
+            return await comunicar(proceso, propio);
+        } catch (e) {
+            // Por plazo no es una cancelación: es un fallo, y así se tiene que
+            // ver en el menú, no quedarse en «consultando».
+            if (agotado && !cancellable?.is_cancelled())
+                throw new Error(`no terminó en ${LIMITE_ORDEN_S} s`);
+            throw e;
+        } finally {
+            if (idPlazo)
+                GLib.source_remove(idPlazo);
+            if (idFuera)
+                cancellable.disconnect(idFuera);
+        }
     }
 
     /**

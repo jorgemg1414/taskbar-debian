@@ -197,13 +197,25 @@ export function replaceContents(file, bytes, etag, cancellable) {
 /**
  * Espera a que termine un subproceso y recoge lo que haya escrito.
  *
+ * Cancelar no solo deja de esperar: también mata el proceso. GIO por sí solo
+ * suelta la espera y deja el programa corriendo, y un ssh contra un equipo que
+ * no contesta seguiría vivo hasta agotar su propio plazo, o para siempre si lo
+ * que se cuelga es la orden remota.
+ *
  * @param {Gio.Subprocess} proceso proceso lanzado con las tuberías abiertas
  * @param {Gio.Cancellable} cancellable cancelable
  * @returns {Promise<{salida: string, error: string, codigo: number}>} resultado
  */
 export function comunicar(proceso, cancellable) {
+    // Si ya estaba cancelado, connect() llama al momento: el proceso no llega
+    // a quedarse suelto.
+    const idCancelar = cancellable?.connect(() => proceso.force_exit()) ?? 0;
+
     return new Promise((resolve, reject) => {
         proceso.communicate_utf8_async(null, cancellable, (obj, res) => {
+            if (idCancelar)
+                cancellable.disconnect(idCancelar);
+
             try {
                 const [, salida, error] = obj.communicate_utf8_finish(res);
                 resolve({
