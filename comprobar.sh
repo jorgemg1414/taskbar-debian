@@ -75,6 +75,18 @@ for ext in ./*@jorgemg1414; do
         done < <(grep -oP "from '\./\K[^']+" "$archivo" | sort -u)
     done
 
+    # Los módulos comunes que se copian también importan cosas, y esas tienen
+    # que ir en la misma carpeta: si hosts.js pide rutas.js, toda extensión
+    # que copie hosts.js tiene que copiar rutas.js, la use ella o no.
+    while IFS= read -r modulo; do
+        [[ -n "$modulo" && -f "comun/$modulo" ]] || continue
+        while IFS= read -r imp; do
+            [[ -n "$imp" ]] || continue
+            grep -qx "$imp" <<<"$comunes" ||
+                fallo "INSTALL   $uuid copia «$modulo», que importa «$imp», y «$imp» no está en COMUNES"
+        done < <(grep -oP "from '\./\K[^']+" "comun/$modulo" | sort -u)
+    done <<<"$comunes"
+
     # Lo que el instalador promete copiar tiene que existir.
     while IFS= read -r archivo; do
         [[ -n "$archivo" ]] || continue
