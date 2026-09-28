@@ -414,18 +414,26 @@ async function leerConfig(ruta, grupoBase, profundidad, cancellable, acc) {
  * es directa y sondear el puerto desde aquí daría un rojo falso. `none` es la
  * forma de apagar lo que viniera de `Host *`.
  *
- * @param {Function} conRespaldo lee una clave del bloque o de `Host *`
+ * Las dos directivas se excluyen, y en ssh gana la que aparece antes: por eso
+ * se mira primero el bloque del equipo entero, y solo después `Host *`. Un
+ * `ProxyCommand` propio no lo tapa un `ProxyJump` de `Host *`.
+ *
+ * @param {Map<string, string>} propias claves del bloque del equipo
+ * @param {Map<string, string>} globales claves de `Host *`
  * @returns {string} lo que se enseña tras «⇢», o cadena vacía si es directo
  */
-function saltoDe(conRespaldo) {
-    const salto = conRespaldo('proxyjump');
-    if (salto && salto.toLowerCase() !== 'none')
-        return salto;
+function saltoDe(propias, globales) {
+    for (const claves of [propias, globales]) {
+        const salto = claves.get('proxyjump');
+        const orden = claves.get('proxycommand');
 
-    const orden = conRespaldo('proxycommand');
-    if (orden && orden.toLowerCase() !== 'none') {
-        const programa = orden.trim().split(/\s+/)[0];
-        return GLib.path_get_basename(programa);
+        if (salto !== undefined)
+            return salto.toLowerCase() === 'none' ? '' : salto;
+        if (orden !== undefined) {
+            if (orden.toLowerCase() === 'none')
+                return '';
+            return GLib.path_get_basename(orden.trim().split(/\s+/)[0]);
+        }
     }
 
     return '';
@@ -458,7 +466,7 @@ function construirHost(bruto, globales) {
         port,
         usuario: conRespaldo('user'),
         // Si hay salto, la conexión no es directa: el punto de estado no vale.
-        salto: saltoDe(conRespaldo),
+        salto: saltoDe(bruto.claves, globales),
         // De los comentarios «# MAC:» y «# Difusión:», para encenderlo.
         mac: bruto.mac ?? '',
         difusion: bruto.difusion ?? '',
