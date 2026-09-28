@@ -59,7 +59,8 @@ Labels=OFICINAS/OFICINAS (NORTE)
 
 - **Nombre visible:** el del archivo sin extensión (`OFICINA.vnc` → `OFICINA`).
 - **Host y puerto:** de `Host=`. Si no hay puerto se usa el 5900; un número menor
-  que 100 se interpreta como *display* VNC (`:4` → 5904).
+  que 100 se interpreta como *display* VNC (`:4` → 5904). Con dos puntos dobles
+  el puerto va tal cual, sin esa cuenta (`equipo::5901` → 5901).
 - **Grupo:** de `Labels=`. Cuando un archivo tiene varias etiquetas se elige la
   que comparten **más** conexiones, y del nombre jerárquico se muestra el último
   tramo tras `/` (`OFICINAS/OFICINAS (NORTE)` → *OFICINAS (NORTE)*).

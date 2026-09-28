@@ -70,6 +70,20 @@ function partirHostPuerto(valor) {
     let host = texto;
     let puerto = null;
 
+    // «host::5901»: los dos puntos dobles son la forma de TigerVNC y RealVNC de
+    // dar el puerto tal cual, sin la cuenta del «display». Tiene la misma
+    // forma que una IPv6 corta («fe80::1»), así que solo se toma por puerto si
+    // lo de delante no puede ser un grupo IPv6: un nombre con puntos o con
+    // letras que no son hexadecimales, o una IPv4.
+    const dobles = texto.match(/^([^:[\]]+)::(\d+)$/);
+    if (dobles && !/^[0-9a-f]{1,4}$/i.test(dobles[1])) {
+        puerto = parseInt(dobles[2], 10);
+        return {
+            host: dobles[1].trim(),
+            port: puerto > 0 && puerto <= 65535 ? puerto : PUERTO_VNC_POR_DEFECTO,
+        };
+    }
+
     if (texto.startsWith('[')) {
         // IPv6 literal: [dirección]:puerto
         const cierre = texto.indexOf(']');

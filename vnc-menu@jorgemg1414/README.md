@@ -59,7 +59,8 @@ Labels=OFFICES/OFFICES (NORTH)
 
 - **Menu label:** the filename without its extension (`OFFICE.vnc` → `OFFICE`).
 - **Host and port:** from `Host=`. With no port, 5900 is used; a number below
-  100 is read as a VNC *display* (`:4` → 5904).
+  100 is read as a VNC *display* (`:4` → 5904). With a double colon the port is
+  taken as is, without that arithmetic (`host::5901` → 5901).
 - **Group:** from `Labels=`. When a file carries several labels, the one shared
   by **most** connections wins, and only the last segment after `/` is shown
   (`OFFICES/OFFICES (NORTH)` → *OFFICES (NORTH)*).
