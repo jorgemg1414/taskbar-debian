@@ -119,9 +119,10 @@ fi
 TEXTO_CLAVE=$(tr -d '\r\n' < "$CLAVE")
 
 # Los scripts remotos entrecomillan la clave con comillas simples; una comilla
-# dentro del comentario los rompería.
+# dentro del comentario los rompería. PowerShell, además, toma por comilla
+# simple las tipográficas ‘ ’ ‚ ‛: un «Jorge’s» también lo rompe.
 case "$TEXTO_CLAVE" in
-    *"'"*)
+    *"'"* | *"‘"* | *"’"* | *"‚"* | *"‛"*)
         error "La clave lleva una comilla simple en su comentario."
         error "Cámbiale el comentario con:  ssh-keygen -c -C \"nuevo\" -f ${CLAVE%.pub}"
         exit 1 ;;
