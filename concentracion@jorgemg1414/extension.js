@@ -35,6 +35,10 @@ import {SitioEnLaBarra} from './barra.js';
 // Los botones de duración del menú, en minutos.
 const DURACIONES = [25, 50, 90];
 
+// Cada cuánto se mira si la sesión ha terminado cuando no se enseña la cuenta
+// atrás. Es también lo más que se puede pasar del final tras una suspensión.
+const LATIDO_SIN_CUENTA_S = 30;
+
 // Ajuste de GNOME que enseña o calla los avisos. Es el mismo que mueve el
 // interruptor de «No molestar» del calendario.
 const ESQUEMA_AVISOS = 'org.gnome.desktop.notifications';
@@ -525,7 +529,10 @@ class IndicadorConcentracion extends PanelMenu.Button {
             return;
 
         // Con la cuenta a la vista hace falta un latido por segundo; sin ella,
-        // basta con despertarse una vez, al final.
+        // basta con mirar de vez en cuando. No vale despertarse una sola vez al
+        // final: los temporizadores de GLib van con el reloj monótono, que se
+        // para con el equipo suspendido, y una hora de suspensión retrasaría
+        // el final una hora. Cada latido compara con la hora de verdad.
         if (this._settings.get_boolean('show-countdown')) {
             this._idReloj = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 1, () => {
                 if (this.restante <= 0) {
@@ -537,10 +544,14 @@ class IndicadorConcentracion extends PanelMenu.Button {
                 return GLib.SOURCE_CONTINUE;
             });
         } else {
+            const espera = Math.max(1, Math.min(LATIDO_SIN_CUENTA_S, Math.ceil(restante)));
             this._idReloj = GLib.timeout_add_seconds(
-                GLib.PRIORITY_DEFAULT, Math.max(1, Math.ceil(restante)), () => {
+                GLib.PRIORITY_DEFAULT, espera, () => {
                     this._idReloj = 0;
-                    this.terminar({avisar: true});
+                    if (this.restante <= 0)
+                        this.terminar({avisar: true});
+                    else
+                        this._arrancarReloj();
                     return GLib.SOURCE_REMOVE;
                 });
         }
