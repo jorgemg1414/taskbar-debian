@@ -35,7 +35,8 @@ The code is written against the modern extension API (ESM, GNOME 45+):
 | [`actualizaciones/`](actualizaciones/) | **Updates** — letting security patches install themselves, and only those |
 | [`herramientas/`](herramientas/) | Helper scripts: turn `.vnc` files into Remmina profiles and store their password in the GNOME keyring |
 | [`comun/`](comun/) | Modules shared by several extensions. The original lives here; each `install.sh` copies the ones it needs |
-| [`comprobar.sh`](comprobar.sh) | Checks the repository: syntax, imports, installers, schemas and styles, and flags installed copies that have fallen behind |
+| [`comprobar.sh`](comprobar.sh) | Checks the repository: syntax, imports, installers, schemas and styles, runs the tests and flags installed copies that have fallen behind |
+| [`pruebas/`](pruebas/) | Tests for the parsers and for whatever writes to your files, run with gjs. `comprobar.sh` runs them |
 
 ---
 
@@ -403,6 +404,20 @@ gnome-extensions info vnc-menu@jorgemg1414
 
 If it says it doesn't exist after installing, the session still needs a restart.
 
+Before installing, or after touching anything:
+
+```bash
+./comprobar.sh                    # everything: syntax, installers, styles and tests
+./pruebas/ejecutar.sh hosts       # just some tests, with their detail
+```
+
+The tests cover what can be tested without the shell: how `~/.ssh/config`, the
+VNC files and each machine's reply are read, MAC addresses, and everything
+Pendientes writes to your notes. They run with gjs, the same engine as the bar,
+and each file gets a throwaway home folder: they can't touch your `~/.ssh` or
+your notes. Anything that draws menus isn't tested here; that has to be seen in
+the bar.
+
 ---
 
 ## Repository layout
@@ -413,6 +428,7 @@ taskbar-debian/
 ├── portapapeles/          CopyQ and its shortcuts (see its own README)
 ├── actualizaciones/       Automatic security patches (see its own README)
 ├── herramientas/          Helper scripts (see above)
+├── pruebas/               Tests run with gjs; ejecutar.sh runs them all
 ├── comun/                 Shared modules (see its own README)
 │   ├── asyncgio.js        Promise wrappers around Gio's async calls
 │   ├── barra.js           The indicator's place in the top bar

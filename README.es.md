@@ -35,7 +35,8 @@ extensiones (ESM, GNOME 45+): `import ... from 'gi://…'`, clase que extiende
 | [`actualizaciones/`](actualizaciones/) | **Actualizaciones** — que los parches de seguridad entren solos, y solo ellos |
 | [`herramientas/`](herramientas/) | Scripts para convertir archivos `.vnc` en perfiles de Remmina y guardar su contraseña en el llavero de GNOME |
 | [`comun/`](comun/) | Los módulos que comparten varias extensiones. El original está aquí; cada `install.sh` copia los que necesita |
-| [`comprobar.sh`](comprobar.sh) | Repasa el repositorio: sintaxis, imports, instaladores, esquemas y estilos, y avisa de lo instalado que se ha quedado atrás |
+| [`comprobar.sh`](comprobar.sh) | Repasa el repositorio: sintaxis, imports, instaladores, esquemas y estilos, pasa las pruebas y avisa de lo instalado que se ha quedado atrás |
+| [`pruebas/`](pruebas/) | Pruebas de los parsers y de lo que escribe en tus archivos, con gjs. Las pasa `comprobar.sh` |
 
 ---
 
@@ -411,6 +412,20 @@ gnome-extensions info vnc-menu@jorgemg1414
 
 Si dice «no existe» después de instalarla, es que falta reiniciar la sesión.
 
+Antes de instalar, o después de tocar cualquier cosa:
+
+```bash
+./comprobar.sh                    # todo: sintaxis, instaladores, estilos y pruebas
+./pruebas/ejecutar.sh hosts       # solo unas pruebas, con su detalle
+```
+
+Las pruebas cubren lo que se puede probar sin el shell: cómo se leen el
+`~/.ssh/config`, los archivos de VNC y la respuesta de cada equipo, las MAC, y
+todo lo que Pendientes escribe en tus notas. Se ejecutan con gjs, el mismo
+motor que la barra, y cada archivo con una carpeta personal de usar y tirar:
+no pueden tocar tu `~/.ssh` ni tus notas. Lo que pinta menús no se prueba
+aquí; eso hay que verlo en la barra.
+
 ---
 
 ## Estructura del repositorio
@@ -421,6 +436,7 @@ taskbar-debian/
 ├── portapapeles/          CopyQ y sus atajos (ver su propio README)
 ├── actualizaciones/       Parches de seguridad automáticos (ver su propio README)
 ├── herramientas/          Scripts auxiliares (ver arriba)
+├── pruebas/               Pruebas con gjs; ejecutar.sh las pasa todas
 ├── comun/                 Módulos compartidos (ver su propio README)
 │   ├── asyncgio.js        Envoltorios de Promise sobre las llamadas de Gio
 │   ├── barra.js           El sitio del indicador en la barra superior

@@ -6,8 +6,9 @@
 # sino las cosas que se rompen al mover archivos de sitio, que es lo que más se
 # hace aquí: que todo parsee, que cada import exista, que el instalador copie lo
 # que se importa, que los esquemas compilen y que no haya clases de estilo
-# huérfanas. Y avisa de las extensiones instaladas que no coinciden con el
-# repositorio, que son las que siguen ejecutando código de antes.
+# huérfanas. Avisa de las extensiones instaladas que no coinciden con el
+# repositorio, que son las que siguen ejecutando código de antes. Y pasa las
+# pruebas de pruebas/, que sí miran que los parsers hagan lo que deben.
 #
 # Uso:
 #   ./comprobar.sh
@@ -39,7 +40,7 @@ if command -v node >/dev/null 2>&1; then
             fallo "SINTAXIS  $archivo"
             printf '%s\n' "$salida" | head -3
         fi
-    done < <(find comun herramientas ./*@jorgemg1414 -maxdepth 1 -name '*.js' 2>/dev/null)
+    done < <(find comun herramientas pruebas ./*@jorgemg1414 -maxdepth 1 -name '*.js' 2>/dev/null)
 else
     aviso "No está node: no se comprueba la sintaxis de los .js."
 fi
@@ -162,6 +163,20 @@ if (( ${#desfasadas[@]} )); then
         aviso "              ./${uuid}/install.sh"
     done
     aviso "          y después cerrar sesión: el shell no carga código nuevo en marcha."
+fi
+
+# ------------------------------- 7. Pruebas ----------------------------------
+#
+# Lo anterior mira que las piezas encajen; esto, que hagan lo que tienen que
+# hacer: los parsers y lo que escribe en tus archivos, con gjs, que es el mismo
+# motor que las ejecuta en la barra.
+if command -v gjs >/dev/null 2>&1; then
+    if ! salida=$(./pruebas/ejecutar.sh 2>&1); then
+        fallo "PRUEBAS   fallan; el detalle, con ./pruebas/ejecutar.sh"
+        printf '%s\n' "$salida" | grep -E '✗|esperado|real:' | head -20
+    fi
+else
+    aviso "No está gjs: no se pasan las pruebas."
 fi
 
 # ------------------------------- Resultado -----------------------------------
